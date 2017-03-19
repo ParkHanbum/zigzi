@@ -1,0 +1,3 @@
+distorm3==3.3.4
+Keystone==0.2.1
+pefile==2016.3.28
