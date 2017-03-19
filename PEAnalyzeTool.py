@@ -1,14 +1,25 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+"""PEAnalyzeTool, Analyze Portable Executable that Windows Executable Format Tool
+"""
+
+__author__ = 'ParkHanbum'
+__version__ = '2017.3.28'
+__contact__ = 'kese111@gmail.com'
+
 import copy
-import pefile
-import distorm3
 import binascii
 import sys
 import Queue
-import multiprocessing
+import os.path
 from threading import Thread
 import threading
-
+import operator
+import pydotplus
+import pefile
+import distorm3
 from keystone import *
+
 
 class PEEditor(object):
     fast_load = True
@@ -85,11 +96,12 @@ class PEEditor(object):
 
 class BasicBlock(object):
 
-    def __init__(self, start_va, size, element):
+    def __init__(self, start_va, block_size, last_inst_size, element):
         self.start_va = start_va
-        self.size = size
+        self.size = block_size
+        self.last_inst_size = last_inst_size
         self.element = element
-        self.end_va = start_va + size
+        self.end_va = start_va + block_size
 
 
 class CFGener(object):
@@ -127,8 +139,10 @@ class CFGener(object):
 
         if operand.type == CFGener.OPERAND_IMMEDIATE:
             operand_value = operand.value
+            branch_va = operand_value + basic_block.start_va
             #self.create_basic_block(operand_value + basic_block.start_va)
-            self.assign_new_branch(operand_value + basic_block.start_va)
+            self.direct_control_flow[basic_block.start_va] = branch_va
+            self.assign_new_branch(branch_va)
             handled = True
 
         if operand.type == CFGener.OPERAND_ABSOLUTE_ADDRESS:
@@ -136,6 +150,7 @@ class CFGener(object):
 
         # after call branching, parsing next
         #self.create_basic_block(basic_block.end_va)
+        self.direct_control_flow[basic_block.start_va] = basic_block.end_va
         self.assign_new_branch(basic_block.end_va)
         return handled
 
@@ -196,14 +211,20 @@ class CFGener(object):
 
     def __init__(self, PEEditor):
         self.PEE = PEEditor
-        self.MAX_DECODE_SIZE = 100
+        self.MAX_DECODE_SIZE = 200
         self.basic_blocks = {}
+        self.direct_control_flow = {}
         self.queue = Queue.Queue()
         self.execute_section = self.PEE.get_executable_section()
         self.execute_section_data = self.PEE.get_section_raw_data(self.execute_section)
         self.execute_section_va = self.execute_section.VirtualAddress
         self.entry_point_va = self.PEE.get_entry_point_va()
         self.lock = threading.Lock()
+
+        # initialize pydotplus
+        self.dot = pydotplus.graphviz.Dot(prog='test', format='dot')
+        node = pydotplus.graphviz.Node(name='node', shape='record')
+        self.dot.add_node(node)
 
     def assign_new_branch(self, va):
         self.lock.acquire()
@@ -255,12 +276,24 @@ class CFGener(object):
                                          distorm3.Decode32Bits,
                                          distorm3.DF_STOP_ON_FLOW_CONTROL)
         basic_block_size = 0
-        for el in basic_block:
-            basic_block_size += el.size
+        try:
+            if len(basic_block) >= 1:
+                for el in basic_block:
+                    basic_block_size += el.size
+                last_inst_size = basic_block[-1].size
+                new_basic_block = BasicBlock(start_rva, basic_block_size, last_inst_size, basic_block)
+                self.basic_blocks[start_rva] = new_basic_block
+                self.handle_flow_control(new_basic_block)
+            else:
+                self.remove_basic_block(start_rva)
+                print("Cannot Parse Addr [0x{:x}]").format(start_rva)
+        except IndexError:
+            self.remove_basic_block(start_rva)
+            print IndexError
 
-        new_basic_block = BasicBlock(start_rva, basic_block_size, basic_block)
-        self.basic_blocks[start_rva] = new_basic_block
-        self.handle_flow_control(new_basic_block)
+    def remove_basic_block(self, va):
+        if va in self.basic_blocks:
+            del self.basic_blocks[va]
 
     def print_cfg(self):
         for addr, bblock in self.basic_blocks.items():
@@ -270,6 +303,56 @@ class CFGener(object):
         print("BASIC BLOCK [0x{:08x}]".format(addr + self.execute_section_va))
         for inst in bblock.element:
             print("[0x{:08x}] {:30s}".format(addr + self.execute_section_va + inst.address, inst))
+
+    def save_cfg(self, save_path):
+        sorted_basic_blocks = sorted(self.basic_blocks.items(), key=operator.itemgetter(0))
+        for addr, bblock in sorted_basic_blocks:
+            try:
+                label = "{"
+                for inst in bblock.element:
+                    label += "{"
+                    label += ("loc_0x{:08x}").format(addr + self.execute_section_va + inst.address)
+                    label += " | "
+                    label += ("{:30s}").format(inst)
+                    label += "}"
+                    label += " | "
+                label = label[:-2]
+                label += "}"
+                node = pydotplus.graphviz.Node(name=("loc_0x{:08x}").format(addr + self.execute_section_va), label=label)
+                self.dot.add_node(node)
+            except AttributeError:
+                print bblock
+
+        sorted_dcfg_item = sorted(self.direct_control_flow.items(), key=operator.itemgetter(0))
+        for start_va, branch_va in sorted_dcfg_item:
+            src_va = ("loc_0x{:08x}").format(start_va + self.execute_section_va)
+            dst_va = ("loc_0x{:08x}").format(branch_va + self.execute_section_va)
+            edge = pydotplus.graphviz.Edge(src=src_va, dst=(dst_va))
+            self.dot.add_edge(edge)
+
+        self.dot.write(save_path)
+        self.dot.write_svg(save_path+".svg")
+
+    def save_basic_blocks(self, save_path):
+        path_bblock = os.path.abspath(os.path.join(save_path, "BasicBlocks.txt"))
+        path_cfg = os.path.abspath(os.path.join(save_path, "CFG.txt"))
+        save_file = open(path_bblock, "w")
+        save_cfg_file = open(path_cfg, "w")
+
+        sorted_basic_blocks = sorted(self.basic_blocks.items(), key=operator.itemgetter(0))
+        for addr, bblock in sorted_basic_blocks:
+            save_file.write("BASIC BLOCK [0x{:08x}] \n".format(addr + self.execute_section_va))
+            try:
+                for inst in bblock.element:
+                    save_file.write("[0x{:08x}] {:30s} \n".format(addr + self.execute_section_va + inst.address, inst))
+            except AttributeError:
+                print bblock
+
+        sorted_dcfg_item = sorted(self.direct_control_flow.items(), key=operator.itemgetter(0))
+        for start_va, branch_va in sorted_dcfg_item:
+            save_cfg_file.write("0x{:08x} ->  0x{:08x}\n".format(start_va + self.execute_section_va,
+                                                                 branch_va + self.execute_section_va))
+
 
 if __name__ == '__main__':
     sys.setrecursionlimit(100000)
@@ -286,8 +369,9 @@ if __name__ == '__main__':
     #data = bytearray(pee.PE.__data__[1024:1162752])
     cfgener = CFGener(pee)
     cfgener.gen_control_flow_graph()
-    cfgener.print_cfg()
-
+    #cfgener.print_cfg()
+    cfgener.save_basic_blocks("C:\\work")
+    cfgener.save_cfg("C:\\work\\cfg.test")
 
 
     """
