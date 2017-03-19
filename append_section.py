@@ -3,6 +3,11 @@ import pefile
 import distorm3
 import binascii
 import sys
+import Queue
+import multiprocessing
+from threading import Thread
+import threading
+
 from keystone import *
 
 class PEEditor(object):
@@ -107,6 +112,7 @@ class CFGener(object):
         :param BasicBlock: @type BasicBlock
         :return:
         """
+        handled = True
         basic_block_elems = basic_block.element
         operands = basic_block_elems[-1].operands
 
@@ -121,14 +127,16 @@ class CFGener(object):
 
         if operand.type == CFGener.OPERAND_IMMEDIATE:
             operand_value = operand.value
-            self.create_basic_block(operand_value + basic_block.start_va)
+            #self.create_basic_block(operand_value + basic_block.start_va)
+            self.assign_new_branch(operand_value + basic_block.start_va)
             handled = True
 
         if operand.type == CFGener.OPERAND_ABSOLUTE_ADDRESS:
             handled = False
 
         # after call branching, parsing next
-        self.create_basic_block(basic_block.end_va)
+        #self.create_basic_block(basic_block.end_va)
+        self.assign_new_branch(basic_block.end_va)
         return handled
 
     def handle_FC_RET(self, basic_block):
@@ -147,7 +155,7 @@ class CFGener(object):
         :param basic_block: @type BasicBlock
         :return:
         """
-        return 0
+        return True
 
     def handle_FC_UNC_BRANCH(self, basic_block):
         """
@@ -156,25 +164,7 @@ class CFGener(object):
         :param basic_block: @type BasicBlock
         :return:
         """
-        basic_block_elems = basic_block.element
-        operands = basic_block_elems[-1].operands
-
-        if len(operands) > 1:
-            return True
-
-        operand = operands[0]
-
-        # fin when operand is reg cause redirect
-        if operand.type == CFGener.OPERAND_REGISTER:
-            # it handled
-            return True
-
-        if operand.type == CFGener.OPERAND_IMMEDIATE:
-            operand_value = operand.value
-            self.create_basic_block(operand_value + basic_block.start_va)
-            return True
-
-        return False
+        return self.handle_FC_CALL(basic_block)
 
     def handle_FC_CND_BRANCH(self, basic_block):
         """
@@ -183,45 +173,78 @@ class CFGener(object):
         :param basic_block: @type BasicBlock
         :return:
         """
-        basic_block_elems = basic_block.element
-        operands = basic_block_elems[-1].operands
-
-        if len(operands) > 1:
-            return True
-
-        operand = operands[0]
-
-        # fin when operand is reg cause redirect
-        if operand.type == CFGener.OPERAND_REGISTER:
-            # it handled
-            return True
-
-        if operand.type == CFGener.OPERAND_IMMEDIATE:
-            operand_value = operand.value
-            self.create_basic_block(operand_value + basic_block.start_va)
-            return True
-
-        return False
+        return self.handle_FC_CALL(basic_block)
 
     def handle_flow_control(self, new_basic_block):
         """Dispatch method"""
-        method_name = 'handle_' + str(new_basic_block.element[-1].flowControl)
-        # Get the method from 'self'. Default to a lambda.
-        method = getattr(self, method_name, lambda: "nothing")
-        # Call the method as we return it
-        return method(new_basic_block)
+        try:
+            method_name = 'handle_' + str(new_basic_block.element[-1].flowControl)
+            method = getattr(self, method_name)
+            if callable(method):
+                # Call the method as we return it
+                return method(new_basic_block)
+            else:
+                print "error?"
+
+        except IndexError:
+            print "===== [INDEX ERROR] ====="
+            self.print_basic_block(new_basic_block.start_va, new_basic_block)
+            return False
+        except AttributeError:
+            self.print_basic_block(new_basic_block.start_va, new_basic_block)
+            return False
 
     def __init__(self, PEEditor):
         self.PEE = PEEditor
-        self.MAX_DECODE_SIZE = 50
+        self.MAX_DECODE_SIZE = 100
         self.basic_blocks = {}
+        self.queue = Queue.Queue()
+        self.execute_section = self.PEE.get_executable_section()
+        self.execute_section_data = self.PEE.get_section_raw_data(self.execute_section)
+        self.execute_section_va = self.execute_section.VirtualAddress
+        self.entry_point_va = self.PEE.get_entry_point_va()
+        self.lock = threading.Lock()
+
+    def assign_new_branch(self, va):
+        self.lock.acquire()
+        if not(va in self.basic_blocks):
+            self.basic_blocks[va] = 0
+            #print("Assign va : {:x}".format(va))
+            self.queue.put(va)
+        self.lock.release()
 
     def gen_control_flow_graph(self):
-        self.execute_section = self.PEE.get_executable_section()
-        self.execute_section_data = self.PEE.get_section_raw_data(execute_section)
-        self.execute_section_va = execute_section.VirtualAddress
-        self.entry_point_va = pee.get_entry_point_va()
-        self.create_basic_block(self.entry_point_va - self.execute_section_va)
+        # self.create_basic_block(self.entry_point_va - self.execute_section_va)
+        # assignment entry point to work
+        self.assign_new_branch(self.entry_point_va - self.execute_section_va)
+        self.worker()
+        """
+        max_process_num = multiprocessing.cpu_count()
+        threads = []
+        for i in range(max_process_num):
+            t = Thread(target=self.worker)
+            threads.append(t)
+            t.start()
+
+        for x in threads:
+            x.join()
+        """
+        print "all thread is done"
+
+    def worker(self):
+        MAX_IDLE_TIME = 1000
+        IDLE_TIME = 0
+        while True:
+            if IDLE_TIME > MAX_IDLE_TIME:
+                break
+            if not self.queue.empty():
+                IDLE_TIME = 0
+                branch_addr = self.queue.get()
+                #self.create_basic_block(branch_addr)
+                t = Thread(target=self.create_basic_block, args=[branch_addr])
+                t.start()
+            else:
+                IDLE_TIME += 1
 
     def create_basic_block(self, start_va):
         start_rva = start_va
@@ -241,9 +264,12 @@ class CFGener(object):
 
     def print_cfg(self):
         for addr, bblock in self.basic_blocks.items():
-            print("BASIC BLOCK [0x{:08x}]".format(addr + self.execute_section_va))
-            for inst in bblock.element:
-                print("[0x{:08x}] {:30s}".format(addr + self.execute_section_va + inst.address, inst))
+            self.print_basic_block(addr, bblock)
+
+    def print_basic_block(self, addr, bblock):
+        print("BASIC BLOCK [0x{:08x}]".format(addr + self.execute_section_va))
+        for inst in bblock.element:
+            print("[0x{:08x}] {:30s}".format(addr + self.execute_section_va + inst.address, inst))
 
 if __name__ == '__main__':
     sys.setrecursionlimit(100000)

@@ -2,7 +2,6 @@ import pefile
 import distorm3
 import binascii
 import operator
-from capstone import *
 
 def is_hex(s):
     try:
@@ -13,12 +12,11 @@ def is_hex(s):
 
 
 MAX_INST_SEARCH = 6
-md = Cs(CS_ARCH_X86, CS_MODE_32)
 text_start_va = 0
 text_end_va = 0
 text_rel_offset = 0
-pe = pefile.PE('c:\\AcroRd32.exe')
-openfile = open('c:\\AcroRd32.exe', 'rb')
+pe = pefile.PE('C:\\Program Files (x86)\Adobe\\Acrobat Reader DC\\Reader\\AcroRd32.exe')
+openfile = open('C:\\Program Files (x86)\Adobe\\Acrobat Reader DC\\Reader\\AcroRd32.exe', 'rb')
 
 call_log_file = open("call_log", "w")
 jump_log_file = open("jump_log", "w")
