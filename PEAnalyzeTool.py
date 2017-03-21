@@ -93,17 +93,6 @@ class PEEditor(object):
             if curr_section.Characteristics & 0x20000000:
                 return curr_section
 
-
-class BasicBlock(object):
-
-    def __init__(self, start_va, block_size, last_inst_size, element):
-        self.start_va = start_va
-        self.size = block_size
-        self.last_inst_size = last_inst_size
-        self.element = element
-        self.end_va = start_va + block_size
-
-
 class CFGener(object):
     # OPERAND TYPES
     OPERAND_NONE = ""
@@ -114,10 +103,10 @@ class CFGener(object):
     OPERAND_MEMORY = "AbsoluteMemory"  # The address calculated uses registers expression
     OPERAND_FAR_MEMORY = "FarMemory"  # like absolute but with selector/segment specified too
 
-    def handle_FC_NONE(self, basic_block):
+    def handle_FC_NONE(self, basic_block_size, inst):
         return 0
 
-    def handle_FC_CALL(self, basic_block):
+    def handle_FC_CALL(self, basic_block_size, inst):
         """
         handle kinds of CALL instruction.
         ex) CALL, CALL FAR.
@@ -125,8 +114,7 @@ class CFGener(object):
         :return:
         """
         handled = True
-        basic_block_elems = basic_block.element
-        operands = basic_block_elems[-1].operands
+        operands = inst.operands
 
         if len(operands) > 1:
             return True
@@ -139,22 +127,22 @@ class CFGener(object):
 
         if operand.type == CFGener.OPERAND_IMMEDIATE:
             operand_value = operand.value
-            branch_va = operand_value + basic_block.start_va
+            if operand_value < 0:
+                branch_va = inst.address + inst.size + operand_value - basic_block_size
+            else:
+                branch_va = inst.address + inst.size + operand_value - basic_block_size
             #self.create_basic_block(operand_value + basic_block.start_va)
-            self.direct_control_flow[basic_block.start_va] = branch_va
+            self.direct_control_flow[inst.address] = branch_va
             self.assign_new_branch(branch_va)
             handled = True
 
         if operand.type == CFGener.OPERAND_ABSOLUTE_ADDRESS:
             handled = False
 
-        # after call branching, parsing next
-        #self.create_basic_block(basic_block.end_va)
-        self.direct_control_flow[basic_block.start_va] = basic_block.end_va
-        self.assign_new_branch(basic_block.end_va)
+        self.assign_new_branch(inst.address+inst.size)
         return handled
 
-    def handle_FC_RET(self, basic_block):
+    def handle_FC_RET(self, basic_block_size, inst):
         """
         handle kinds of RET instruction.
         ex) RET, IRET, RETF.
@@ -163,7 +151,7 @@ class CFGener(object):
         """
         return True
 
-    def handle_FC_SYS(self, basic_block):
+    def handle_FC_SYS(self, basic_block_size, inst):
         """
         handle kinds of SYS instruction.
         ex) SYSCALL, SYSRET, SYSENTER, SYSEXIT.
@@ -172,41 +160,68 @@ class CFGener(object):
         """
         return True
 
-    def handle_FC_UNC_BRANCH(self, basic_block):
+    def handle_FC_UNC_BRANCH(self, basic_block_size, inst):
         """
         handle kinds of Unconditional Branch instructions
         ex) JMP, JMP FAR.
         :param basic_block: @type BasicBlock
         :return:
         """
-        return self.handle_FC_CALL(basic_block)
+        handled = True
+        operands = inst.operands
 
-    def handle_FC_CND_BRANCH(self, basic_block):
+        if len(operands) > 1:
+            return True
+
+        operand = operands[0]
+
+        # fin when operand is reg cause redirect
+        if operand.type == CFGener.OPERAND_REGISTER:
+            handled = False
+
+        if operand.type == CFGener.OPERAND_IMMEDIATE:
+            operand_value = operand.value
+            if operand_value < 0:
+                branch_va = inst.address + inst.size + operand_value - basic_block_size
+            else:
+                branch_va = inst.address + inst.size + operand_value - basic_block_size
+            # self.create_basic_block(operand_value + basic_block.start_va)
+            self.direct_control_flow[inst.address] = branch_va
+            self.assign_new_branch(branch_va)
+            handled = True
+
+        if operand.type == CFGener.OPERAND_ABSOLUTE_ADDRESS:
+            handled = False
+
+        self.assign_new_branch(inst.address + inst.size)
+        return handled
+
+    def handle_FC_CND_BRANCH(self, basic_block_size, inst):
         """
         handle kinds of Contional Branch instructions
         ex) JCXZ, JO, JNO, JB, JAE, JZ, JNZ, JBE, JA, JS, JNS, JP, JNP, JL, JGE, JLE, JG, LOOP, LOOPZ, LOOPNZ.
         :param basic_block: @type BasicBlock
         :return:
         """
-        return self.handle_FC_CALL(basic_block)
+        return self.handle_FC_UNC_BRANCH(basic_block_size, inst)
 
-    def handle_flow_control(self, new_basic_block):
+    def handle_flow_control(self, basic_block_size, inst):
         """Dispatch method"""
         try:
-            method_name = 'handle_' + str(new_basic_block.element[-1].flowControl)
+            method_name = 'handle_' + str(inst.flowControl)
             method = getattr(self, method_name)
             if callable(method):
                 # Call the method as we return it
-                return method(new_basic_block)
+                return method(basic_block_size, inst)
             else:
                 print "error?"
 
         except IndexError:
             print "===== [INDEX ERROR] ====="
-            self.print_basic_block(new_basic_block.start_va, new_basic_block)
+            # self.print_basic_block(new_basic_block.start_va, new_basic_block)
             return False
         except AttributeError:
-            self.print_basic_block(new_basic_block.start_va, new_basic_block)
+            # self.print_basic_block(new_basic_block.start_va, new_basic_block)
             return False
 
     def __init__(self, PEEditor):
@@ -264,6 +279,7 @@ class CFGener(object):
                 #self.create_basic_block(branch_addr)
                 t = Thread(target=self.create_basic_block, args=[branch_addr])
                 t.start()
+                t.join()
             else:
                 IDLE_TIME += 1
 
@@ -275,15 +291,14 @@ class CFGener(object):
                                          .decode('hex'),
                                          distorm3.Decode32Bits,
                                          distorm3.DF_STOP_ON_FLOW_CONTROL)
-        basic_block_size = 0
         try:
             if len(basic_block) >= 1:
-                for el in basic_block:
-                    basic_block_size += el.size
-                last_inst_size = basic_block[-1].size
-                new_basic_block = BasicBlock(start_rva, basic_block_size, last_inst_size, basic_block)
-                self.basic_blocks[start_rva] = new_basic_block
-                self.handle_flow_control(new_basic_block)
+                basic_block_size = 0
+                for inst in basic_block:
+                    basic_block_size += inst.size
+                    inst.address += start_rva
+                    self.basic_blocks[inst.address] = inst
+                self.handle_flow_control(basic_block_size, basic_block[-1])
             else:
                 self.remove_basic_block(start_rva)
                 print("Cannot Parse Addr [0x{:x}]").format(start_rva)
@@ -300,39 +315,44 @@ class CFGener(object):
             self.print_basic_block(addr, bblock)
 
     def print_basic_block(self, addr, bblock):
-        print("BASIC BLOCK [0x{:08x}]".format(addr + self.execute_section_va))
+        print("BASIC BLOCK [0x{:x}]".format(addr + self.execute_section_va))
         for inst in bblock.element:
-            print("[0x{:08x}] {:30s}".format(addr + self.execute_section_va + inst.address, inst))
+            print("[0x{:08x}] {:s}".format(addr + self.execute_section_va + inst.address, inst))
 
     def save_cfg(self, save_path):
+        basicblock_map = {}
+        basicblock_els = []
         sorted_basic_blocks = sorted(self.basic_blocks.items(), key=operator.itemgetter(0))
-        for addr, bblock in sorted_basic_blocks:
-            try:
-                label = "{"
-                for inst in bblock.element:
-                    label += "{"
-                    label += ("loc_0x{:08x}").format(addr + self.execute_section_va + inst.address)
-                    label += " | "
-                    label += ("{:30s}").format(inst)
-                    label += "}"
-                    label += " | "
-                label = label[:-2]
-                label += "}"
-                node = pydotplus.graphviz.Node(name=("loc_0x{:08x}").format(addr + self.execute_section_va), label=label)
-                self.dot.add_node(node)
-            except AttributeError:
-                print bblock
-
+        first_inst = (sorted_basic_blocks[0])[1]
+        basicblock = BasicBlock()
+        next_inst_addr = first_inst.address + first_inst.size
+        basicblock_els.append(first_inst.address)
+        basicblock.append(first_inst)
+        del sorted_basic_blocks[0]
+        for addr, inst in sorted_basic_blocks:
+            if inst.address != next_inst_addr:
+                self.dot.add_node(basicblock.toDotNode())
+                for n in basicblock_els:
+                    basicblock_map[n] = basicblock.get_va()
+                basicblock_els = []
+                basicblock = BasicBlock()
+            basicblock_els.append(inst.address)
+            basicblock.append(inst)
+            next_inst_addr = inst.address + inst.size
         sorted_dcfg_item = sorted(self.direct_control_flow.items(), key=operator.itemgetter(0))
         for start_va, branch_va in sorted_dcfg_item:
-            src_va = ("loc_0x{:08x}").format(start_va + self.execute_section_va)
-            dst_va = ("loc_0x{:08x}").format(branch_va + self.execute_section_va)
-            edge = pydotplus.graphviz.Edge(src=src_va, dst=(dst_va))
-            self.dot.add_edge(edge)
-
+            if (start_va in basicblock_map) and (branch_va in basicblock_map):
+                basicblock_va = basicblock_map[start_va]
+                src_va = ("loc_0x{:x}:loc_0x{:x}").format(basicblock_va, start_va)
+                basicblock_va = basicblock_map[branch_va]
+                dst_va = ("loc_0x{:x}:loc_0x{:x}").format(basicblock_va, branch_va)
+                edge = pydotplus.graphviz.Edge(src=src_va, dst=dst_va)
+                self.dot.add_edge(edge)
         self.dot.write(save_path)
         self.dot.write_svg(save_path+".svg")
+        print "Done"
 
+    """
     def save_basic_blocks(self, save_path):
         path_bblock = os.path.abspath(os.path.join(save_path, "BasicBlocks.txt"))
         path_cfg = os.path.abspath(os.path.join(save_path, "CFG.txt"))
@@ -352,6 +372,37 @@ class CFGener(object):
         for start_va, branch_va in sorted_dcfg_item:
             save_cfg_file.write("0x{:08x} ->  0x{:08x}\n".format(start_va + self.execute_section_va,
                                                                  branch_va + self.execute_section_va))
+    """
+
+
+class BasicBlock(object):
+
+    def __init__(self):
+        self.basicblock = {}
+        self.start_va = sys.maxint
+
+    def append(self, inst):
+        self.basicblock[inst.address] = inst
+        if self.start_va > inst.address:
+            self.start_va = inst.address
+
+    def get_va(self):
+        return self.start_va
+
+    def toDotNode(self):
+        sorted_basic_blocks = sorted(self.basicblock.items(), key=operator.itemgetter(0))
+        label = "{"
+        for addr, inst in sorted_basic_blocks:
+            label += "{"
+            label += ("<loc_0x{:x}>loc_0x{:x}").format(inst.address, inst.address)
+            label += "|"
+            label += ("{:s}").format(inst)
+            label += "}"
+            label += "|"
+        label = label[:-1]
+        label += "}"
+        node = pydotplus.graphviz.Node(name=("loc_0x{:x}").format(self.start_va), label=label)
+        return node
 
 
 if __name__ == '__main__':
@@ -370,48 +421,5 @@ if __name__ == '__main__':
     cfgener = CFGener(pee)
     cfgener.gen_control_flow_graph()
     #cfgener.print_cfg()
-    cfgener.save_basic_blocks("C:\\work")
+    #cfgener.save_basic_blocks("C:\\work")
     cfgener.save_cfg("C:\\work\\cfg.test")
-
-
-    """
-    entry_point_rva = entry_point_va - execute_section_va
-    basic_block = distorm3.Decompose(0x1000,
-                                     binascii.hexlify(
-                                         section_data[entry_point_rva:entry_point_rva+pee.MAX_DECODE_SIZE])
-                                     .decode('hex'),
-                                     distorm3.Decode32Bits,
-                                     distorm3.DF_STOP_ON_FLOW_CONTROL)
-    print basic_block
-    """
-
-    """
-    FlowControlHandler = {
-        "FC_NONE"   : handle_FC_NONE,
-        "FC_CALL"   : handle_FC_CALL,
-        "FC_RET"    : handle_FC_RET,
-        "FC_SYS"    : handle_FC_SYS,
-        "FC_UNC_BRANCH" : handle_FC_UNC_BRANCH,
-
-    }
-    """
-
-    """
-    ks = Ks(KS_ARCH_X86, KS_MODE_32)
-    encoding, count = ks.asm(b"mov eax, eax")
-    asm_inserted_count = 0
-    for (offset, size, instruction, hexdump) \
-            in distorm3.Decode(0x0, binascii.hexlify(section_data).decode('hex'), distorm3.Decode32Bits):
-        if instruction.startswith('CALL EBX'):
-            print("%.8x: %-32s %s" % (offset, hexdump, instruction))
-            # for test CALL EBX
-            # if hexdump == 'ffd3':
-            if (asm_inserted_count > 0): break
-            for instr in reversed(encoding):
-                section_data.insert(offset+(asm_inserted_count*2), instr)
-            asm_inserted_count += 1
-            print ("%.8x:" % (offset+(asm_inserted_count*2))) + binascii.hexlify(section_data[offset+(asm_inserted_count*2)-2:offset+(asm_inserted_count*2)+2])
-
-    pee.create_new_section(section_data)
-    pee.PE.write('c:\\work\\test_editor3.exe')
-    """
