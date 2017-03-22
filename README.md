@@ -1,8 +1,7 @@
 
-PECFI(Portable Executable Control Flow Integrity) proof of concept
+PECFI
 ==================================================================
 
 ## *Project Goal*
 
-we research and apply practical and advanced CFI(Control Flow Integrity) techniques to PE format.
-
+we develope framework for research and apply practical and advanced CFI(Control Flow Integrity) techniques to PE format.
