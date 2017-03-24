@@ -7,15 +7,15 @@ __author__ = 'ParkHanbum'
 __version__ = '2017.3.28'
 __contact__ = 'kese111@gmail.com'
 
-import binascii
-import sys
 import Queue
-from threading import Thread
-import threading
+import binascii
 import operator
-import pydotplus
+import sys
+import threading
 import distorm3
+import pydotplus
 import PEUtil
+from threading import Thread
 from keystone import *
 
 
@@ -150,22 +150,16 @@ class PEAnalyzer(object):
             # self.print_basic_block(new_basic_block.start_va, new_basic_block)
             return False
 
-    def __init__(self, PEEditor):
-        self.PEE = PEEditor
+    def __init__(self, execute_section, execute_section_data, entry_point_va):
         self.MAX_DECODE_SIZE = 200
         self.inst_map = {}
         self.direct_control_flow = {}
         self.queue = Queue.Queue()
-        self.execute_section = self.PEE.get_executable_section()
-        self.execute_section_data = self.PEE.get_section_raw_data(self.execute_section)
+        self.execute_section = execute_section
+        self.execute_section_data = execute_section_data
+        self.entry_point_va = entry_point_va
         self.execute_section_va = self.execute_section.VirtualAddress
-        self.entry_point_va = self.PEE.get_entry_point_va()
         self.lock = threading.Lock()
-
-        # initialize pydotplus
-        self.dot = pydotplus.graphviz.Dot(prog='test', format='dot')
-        node = pydotplus.graphviz.Node(name='node', shape='record')
-        self.dot.add_node(node)
 
     def assign_new_branch(self, va):
         self.lock.acquire()
@@ -224,7 +218,15 @@ class PEAnalyzer(object):
         if va in self.inst_map:
             del self.inst_map[va]
 
-    def save_cfg(self, save_path):
+    def save_cfg(self, save_path, name=None):
+        # initialize pydotplus
+        if name is None:
+            dot = pydotplus.graphviz.Dot(prog='test', format='dot')
+        else:
+            dot = pydotplus.graphviz.Dot(prog=name, format='dot')
+        node = pydotplus.graphviz.Node(name='node', shape='record')
+        dot.add_node(node)
+
         basicblock_map = {}
         basicblock_els = []
         sorted_basic_blocks = sorted(self.inst_map.items(), key=operator.itemgetter(0))
@@ -236,7 +238,7 @@ class PEAnalyzer(object):
         del sorted_basic_blocks[0]
         for addr, inst in sorted_basic_blocks:
             if inst.address != next_inst_addr:
-                self.dot.add_node(basicblock.toDotNode())
+                dot.add_node(basicblock.toDotNode())
                 for n in basicblock_els:
                     basicblock_map[n] = basicblock.get_va()
                 basicblock_els = []
@@ -252,10 +254,11 @@ class PEAnalyzer(object):
                 basicblock_va = basicblock_map[branch_va]
                 dst_va = ("loc_0x{:x}:loc_0x{:x}").format(basicblock_va, branch_va)
                 edge = pydotplus.graphviz.Edge(src=src_va, dst=dst_va)
-                self.dot.add_edge(edge)
-        self.dot.write(save_path)
-        self.dot.write_svg(save_path+".svg")
+                dot.add_edge(edge)
+        dot.write(save_path)
+        dot.write_svg(save_path+".svg")
         print "Done"
+
 
 class BasicBlock(object):
 
@@ -287,8 +290,103 @@ class BasicBlock(object):
         return node
 
 
-if __name__ == '__main__':
-    peutil = PEUtil.PEUtil('C:\\Program Files (x86)\Adobe\\Acrobat Reader DC\\Reader\\AcroRd32.exe')
-    peanalyzer = PEAnalyzer(peutil)
-    peanalyzer.gen_control_flow_graph()
-    peanalyzer.save_cfg("C:\\work\\cfg.test")
+class PEInstrument(object):
+    INSTRUMENT_BEFORE = 1
+    INSTRUMENT_AFTER = 2
+
+    def __init__(self, execute_data):
+        self.ks = Ks(KS_ARCH_X86, KS_MODE_32)
+        self.execute_data = execute_data
+        self.init()
+
+    def init(self):
+        self.diassemble = distorm3.Decompose(0x0,
+                                             binascii.hexlify(self.execute_data)
+                                             .decode('hex'),
+                                             distorm3.Decode32Bits,
+                                             distorm3.DF_NONE)
+
+    def instrument_redirect_call(self, inst, position=INSTRUMENT_AFTER):
+        """
+        handle kinds of Contional Branch instructions
+        ex) JCXZ, JO, JNO, JB, JAE, JZ, JNZ, JBE, JA, JS, JNS, JP, JNP, JL, JGE, JLE, JG, LOOP, LOOPZ, LOOPNZ.
+        :param basic_block: @type BasicBlock
+        :return:
+        """
+        return 0
+
+    def instrument_redirect_jmp(self, inst, position=INSTRUMENT_AFTER):
+        """
+        handle kinds of Contional Branch instructions
+        ex) JCXZ, JO, JNO, JB, JAE, JZ, JNZ, JBE, JA, JS, JNS, JP, JNP, JL, JGE, JLE, JG, LOOP, LOOPZ, LOOPNZ.
+        :param basic_block: @type BasicBlock
+        :return:
+        """
+        return 0
+
+    def instrument_RET(self, inst, position=INSTRUMENT_BEFORE):
+        """
+        handle kinds of Contional Branch instructions
+        ex) JCXZ, JO, JNO, JB, JAE, JZ, JNZ, JBE, JA, JS, JNS, JP, JNP, JL, JGE, JLE, JG, LOOP, LOOPZ, LOOPNZ.
+        :param basic_block: @type BasicBlock
+        :return:
+        """
+        return 0
+
+    def handle_flow_control(self, basic_block_size, inst):
+        """Dispatch method"""
+        try:
+            method_name = 'handle_' + str(inst.flowControl)
+            method = getattr(self, method_name)
+            if callable(method):
+                # Call the method as we return it
+                return method(basic_block_size, inst)
+            else:
+                print "error?"
+
+        except IndexError:
+            print "===== [INDEX ERROR] ====="
+            # self.print_basic_block(new_basic_block.start_va, new_basic_block)
+            return False
+        except AttributeError:
+            # self.print_basic_block(new_basic_block.start_va, new_basic_block)
+            return False
+
+    def instrument(self):
+
+        """
+        for (offset, size, instruction, hexdump) in self.diassemble:
+            if instruction.flowControl & 'FC_CALL' | 'FC_JMP' | 'FC_RET':
+        for (offset, size, instruction, hexdump) \
+                in distorm3.Decode(0x0, binascii.hexlify(section_data).decode('hex'), distorm3.Decode32Bits):
+            if instruction.startswith('CALL EBX'):
+                print("%.8x: %-32s %s" % (offset, hexdump, instruction))
+                # for test CALL EBX
+                # if hexdump == 'ffd3':
+                if (asm_inserted_count > 0): break
+                for instr in reversed(encoding):
+                    section_data.insert(offset + (asm_inserted_count * 2), instr)
+                asm_inserted_count += 1
+                print ("%.8x:" % (offset + (asm_inserted_count * 2))) + binascii.hexlify(
+                    section_data[offset + (asm_inserted_count * 2) - 2:offset + (asm_inserted_count * 2) + 2])
+
+
+
+        encoding, count = ks.asm(b"mov eax, eax")
+        asm_inserted_count = 0
+
+        for (offset, size, instruction, hexdump) \
+                in distorm3.Decode(0x0, binascii.hexlify(section_data).decode('hex'), distorm3.Decode32Bits):
+            if instruction.startswith('CALL EBX'):
+                print("%.8x: %-32s %s" % (offset, hexdump, instruction))
+                # for test CALL EBX
+                # if hexdump == 'ffd3':
+                if (asm_inserted_count > 0): break
+                for instr in reversed(encoding):
+                    section_data.insert(offset+(asm_inserted_count*2), instr)
+                asm_inserted_count += 1
+                print ("%.8x:" % (offset+(asm_inserted_count*2))) + binascii.hexlify(section_data[offset+(asm_inserted_count*2)-2:offset+(asm_inserted_count*2)+2])
+
+        pee.create_new_section(section_data)
+        pee.PE.write('c:\\work\\test_editor3.exe')
+        """

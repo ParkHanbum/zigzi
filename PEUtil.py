@@ -15,6 +15,9 @@ class PEUtil(object):
         pe_file_bytes = bytearray(pe_file.read())
         self.PE = pefile.PE(None, pe_file_bytes, self.fast_load)
 
+    def get_pe_name(self):
+        return self.PE_name
+
     def get_section_headers(self):
         return self.PE.sections
 

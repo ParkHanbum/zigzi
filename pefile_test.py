@@ -47,7 +47,7 @@ read_str = binascii.hexlify(read_hex)
 decode_call_map = {}
 decode_jump_map = {}
 decode_map = {}
-for (offset, size, instruction, hexdump) in distorm3.Decode(0x1000, read_str.decode('hex'), distorm3.Decode32Bits):
+for (offset, size, instruction, hexdump) in distorm3.Decode(0x0000, read_str.decode('hex'), distorm3.Decode32Bits):
     # print("0x%x:\t%s" % (offset, instruction))
     inst_log_file.write("[0x%x] %-30s\t%s\n" % (offset, instruction, hexdump))
     decode_map[offset] = instruction
