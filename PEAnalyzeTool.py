@@ -297,16 +297,19 @@ class PEInstrument(object):
     def __init__(self, execute_data):
         self.ks = Ks(KS_ARCH_X86, KS_MODE_32)
         self.execute_data = execute_data
-        self.init()
+        self.instruction_map = {}
+        self.disassembly = 0
+        self.disassemble()
+        for inst in self.disassembly:
+            self.instruction_map[inst.address] = inst
 
-    def init(self):
-        self.diassemble = distorm3.Decompose(0x0,
-                                             binascii.hexlify(self.execute_data)
-                                             .decode('hex'),
-                                             distorm3.Decode32Bits,
-                                             distorm3.DF_NONE)
+    def disassemble(self):
+        self.disassembly = distorm3.Decompose(0x0,
+                           binascii.hexlify(self.execute_data).decode('hex'),
+                           distorm3.Decode32Bits,
+                           distorm3.DF_NONE)
 
-    def instrument_redirect_call(self, inst, position=INSTRUMENT_AFTER):
+    def instrument_FC_CALL(self, inst, position=INSTRUMENT_AFTER):
         """
         handle kinds of Contional Branch instructions
         ex) JCXZ, JO, JNO, JB, JAE, JZ, JNZ, JBE, JA, JS, JNS, JP, JNP, JL, JGE, JLE, JG, LOOP, LOOPZ, LOOPNZ.
@@ -315,7 +318,7 @@ class PEInstrument(object):
         """
         return 0
 
-    def instrument_redirect_jmp(self, inst, position=INSTRUMENT_AFTER):
+    def instrument_FC_CND_BRANCH(self, inst, position=INSTRUMENT_AFTER):
         """
         handle kinds of Contional Branch instructions
         ex) JCXZ, JO, JNO, JB, JAE, JZ, JNZ, JBE, JA, JS, JNS, JP, JNP, JL, JGE, JLE, JG, LOOP, LOOPZ, LOOPNZ.
@@ -324,7 +327,7 @@ class PEInstrument(object):
         """
         return 0
 
-    def instrument_RET(self, inst, position=INSTRUMENT_BEFORE):
+    def instrument_FC_UND_BRANCH(self, inst, position=INSTRUMENT_AFTER):
         """
         handle kinds of Contional Branch instructions
         ex) JCXZ, JO, JNO, JB, JAE, JZ, JNZ, JBE, JA, JS, JNS, JP, JNP, JL, JGE, JLE, JG, LOOP, LOOPZ, LOOPNZ.
@@ -333,14 +336,23 @@ class PEInstrument(object):
         """
         return 0
 
-    def handle_flow_control(self, basic_block_size, inst):
+    def instrument_FC_RET(self, inst, position=INSTRUMENT_BEFORE):
+        """
+        handle kinds of Contional Branch instructions
+        ex) JCXZ, JO, JNO, JB, JAE, JZ, JNZ, JBE, JA, JS, JNS, JP, JNP, JL, JGE, JLE, JG, LOOP, LOOPZ, LOOPNZ.
+        :param basic_block: @type BasicBlock
+        :return:
+        """
+        return 0
+
+    def handle_instrument(self, inst_type, instrument_inst, position=None):
         """Dispatch method"""
         try:
-            method_name = 'handle_' + str(inst.flowControl)
+            method_name = 'instrument_' + inst_type
             method = getattr(self, method_name)
             if callable(method):
                 # Call the method as we return it
-                return method(basic_block_size, inst)
+                return method(instrument_inst, position)
             else:
                 print "error?"
 
@@ -352,41 +364,73 @@ class PEInstrument(object):
             # self.print_basic_block(new_basic_block.start_va, new_basic_block)
             return False
 
-    def instrument(self):
+    def logging(self, path):
+        log = open(path, 'w')
+        # monitoring instruction
+        instruction_types = ['FC_CALL', 'FC_UND_BRANCH', 'FC_CND_BRANCH', 'FC_RET', 'FC_INT']
+        result = ''
+        for (key, inst) in self.instruction_map.items():
+            cf = inst.flowControl
+            operands = inst.operands
+            if cf in instruction_types:
+                result += '[0x{:05x}]'.format(inst.address)
+                if len(operands) > 0:
+                    operand = operands[0]
+                    if operand.type == 'AbsoluteMemoryAddress':
+                        result += '{:>10s}\t'.format('AbsoluteMemoryAddr')
+                    elif operand.type == 'AbsoluteMemory':
+                        result += '{:>10s}\t'.format('AbsoluteMemory')
+                    elif operand.type == 'Immediate':
+                        result += '{:>10s}\t'.format('Immediate')
+                    elif operand.type == 'Register':
+                        result += '{:>10s}\t'.format('Register')
+                    else:
+                        result += 'Type{:s}\t{:s}\t'.format(operand.type, operand)
+                else:
+                    result += '{:>10s}\t'.format('NoneOperand')
+                result += '{:>10s}\t'.format(cf)
+                result += '{:s}\n'.format(inst)
+        log.write(result)
 
-        """
-        for (offset, size, instruction, hexdump) in self.diassemble:
-            if instruction.flowControl & 'FC_CALL' | 'FC_JMP' | 'FC_RET':
-        for (offset, size, instruction, hexdump) \
-                in distorm3.Decode(0x0, binascii.hexlify(section_data).decode('hex'), distorm3.Decode32Bits):
-            if instruction.startswith('CALL EBX'):
-                print("%.8x: %-32s %s" % (offset, hexdump, instruction))
-                # for test CALL EBX
-                # if hexdump == 'ffd3':
-                if (asm_inserted_count > 0): break
-                for instr in reversed(encoding):
-                    section_data.insert(offset + (asm_inserted_count * 2), instr)
-                asm_inserted_count += 1
-                print ("%.8x:" % (offset + (asm_inserted_count * 2))) + binascii.hexlify(
-                    section_data[offset + (asm_inserted_count * 2) - 2:offset + (asm_inserted_count * 2) + 2])
+    def disassembly_log(self, path):
+        log = open(path, 'w')
+        for inst in self.disassembly:
+            log.write("0x%x:\t%s\n" % (inst.address, inst))
+
+    def instrument_redirect_control_flow_inst(self, command, position=None):
+        instruction_types = ['FC_CALL', 'FC_UND_BRANCH', 'FC_CND_BRANCH', 'FC_RET']
+        instrument_count = 0
+        for (key, inst) in self.instruction_map.items():
+            cf = inst.flowControl
+            if cf in instruction_types:
+                if self.isRedirect(inst):
+                    result = self.instrument(command, inst, instrument_count)
+                    instrument_count += result
+
+        print "INSTRUMENT COUNT {:d}".format(instrument_count)
+        self.disassemble()
 
 
+    def instrument(self, command, instruction, count):
+        instrument_size = 0
+        instrument_inst = command(instruction)
+        if instrument_inst:
+            print instrument_inst
+            instrument_size = len(instrument_inst)
+            # put instrument instruction to execute_section_data
+            offset = instruction.address
+            offset = offset + count
+            self.execute_data[offset:offset] = instrument_inst
+        return instrument_size
 
-        encoding, count = ks.asm(b"mov eax, eax")
-        asm_inserted_count = 0
-
-        for (offset, size, instruction, hexdump) \
-                in distorm3.Decode(0x0, binascii.hexlify(section_data).decode('hex'), distorm3.Decode32Bits):
-            if instruction.startswith('CALL EBX'):
-                print("%.8x: %-32s %s" % (offset, hexdump, instruction))
-                # for test CALL EBX
-                # if hexdump == 'ffd3':
-                if (asm_inserted_count > 0): break
-                for instr in reversed(encoding):
-                    section_data.insert(offset+(asm_inserted_count*2), instr)
-                asm_inserted_count += 1
-                print ("%.8x:" % (offset+(asm_inserted_count*2))) + binascii.hexlify(section_data[offset+(asm_inserted_count*2)-2:offset+(asm_inserted_count*2)+2])
-
-        pee.create_new_section(section_data)
-        pee.PE.write('c:\\work\\test_editor3.exe')
-        """
+    def isRedirect(self, inst):
+        instruction_types = ['FC_CALL', 'FC_UND_BRANCH', 'FC_CND_BRANCH']
+        cf = inst.flowControl
+        if cf in instruction_types:
+            operands = inst.operands
+            if len(operands) > 0:
+                operand = operands[0]
+                if operand.type == 'AbsoluteMemoryAddress' or operand.type == 'Register' \
+                        or operand.type == 'AbsoluteMemory':
+                    return True
+        return False
