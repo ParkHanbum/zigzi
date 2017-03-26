@@ -300,14 +300,14 @@ class PEInstrument(object):
         self.instruction_map = {}
         self.disassembly = 0
         self.disassemble()
-        for inst in self.disassembly:
-            self.instruction_map[inst.address] = inst
 
     def disassemble(self):
         self.disassembly = distorm3.Decompose(0x0,
                            binascii.hexlify(self.execute_data).decode('hex'),
                            distorm3.Decode32Bits,
                            distorm3.DF_NONE)
+        for inst in self.disassembly:
+            self.instruction_map[inst.address] = inst
 
     def instrument_FC_CALL(self, inst, position=INSTRUMENT_AFTER):
         """
@@ -399,27 +399,24 @@ class PEInstrument(object):
 
     def instrument_redirect_control_flow_inst(self, command, position=None):
         instruction_types = ['FC_CALL', 'FC_UND_BRANCH', 'FC_CND_BRANCH', 'FC_RET']
-        instrument_count = 0
-        for (key, inst) in self.instruction_map.items():
+        instrument_total_count = 0
+        for inst in self.disassembly:
             cf = inst.flowControl
             if cf in instruction_types:
                 if self.isRedirect(inst):
-                    result = self.instrument(command, inst, instrument_count)
-                    instrument_count += result
+                    result = self.instrument(command, inst, instrument_total_count)
+                    instrument_total_count += result
 
-        print "INSTRUMENT COUNT {:d}".format(instrument_count)
+        print "INSTRUMENT COUNT {:d}".format(instrument_total_count)
         self.disassemble()
 
-
-    def instrument(self, command, instruction, count):
+    def instrument(self, command, instruction, total_count):
         instrument_size = 0
-        instrument_inst = command(instruction)
-        if instrument_inst:
-            print instrument_inst
+        instrument_inst, count = command(instruction)
+        if count > 0:
             instrument_size = len(instrument_inst)
             # put instrument instruction to execute_section_data
-            offset = instruction.address
-            offset = offset + count
+            offset = instruction.address + total_count
             self.execute_data[offset:offset] = instrument_inst
         return instrument_size
 

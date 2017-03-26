@@ -12,10 +12,10 @@ def test(instruction):
         ks = Ks(KS_ARCH_X86, KS_MODE_32)
         encoding, count = ks.asm(code)
         # print("%s = %s (number of statements: %u)" % (code, encoding, count))
-        return encoding
+        return (encoding, count)
     except KsError as e:
         print("ERROR: %s" % e)
-    return None
+    return (None, 0)
 
 if __name__ == '__main__':
     #peutil = PEUtil.PEUtil("C:\\Program Files (x86)\\Mozilla Firefox\\crashreporter.exe")
@@ -32,4 +32,3 @@ if __name__ == '__main__':
     # pei.logging('c:\\work\\log.txt')
     pei.instrument_redirect_control_flow_inst(test)
     pei.disassembly_log('c:\\work\\disassembly.log')
-
