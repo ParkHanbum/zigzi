@@ -8,6 +8,7 @@ __version__ = '2017.3.28'
 __contact__ = 'kese111@gmail.com'
 
 import Queue
+import struct
 import binascii
 import operator
 import sys
@@ -15,6 +16,7 @@ import threading
 import distorm3
 import pydotplus
 import PEUtil
+import array
 from threading import Thread
 from keystone import *
 
@@ -59,13 +61,13 @@ class PEAnalyzer(object):
                 branch_va = inst.address + inst.size + operand_value - basic_block_size
             #self.create_basic_block(operand_value + basic_block.start_va)
             self.direct_control_flow[inst.address] = branch_va
-            self.assign_new_branch(branch_va)
+            self.assignNewBranch(branch_va)
             handled = True
 
         if operand.type == PEAnalyzer.OPERAND_ABSOLUTE_ADDRESS:
             handled = False
 
-        self.assign_new_branch(inst.address+inst.size)
+        self.assignNewBranch(inst.address + inst.size)
         return handled
 
     def handle_FC_RET(self, basic_block_size, inst):
@@ -113,13 +115,13 @@ class PEAnalyzer(object):
                 branch_va = inst.address + inst.size + operand_value - basic_block_size
             # self.create_basic_block(operand_value + basic_block.start_va)
             self.direct_control_flow[inst.address] = branch_va
-            self.assign_new_branch(branch_va)
+            self.assignNewBranch(branch_va)
             handled = True
 
         if operand.type == PEAnalyzer.OPERAND_ABSOLUTE_ADDRESS:
             handled = False
 
-        self.assign_new_branch(inst.address + inst.size)
+        self.assignNewBranch(inst.address + inst.size)
         return handled
 
     def handle_FC_CND_BRANCH(self, basic_block_size, inst):
@@ -131,7 +133,7 @@ class PEAnalyzer(object):
         """
         return self.handle_FC_UNC_BRANCH(basic_block_size, inst)
 
-    def handle_flow_control(self, basic_block_size, inst):
+    def handleConrolFlow(self, basic_block_size, inst):
         """Dispatch method"""
         try:
             method_name = 'handle_' + str(inst.flowControl)
@@ -161,7 +163,7 @@ class PEAnalyzer(object):
         self.execute_section_va = self.execute_section.VirtualAddress
         self.lock = threading.Lock()
 
-    def assign_new_branch(self, va):
+    def assignNewBranch(self, va):
         self.lock.acquire()
         if not(va in self.inst_map):
             self.inst_map[va] = 0
@@ -169,10 +171,10 @@ class PEAnalyzer(object):
             self.queue.put(va)
         self.lock.release()
 
-    def gen_control_flow_graph(self):
+    def genControlFlowGraph(self):
         # self.create_basic_block(self.entry_point_va - self.execute_section_va)
         # assignment entry point to work
-        self.assign_new_branch(self.entry_point_va - self.execute_section_va)
+        self.assignNewBranch(self.entry_point_va - self.execute_section_va)
         self.parser()
 
     def parser(self):
@@ -206,15 +208,15 @@ class PEAnalyzer(object):
                     basic_block_size += inst.size
                     inst.address += start_rva
                     self.inst_map[inst.address] = inst
-                self.handle_flow_control(basic_block_size, basic_block[-1])
+                self.handleConrolFlow(basic_block_size, basic_block[-1])
             else:
-                self.remove_inst_from_map(start_rva)
+                self.removeInstructionFromMap(start_rva)
                 print("Cannot Parse Addr [0x{:x}]").format(start_rva)
         except IndexError:
-            self.remove_inst_from_map(start_rva)
+            self.removeInstructionFromMap(start_rva)
             print IndexError
 
-    def remove_inst_from_map(self, va):
+    def removeInstructionFromMap(self, va):
         if va in self.inst_map:
             del self.inst_map[va]
 
@@ -240,7 +242,7 @@ class PEAnalyzer(object):
             if inst.address != next_inst_addr:
                 dot.add_node(basicblock.toDotNode())
                 for n in basicblock_els:
-                    basicblock_map[n] = basicblock.get_va()
+                    basicblock_map[n] = basicblock.getStartAddress()
                 basicblock_els = []
                 basicblock = BasicBlock()
             basicblock_els.append(inst.address)
@@ -271,7 +273,7 @@ class BasicBlock(object):
         if self.start_va > inst.address:
             self.start_va = inst.address
 
-    def get_va(self):
+    def getStartAddress(self):
         return self.start_va
 
     def toDotNode(self):
@@ -298,76 +300,203 @@ class PEInstrument(object):
         self.ks = Ks(KS_ARCH_X86, KS_MODE_32)
         self.execute_data = execute_data
         self.instruction_map = {}
-        self.disassembly = 0
+        self.instrument_map = {}
+        self.disassembly = []
         self.disassemble()
+        self.overflowed_instrument = False
+        self.overflowed_instrument_map = {}
 
     def disassemble(self):
-        self.disassembly = distorm3.Decompose(0x0,
-                           binascii.hexlify(self.execute_data).decode('hex'),
-                           distorm3.Decode32Bits,
-                           distorm3.DF_NONE)
+        self.disassembly = distorm3.Decompose(
+            0x0,
+            binascii.hexlify(self.execute_data).decode('hex'),
+            distorm3.Decode32Bits,
+            distorm3.DF_NONE)
+        self.instruction_map.clear()
         for inst in self.disassembly:
             self.instruction_map[inst.address] = inst
 
-    def instrument_FC_CALL(self, inst, position=INSTRUMENT_AFTER):
-        """
-        handle kinds of Contional Branch instructions
-        ex) JCXZ, JO, JNO, JB, JAE, JZ, JNZ, JBE, JA, JS, JNS, JP, JNP, JL, JGE, JLE, JG, LOOP, LOOPZ, LOOPNZ.
-        :param basic_block: @type BasicBlock
-        :return:
-        """
-        return 0
+    def getdata(self):
+        return self.execute_data
 
-    def instrument_FC_CND_BRANCH(self, inst, position=INSTRUMENT_AFTER):
-        """
-        handle kinds of Contional Branch instructions
-        ex) JCXZ, JO, JNO, JB, JAE, JZ, JNZ, JBE, JA, JS, JNS, JP, JNP, JL, JGE, JLE, JG, LOOP, LOOPZ, LOOPNZ.
-        :param basic_block: @type BasicBlock
-        :return:
-        """
-        return 0
+    def get_instrumented_map(self):
+        return self.instrument_map
 
-    def instrument_FC_UND_BRANCH(self, inst, position=INSTRUMENT_AFTER):
-        """
-        handle kinds of Contional Branch instructions
-        ex) JCXZ, JO, JNO, JB, JAE, JZ, JNZ, JBE, JA, JS, JNS, JP, JNP, JL, JGE, JLE, JG, LOOP, LOOPZ, LOOPNZ.
-        :param basic_block: @type BasicBlock
-        :return:
-        """
-        return 0
+    def instrument_redirect_controlflow_instruction(self, command, position=None):
+        instructionTypes = ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH']
+        # instruction_types = ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH', 'FC_RET']
+        instrumentTotalAmount = 0
+        for inst in self.disassembly:
+            cf = inst.flowControl
+            if cf in instructionTypes:
+                if self.is_redirect(inst):
+                    result = self.instrument(command, inst, instrumentTotalAmount)
+                    instrumentTotalAmount += result
+        print "INSTRUMENT TOTAL AMOUNT {:d}".format(instrumentTotalAmount)
+        self.disassemble()
+        self.adjust_instrumented_layout()
+        # TODO : adjust relocation
 
-    def instrument_FC_RET(self, inst, position=INSTRUMENT_BEFORE):
-        """
-        handle kinds of Contional Branch instructions
-        ex) JCXZ, JO, JNO, JB, JAE, JZ, JNZ, JBE, JA, JS, JNS, JP, JNP, JL, JGE, JLE, JG, LOOP, LOOPZ, LOOPNZ.
-        :param basic_block: @type BasicBlock
-        :return:
-        """
-        return 0
+    def instrument_by_mnemonics(self, command, mnemonics=[], position=None):
+        instrumentTotalAmount = 0
+        if not mnemonics:
+            print "Mnemonic is empty\n"
+            return
 
-    def handle_instrument(self, inst_type, instrument_inst, position=None):
-        """Dispatch method"""
-        try:
-            method_name = 'instrument_' + inst_type
-            method = getattr(self, method_name)
-            if callable(method):
-                # Call the method as we return it
-                return method(instrument_inst, position)
-            else:
-                print "error?"
+        for inst in self.disassembly:
+            if inst.mnemonic in mnemonics:
+                result = self.instrument(command, inst, instrumentTotalAmount)
+                instrumentTotalAmount += result
+        print "INSTRUMENT TOTAL AMOUNT {:d}".format(instrumentTotalAmount)
+        self.disassemble()
 
-        except IndexError:
-            print "===== [INDEX ERROR] ====="
-            # self.print_basic_block(new_basic_block.start_va, new_basic_block)
+    def instrument(self, command, instruction, total_count=0):
+        instrument_size = 0
+        instrument_inst, count = command(instruction)
+        if count > 0:
+            instrument_size = len(instrument_inst)
+            # put instrument instruction to execute_section_data
+            offset = instruction.address + total_count
+            self.execute_data[offset:offset] = instrument_inst
+            self.instrument_map[offset] = len(instrument_inst)
+        return instrument_size
+
+    def get_instrumented_size(self, inst):
+        inst_address = inst.address
+        inst_destiny = inst.operands[0].value
+        block_instrumented_size = 0
+        if inst_address <= inst_destiny:
+            sorted_instrument_map = sorted(self.instrument_map.items(),
+                                           key=operator.itemgetter(0))
+            for instrument_address, instrument_size in sorted_instrument_map:
+                if instrument_address > inst_destiny:
+                    break
+                if inst_address < instrument_address <= inst_destiny:
+                    instrumented_size = instrument_size
+                    block_instrumented_size += instrumented_size
+                    inst_destiny += instrumented_size
+        else:
+            sorted_instrument_map = sorted(self.instrument_map.items(),
+                                           key=operator.itemgetter(0),
+                                           reverse=True)
+            for instrument_address, instrument_size in sorted_instrument_map:
+                # inst_destiny can be instrumented instruction.
+                # cause subtract instrument_size from inst_destiny
+                if inst_destiny - instrument_size <= instrument_address < inst_address:
+                    if instrument_address < inst_destiny - instrument_size:
+                        break
+                    instrumented_size = instrument_size
+                    block_instrumented_size += instrumented_size
+                    inst_destiny -= instrumented_size
+        return block_instrumented_size
+
+    def adjust_instrumented_layout(self):
+        self.disassemble()
+        sorted_instruction_map = sorted(self.instruction_map.items(),
+                                        key=operator.itemgetter(0))
+        logfile = open('c:\\work\\adjust.log', 'a')
+        for inst_address, inst in sorted_instruction_map:
+            if inst.flowControl in ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH']:
+                log = []
+                if not self.is_redirect(inst):
+                    total_instrumented_size = \
+                        self.get_instrumented_size(inst)
+                    # adjust operand value
+                    if total_instrumented_size > 0:
+                        log.append("[0x{:x}] {:s}\n".format(inst.address, inst))
+                        operand_size = inst.operands[0].size / 8
+                        instruction_size = inst.size - operand_size
+                        operand_start = inst_address + instruction_size
+                        operand_end = inst_address + inst.size
+                        if operand_size == 8:
+                            fmt = 'l'
+                        elif operand_size == 4:
+                            fmt = 'i'
+                        elif operand_size == 2:
+                            fmt = 'h'
+                        elif operand_size == 1:
+                            fmt = 'b'
+                        operand_value \
+                            = struct.unpack(fmt,
+                                            self.execute_data[operand_start:operand_end])[0]
+                        log.append("\torigin operand value : {:x}\n".format(operand_value))
+                        if operand_value > 0:
+                            adjusted_operand_value = \
+                                operand_value + total_instrumented_size
+                        else:
+                            adjusted_operand_value = \
+                                operand_value - total_instrumented_size
+                        log.append("\tadjust operand value : {:x}\n"
+                                   .format(adjusted_operand_value))
+                        try:
+                            self.execute_data[operand_start:operand_end] \
+                                = struct.pack(fmt, adjusted_operand_value)
+                        except:
+                            self.overflowed_instrument = True
+                            self.overflowed_instrument_map[inst_address] = (inst, adjusted_operand_value)
+                            log.append("operand value size overflowed {:x}\n".format(operand_value))
+                logfile.write(''.join(log))
+        has_overflowed_inst = self.handle_overflow_instrument()
+        if has_overflowed_inst:
+            self.disassemble()
+            self.adjust_instrumented_layout()
+
+    def handle_overflow_instrument(self):
+        total_instrument_size = 0
+        self.disassemble()
+        self.instrument_map.clear()
+        if not self.overflowed_instrument:
             return False
-        except AttributeError:
-            # self.print_basic_block(new_basic_block.start_va, new_basic_block)
-            return False
+        ks = Ks(KS_ARCH_X86, KS_MODE_32)
+        index = 1
+        sorted_instrument_map = sorted(self.overflowed_instrument_map.items(),
+                                       key=operator.itemgetter(0))
+        for (inst_address, (inst, adjusted_operand_value)) in sorted_instrument_map:
+            inst_address += total_instrument_size
+            print "[{}] overflowed instrument instruction : [0x{:x}] {:s}  {:x} => {}" \
+                .format(index, inst_address, inst,
+                        inst.operands[0].value, adjusted_operand_value)
+            index += 1
+            # TODO : fix constant 6 to increased opcode, operand size
+            code = "{:s} {}".format(inst.mnemonic, adjusted_operand_value + 6)
+            hexacode = binascii.hexlify(code).decode('hex')
+            try:
+                # Initialize engine in X86-32bit mode
+                encoding, count = ks.asm(hexacode)
+                print "{:s}".format(encoding)
+                # patch
+                self.execute_data[inst_address:inst_address+inst.size] = encoding
+                instrumented_size = len(encoding)
+                print "writed : {:s}".format(
+                    binascii.hexlify(
+                        self.execute_data[inst_address:inst_address+instrumented_size]))
+                # save increased opcode, operand size for adjust again
+                increased_size = instrumented_size - inst.size
+                self.instrument_map[inst_address] = increased_size
+                total_instrument_size += increased_size
+            except KsError as e:
+                print("ERROR: %s" % e)
+
+        self.overflowed_instrument = False
+        self.overflowed_instrument_map.clear()
+        return True
+
+    def is_redirect(self, inst):
+        instruction_types = ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH']
+        cf = inst.flowControl
+        if cf in instruction_types:
+            operands = inst.operands
+            if len(operands) > 0:
+                operand = operands[0]
+                if operand.type == 'AbsoluteMemoryAddress' or operand.type == 'Register' \
+                        or operand.type == 'AbsoluteMemory':
+                    return True
+        return False
 
     def logging(self, path):
         log = open(path, 'w')
         # monitoring instruction
-        instruction_types = ['FC_CALL', 'FC_UND_BRANCH', 'FC_CND_BRANCH', 'FC_RET', 'FC_INT']
+        instruction_types = ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH', 'FC_RET', 'FC_INT']
         result = ''
         for (key, inst) in self.instruction_map.items():
             cf = inst.flowControl
@@ -392,42 +521,15 @@ class PEInstrument(object):
                 result += '{:s}\n'.format(inst)
         log.write(result)
 
-    def disassembly_log(self, path):
+    def disassembly_logging(self, path):
         log = open(path, 'w')
-        for inst in self.disassembly:
-            log.write("0x%x:\t%s\n" % (inst.address, inst))
-
-    def instrument_redirect_control_flow_inst(self, command, position=None):
-        instruction_types = ['FC_CALL', 'FC_UND_BRANCH', 'FC_CND_BRANCH', 'FC_RET']
-        instrument_total_count = 0
-        for inst in self.disassembly:
-            cf = inst.flowControl
-            if cf in instruction_types:
-                if self.isRedirect(inst):
-                    result = self.instrument(command, inst, instrument_total_count)
-                    instrument_total_count += result
-
-        print "INSTRUMENT COUNT {:d}".format(instrument_total_count)
         self.disassemble()
+        for inst in self.disassembly:
+            log.write("[0x{:x}] {:s}\n".format(inst.address, inst))
 
-    def instrument(self, command, instruction, total_count):
-        instrument_size = 0
-        instrument_inst, count = command(instruction)
-        if count > 0:
-            instrument_size = len(instrument_inst)
-            # put instrument instruction to execute_section_data
-            offset = instruction.address + total_count
-            self.execute_data[offset:offset] = instrument_inst
-        return instrument_size
-
-    def isRedirect(self, inst):
-        instruction_types = ['FC_CALL', 'FC_UND_BRANCH', 'FC_CND_BRANCH']
-        cf = inst.flowControl
-        if cf in instruction_types:
-            operands = inst.operands
-            if len(operands) > 0:
-                operand = operands[0]
-                if operand.type == 'AbsoluteMemoryAddress' or operand.type == 'Register' \
-                        or operand.type == 'AbsoluteMemory':
-                    return True
-        return False
+    def instrument_log(self, path):
+        log = open(path, 'w')
+        sorted_instrument_map = sorted(self.instrument_map.items(),
+                                       key=operator.itemgetter(0))
+        for instrument_address, instrument_inst in sorted_instrument_map:
+            log.write("[0x{:x}] {:d}\n".format(instrument_address, instrument_inst))
