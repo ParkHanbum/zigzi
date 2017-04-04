@@ -1,4 +1,6 @@
+
 from PEUtil import *
+from PEInstrument import *
 from PEAnalyzeTool import *
 from keystone import *
 
