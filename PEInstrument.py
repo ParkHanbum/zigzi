@@ -50,7 +50,6 @@ class PEInstrument(object):
         print "INSTRUMENT TOTAL AMOUNT {:d}".format(instrumentTotalAmount)
         self.disassemble()
         self.adjust_instrumented_layout()
-        # TODO : adjust relocation
 
     def instrument_by_mnemonics(self, command, mnemonics=[], position=None):
         instrumentTotalAmount = 0
@@ -109,89 +108,103 @@ class PEInstrument(object):
         self.disassemble()
         sorted_instruction_map = sorted(self.instruction_map.items(),
                                         key=operator.itemgetter(0))
-        logfile = open('c:\\work\\adjust.log', 'a')
         for inst_address, inst in sorted_instruction_map:
             if inst.flowControl in ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH']:
-                log = []
-                if not self.is_redirect(inst):
-                    total_instrumented_size = \
-                        self.get_instrumented_size(inst)
-                    # adjust operand value
-                    if total_instrumented_size > 0:
-                        log.append("[0x{:x}] {:s}\n".format(inst.address, inst))
-                        operand_size = inst.operands[0].size / 8
-                        instruction_size = inst.size - operand_size
-                        operand_start = inst_address + instruction_size
-                        operand_end = inst_address + inst.size
-                        if operand_size == 8:
-                            fmt = 'l'
-                        elif operand_size == 4:
-                            fmt = 'i'
-                        elif operand_size == 2:
-                            fmt = 'h'
-                        elif operand_size == 1:
-                            fmt = 'b'
-                        operand_value \
-                            = struct.unpack(fmt,
-                                            self.execute_data[operand_start:operand_end])[0]
-                        log.append("\torigin operand value : {:x}\n".format(operand_value))
-                        if operand_value > 0:
-                            adjusted_operand_value = \
-                                operand_value + total_instrumented_size
-                        else:
-                            adjusted_operand_value = \
-                                operand_value - total_instrumented_size
-                        log.append("\tadjust operand value : {:x}\n"
-                                   .format(adjusted_operand_value))
-                        try:
-                            self.execute_data[operand_start:operand_end] \
-                                = struct.pack(fmt, adjusted_operand_value)
-                        except:
-                            self.overflowed_instrument = True
-                            self.overflowed_instrument_map[inst_address] = (inst, adjusted_operand_value)
-                            log.append("operand value size overflowed {:x}\n".format(operand_value))
-                logfile.write(''.join(log))
+                self.adjust_instrument(inst)
             else:
-                operand_size = len(inst.operands)
-                if operand_size > 0:
-                    target_operand_index = 0
-                    inst_size = 0
-                    for index in range(operand_size):
-                        if 0x401000 < inst.operands[index].value < 0x409110:
-                            print "[{:x}]\t{:s}".format(inst.address, inst)
-                            for i in range(index):
-                                operand = inst.operands[i]
-                                if operand.type == 'AbsoluteMemoryAddress':
-                                    # TODO : AbsoluteMemory
-                                    target_operand_index = 0
-                                elif operand.type == 'Register':
-                                    # TODO : AbsoluteMemory
-                                    target_operand_index = 0
-                                elif operand.type == 'AbsoluteMemory':
-                                    # TODO : AbsoluteMemory
-                                    target_operand_index = 0
-                                # ex) MOV [EBX-0x30], 0x401032
-                                elif operand.type == 'AbsoluteMemoryAddress':
-                                    # if base is None then index increase one cause that mean register
-                                    if operand.base == None:
-                                        target_operand_index += 1
-                                    # dispSize / 8
-                                    target_operand_index += (operand.dispSize / 8)
-                                elif operand.type == 'FarMemory':
-                                    # TODO : FarMemory
-                                    target_operand_index = 0
-                            inst_size = inst.size - target_operand_index - (inst.operands[index].size/8)
-                            print "0x{:x}".format(
-                                struct.unpack("i",
-                                              self.execute_data[
-                                                inst.address + target_operand_index + inst_size
-                                                :inst.address + inst.size])[0]
-                            )
-
+                # Temporary, adjust reference of text-section.
+                self.adjust_references(inst)
+                self.adjust_relocation(inst)
         has_overflowed_inst = self.handle_overflow_instrument()
         if has_overflowed_inst:
             self.disassemble()
             self.adjust_instrumented_layout()
+
+    def adjust_instrument(self, inst):
+        logfile = open('c:\\work\\adjust.log', 'a')
+        log = []
+        if not self.is_redirect(inst):
+            total_instrumented_size = \
+                self.get_instrumented_size(inst)
+            # adjust operand value
+            if total_instrumented_size > 0:
+                log.append("[0x{:x}] {:s}\n".format(inst.address, inst))
+                operand_size = inst.operands[0].size / 8
+                instruction_size = inst.size - operand_size
+                operand_start = inst.address + instruction_size
+                operand_end = inst.address + inst.size
+                if operand_size == 8:
+                    fmt = 'l'
+                elif operand_size == 4:
+                    fmt = 'i'
+                elif operand_size == 2:
+                    fmt = 'h'
+                elif operand_size == 1:
+                    fmt = 'b'
+                operand_value \
+                    = struct.unpack(fmt,
+                                    self.execute_data[operand_start:operand_end])[0]
+                log.append("\torigin operand value : {:x}\n".format(operand_value))
+                if operand_value > 0:
+                    adjusted_operand_value = \
+                        operand_value + total_instrumented_size
+                else:
+                    adjusted_operand_value = \
+                        operand_value - total_instrumented_size
+                log.append("\tadjust operand value : {:x}\n"
+                           .format(adjusted_operand_value))
+                try:
+                    self.execute_data[operand_start:operand_end] \
+                        = struct.pack(fmt, adjusted_operand_value)
+                except:
+                    self.overflowed_instrument = True
+                    self.overflowed_instrument_map[inst.address] = (inst, adjusted_operand_value)
+                    log.append("operand value size overflowed {:x}\n".format(operand_value))
+        logfile.write(''.join(log))
+
+    def adjust_references(self, inst):
+        operand_size = len(inst.operands)
+        if operand_size > 0:
+            target_operand_index = 0
+            inst_size = 0
+            for index in range(operand_size):
+                if 0x401000 < inst.operands[index].value < 0x409110:
+                    print "[{:x}]\t{:s}".format(inst.address, inst)
+                    for i in range(index):
+                        operand = inst.operands[i]
+                        if operand.type == 'AbsoluteMemoryAddress':
+                            # TODO : AbsoluteMemory
+                            target_operand_index = 0
+                        elif operand.type == 'Register':
+                            # TODO : AbsoluteMemory
+                            target_operand_index = 0
+                        elif operand.type == 'AbsoluteMemory':
+                            # TODO : AbsoluteMemory
+                            if operand.base == None:
+                                target_operand_index += 0
+                            # dispSize / 8
+                            target_operand_index += (operand.dispSize / 8)
+                        # ex) MOV [EBX-0x30], 0x401032
+                        elif operand.type == 'AbsoluteMemoryAddress':
+                            # if base is None then index increase one cause that mean register
+                            if operand.base == None:
+                                target_operand_index += 0
+                            # dispSize / 8
+                            target_operand_index += (operand.dispSize / 8)
+                        elif operand.type == 'FarMemory':
+                            # TODO : FarMemory
+                            target_operand_index = 0
+                        inst_size = inst.size - target_operand_index - (inst.operands[index].size / 8)
+                        print "0x{:x}".format(
+                            struct.unpack("i",
+                                          self.execute_data[
+                                          inst.address + target_operand_index + inst_size
+                                          :inst.address + inst.size])[0]
+                        )
+
+    # TODO : handle relocation
+    def adjust_relocation(self, inst):
+        return 0
 
     def handle_overflow_instrument(self):
         total_instrument_size = 0

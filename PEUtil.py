@@ -128,3 +128,11 @@ class PEUtil(object):
     def write(self, path):
         self.PE.OPTIONAL_HEADER.CheckSum = self.PE.generate_checksum()
         self.PE.write(path)
+
+    def get_relocation_map(self):
+        relocation_map = {}
+        for entry in self.PE.DIRECTORY_ENTRY_BASERELOC:
+            for el in entry.entries:
+                address = el.rva
+                relocation_map[address] = [el.rva, address, el.type]
+        return relocation_map

@@ -95,7 +95,7 @@ for entry in pe.DIRECTORY_ENTRY_BASERELOC:
                 # print ("[0x%x] 0x%x : \t EXCEPT" % (el.rva, address))
                 break
 
-            decode_value = decode_map.get(address, "none")
+            decode_value = decode_map.get(address-0x1000, "none")
             if not decode_value.startswith("none"):
                 domore = False
                 RELA_MAP[address] = [el.rva, address, decode_value, el.type]
