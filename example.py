@@ -22,39 +22,27 @@ def test(instruction):
     return (None, 0)
 
 if __name__ == '__main__':
+    """
     # peutil = PEUtil.PEUtil("C:\\Program Files (x86)\\Mozilla Firefox\\crashreporter.exe")
     # peutil = PEUtil.PEUtil("C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe")
     peutil = PEUtil.PEUtil('c:\\work\\PEview.exe')
     execute_section = peutil.get_executable_section()
     execute_section_data = peutil.get_section_raw_data(execute_section)
     entry_point_va = peutil.get_entry_point_va()
-
-    """
     peanalyzer = PEAnalyzer(execute_section, execute_section_data, entry_point_va)
     peanalyzer.gen_control_flow_graph()
     peanalyzer.save_cfg("C:\\work\\cfg.test", peutil.get_pe_name())
     """
-
-
-    pei = PEInstrument(execute_section_data)
+    # filename = 'c:\\work\\PEview.exe'
+    # filename = "C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe"
+    filename = "c:\\work\\firefox.exe"
+    pei = PEInstrument(filename)
     # pei.logging('c:\\work\\log.txt')
-    pei.disassembly_logging('c:\\work\\disassembly.log')
+    # pei.disassembly_logging('c:\\work\\disassembly.log')
     pei.instrument_redirect_controlflow_instruction(test)
-    pei.disassembly_logging('c:\\work\\disassembly_adjust.log')
-    pei.instrument_log('c:\\work\\instrument.log')
-    instrumented_map = pei.get_instrumented_map()
-    entry_point_rva = peutil.get_entry_point_rva(entry_point_va)
-    print "entry point  va: {:x}".format(entry_point_va)
-    print "entry point rva: {:x}".format(entry_point_rva)
-    for address, inst in instrumented_map.iteritems():
-        if address < entry_point_rva:
-            entry_point_va += len(inst)
-
-    execute_data = pei.getdata()
-    new_section = peutil.create_new_section(execute_data)
-    print "entry point : {:x}".format(entry_point_va)
-    peutil.setentrypoint(entry_point_va)
-    peutil.PE.write('c:\\work\\test2.exe')
+    # pei.disassembly_logging('c:\\work\\disassembly_adjust.log')
+    # pei.instrument_log('c:\\work\\instrument.log')
+    pei.writefile('c:\\work\\test.exe')
 
     """
     new_section = peutil.create_new_section(execute_section_data)
