@@ -59,43 +59,6 @@ class PEUtil(object):
             return (va - v) + aligned_va
         return va
 
-    def create_new_section_header(self, point_to_raw, size_of_raw):
-        # TODO : We assume that the new section to be created is a copy of the 0th section, text section.
-        new_section = self.clone_section_header(self.PE.sections[0])
-        new_section.SizeOfRawData = size_of_raw
-        new_section.PointerToRawData = point_to_raw
-        new_section.Misc_VirtualSize = self.get_aligned_va(size_of_raw)
-        self.PE.OPTIONAL_HEADER.SizeOfCode = new_section.Misc_VirtualSize
-        #self.PE.OPTIONAL_HEADER.SizeOfImage = point_to_raw + size_of_raw
-        self.append_section_to_PE(new_section)
-
-        return new_section
-
-    """
-    def create_new_section_header(self, section=None, point_to_raw=0, size_of_raw=0):
-        if not section:
-            new_section = self.clone_section_header(self.PE.sections[0])
-        else:
-            new_section = self.clone_section_header(section)
-        if point_to_raw > 0:
-            new_section.SizeOfRawData = size_of_raw
-            new_section.Misc_VirtualSize = size_of_raw
-        if size_of_raw > 0:
-            new_section.PointerToRawData = point_to_raw
-        if point_to_raw > 0 and size_of_raw > 0:
-            self.PE.OPTIONAL_HEADER.SizeOfImage = \
-                point_to_raw + size_of_raw
-        self.append_section_to_PE(new_section)
-        return new_section
-    """
-    def create_new_section_and_append_data(self, data):
-        (point_to_raw, size_of_raw) = self.append_data_to_PE(data)
-        return self.create_new_section_header(point_to_raw, size_of_raw)
-
-    def append_data_to_executable(self, data):
-        copied_execute_section = self.create_new_section_and_append_data(data)
-        return copied_execute_section
-
     def append_data_to_PE(self, data):
         orig_data_len = len(self.PE.__data__)
         aligned_orig_data_len = self.get_aligned_offset(orig_data_len)
@@ -107,6 +70,35 @@ class PEUtil(object):
         # Fill space with data
         self.PE.__data__[aligned_orig_data_len:aligned_orig_data_len+aligned_data_len] = data
         return aligned_orig_data_len, aligned_data_len
+
+    def create_new_section_header(self, point_to_raw, size_of_raw):
+        # TODO : We assume that the new section to be created is a copy of the 0th section, text section.
+        new_section = self.clone_section_header(self.PE.sections[0])
+        new_section.SizeOfRawData = size_of_raw
+        new_section.PointerToRawData = point_to_raw
+        new_section.Misc_VirtualSize = self.get_aligned_va(size_of_raw)
+        self.PE.OPTIONAL_HEADER.SizeOfCode = new_section.Misc_VirtualSize
+        #self.PE.OPTIONAL_HEADER.SizeOfImage = point_to_raw + size_of_raw
+        self.append_section_to_PE(new_section)
+        return new_section
+
+    def create_new_section_and_append_data(self, data):
+        (point_to_raw, size_of_raw) = self.append_data_to_PE(data)
+        return self.create_new_section_header(point_to_raw, size_of_raw)
+
+    def create_new_execution_section(self, point_to_raw, size_of_raw, size_of_data):
+        # TODO : We assume that the new section to be created is a copy of the 0th section, text section.
+        self.PE.sections[0].SizeOfRawData = size_of_raw
+        self.PE.sections[0].PointerToRawData = point_to_raw
+        self.PE.sections[0].Misc_VirtualSize = size_of_data
+        self.PE.OPTIONAL_HEADER.SizeOfCode = size_of_data
+
+        #self.PE.OPTIONAL_HEADER.SizeOfImage = point_to_raw + size_of_raw
+
+    def append_data_to_execution(self, data):
+        size_of_data = len(data)
+        (point_to_raw, size_of_raw) = self.append_data_to_PE(data)
+        self.create_new_execution_section(point_to_raw, size_of_raw, size_of_data)
 
     """
     def create_new_section(self, data):
@@ -252,8 +244,27 @@ class PEUtil(object):
                         self.get_aligned_va(virtual_size)
 
     def adjust_PE_layout(self):
-        for index in xrange(len(self.PE.sections)):
-            self.adjust_sections(index)
+        self.adjust_section()
+
+    def adjust_section(self):
+        for index in xrange(len(self.PE.sections)-1):
+            src_section = self.PE.sections[index]
+            virtual_size = src_section.Misc_VirtualSize
+            src_va = src_section.VirtualAddress
+            src_va_end = src_va + virtual_size
+            name = src_section.Name
+            src_raw = src_section.PointerToRawData
+            src_raw_end = src_raw + src_section.SizeOfRawData
+
+            dst_section = self.PE.sections[index+1]
+            if src_va <= dst_section.VirtualAddress < src_va_end:
+                adjusted = True
+                print "adjust virtual address"
+                section_va = dst_section.VirtualAddress
+                adjusted_section_va = section_va + (src_va_end - section_va)
+                adjusted_section_va = self.get_aligned_va(adjusted_section_va)
+                self.PE.sections[index+1].VirtualAddress = adjusted_section_va
+                self.adjust_directories(section_va, adjusted_section_va, dst_section.Misc_VirtualSize)
 
     def adjust_sections(self, index):
         src_section = self.PE.sections[index]
@@ -290,12 +301,14 @@ class PEUtil(object):
                 self.adjust_directories(section_va, adjusted_section_va)
                 self.adjust_sections(dst_index)
 
-    def adjust_directories(self, origin_section_va, adjusted_section_va):
+    def adjust_directories(self, origin_section_va, adjusted_section_va, virtual_size):
         data_directories = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY
-        for index in range(len(data_directories)):
+        increase_vector = adjusted_section_va - origin_section_va
+        for index in xrange(len(data_directories)):
             directory = data_directories[index]
-            if origin_section_va == directory.VirtualAddress:
-                self.PE.OPTIONAL_HEADER.DATA_DIRECTORY[index].VirtualAddress = adjusted_section_va
+            if origin_section_va <= directory.VirtualAddress < origin_section_va+virtual_size:
+                self.PE.OPTIONAL_HEADER.DATA_DIRECTORY[index].VirtualAddress = \
+                    directory.VirtualAddress + increase_vector
 
     def uncerfication(self):
         for index in range(len(self.PE.OPTIONAL_HEADER.DATA_DIRECTORY)):

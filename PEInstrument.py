@@ -177,7 +177,7 @@ class PEInstrument(object):
 
     def adjust_executable_section(self):
         execute_data = self.getdata()
-        self.peutil.append_data_to_executable(execute_data)
+        self.peutil.append_data_to_execution(execute_data)
 
     def adjust_instrumented_layout(self):
         """
