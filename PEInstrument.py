@@ -159,7 +159,8 @@ class PEInstrument(object):
     def adjust_PE_layout(self):
         self.adjust_executable_section()
         self.adjust_entry_point()
-        self.adjust_relocation()
+        if self.peutil.isrelocable():
+            self.adjust_relocation()
 
     def adjust_entry_point(self):
         entry_va = self.peutil.get_entry_point_va()

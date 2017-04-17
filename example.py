@@ -33,9 +33,15 @@ if __name__ == '__main__':
     peanalyzer.gen_control_flow_graph()
     peanalyzer.save_cfg("C:\\work\\cfg.test", peutil.get_pe_name())
     """
+    # need handle for non-relocation executable. referencing self code section statically.
     # filename = 'c:\\work\\PEview.exe'
+    # need handle for memory error.
     # filename = "C:\Program Files (x86)\Adobe\Acrobat Reader DC\Reader\AcroRd32.exe"
+    # filename = "c:\\work\\pexplorer.exe"
+    # need handle for export
     filename = "c:\\work\\firefox.exe"
+
+
     pei = PEInstrument(filename)
     # pei.logging('c:\\work\\log.txt')
     # pei.disassembly_logging('c:\\work\\disassembly.log')

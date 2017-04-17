@@ -5,7 +5,8 @@ import binascii
 import operator
 import struct
 
-filename = "C:\\work\\firefox.exe"
+filename = "C:\\work\\check_pefile.exe"
+pefile = pefile.PE(filename)
 peutil = PEUtil.PEUtil(filename)
 
 basereloc_va = 0

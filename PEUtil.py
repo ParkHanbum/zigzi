@@ -77,6 +77,8 @@ class PEUtil(object):
         new_section.SizeOfRawData = size_of_raw
         new_section.PointerToRawData = point_to_raw
         new_section.Misc_VirtualSize = self.get_aligned_va(size_of_raw)
+        new_section.Misc_PhysicalAddress = self.get_aligned_va(size_of_raw)
+        new_section.Misc = self.get_aligned_va(size_of_raw)
         self.PE.OPTIONAL_HEADER.SizeOfCode = new_section.Misc_VirtualSize
         #self.PE.OPTIONAL_HEADER.SizeOfImage = point_to_raw + size_of_raw
         self.append_section_to_PE(new_section)
@@ -91,9 +93,10 @@ class PEUtil(object):
         self.PE.sections[0].SizeOfRawData = size_of_raw
         self.PE.sections[0].PointerToRawData = point_to_raw
         self.PE.sections[0].Misc_VirtualSize = size_of_data
+        self.PE.sections[0].Misc_PhysicalAddress = size_of_data
+        self.PE.sections[0].Misc = size_of_data
         self.PE.OPTIONAL_HEADER.SizeOfCode = size_of_data
-
-        #self.PE.OPTIONAL_HEADER.SizeOfImage = point_to_raw + size_of_raw
+        # self.PE.OPTIONAL_HEADER.SizeOfImage = point_to_raw + size_of_raw
 
     def append_data_to_execution(self, data):
         size_of_data = len(data)
@@ -164,17 +167,19 @@ class PEUtil(object):
         self.PE.OPTIONAL_HEADER.AddressOfEntryPoint = entry_va
 
     def write(self, path):
-        data_len = len(self.PE.__data__)
-        sizeofimage = self.get_aligned_offset(data_len)
-        if sizeofimage - data_len > 0:
-            self.PE.__data__.extend([0] * (sizeofimage - data_len))
-
-        self.PE.merge_modified_section_data()
-        self.adjust_PE_layout()
         self.uncerfication()
-        self.PE.OPTIONAL_HEADER.CheckSum = self.PE.generate_checksum()
+        #self.adjust_PE_layout()
+        #self.PE.merge_modified_section_data()
+        #self.PE.OPTIONAL_HEADER.SizeOfImage = self.get_image_size()
+        self.PE.OPTIONAL_HEADER.CheckSum = 0
+        #self.PE.OPTIONAL_HEADER.CheckSum = self.PE.generate_checksum()
         self.PE.write(path)
 
+    def get_image_size(self):
+        section = self.PE.sections[-1]
+        va = section.VirtualAddress
+        size = section.Misc_VirtualSize
+        return self.get_aligned_va(va + size)
 
     def get_relocation_map(self):
         relocation_map = {}
@@ -264,42 +269,9 @@ class PEUtil(object):
                 adjusted_section_va = section_va + (src_va_end - section_va)
                 adjusted_section_va = self.get_aligned_va(adjusted_section_va)
                 self.PE.sections[index+1].VirtualAddress = adjusted_section_va
+                if section_va == self.PE.OPTIONAL_HEADER.BaseOfData:
+                    self.PE.OPTIONAL_HEADER.BaseOfData = adjusted_section_va
                 self.adjust_directories(section_va, adjusted_section_va, dst_section.Misc_VirtualSize)
-
-    def adjust_sections(self, index):
-        src_section = self.PE.sections[index]
-        virtual_address = src_section.VirtualAddress
-        virtual_size = src_section.Misc_VirtualSize
-        name = src_section.Name
-        pointer_raw = src_section.PointerToRawData
-        size_raw = src_section.SizeOfRawData
-
-        src_va = virtual_address
-        src_va_end = virtual_address + virtual_size
-        src_raw = pointer_raw
-        src_raw_end = pointer_raw + size_raw
-
-        for dst_index in range(len(self.PE.sections)):
-            if index == dst_index:
-                continue
-            adjusted = False
-            section_va = 0
-            adjusted_section_va = 0
-            dst_section = self.PE.sections[dst_index]
-            if src_va < dst_section.VirtualAddress < src_va_end:
-                adjusted = True
-                print "adjust virtual address"
-                section_va = dst_section.VirtualAddress
-                adjusted_section_va = section_va + (src_va_end - section_va)
-                adjusted_section_va = self.get_aligned_va(adjusted_section_va)
-                self.PE.sections[dst_index].VirtualAddress = adjusted_section_va
-            if src_raw < dst_section.PointerToRawData < src_raw_end:
-                print "adjust raw point"
-                self.PE.sections[dst_index].PointerToRawData = \
-                    self.get_aligned_va(dst_section.PointerToRawData + src_raw_end - dst_section.PointerToRawData)
-            if adjusted:
-                self.adjust_directories(section_va, adjusted_section_va)
-                self.adjust_sections(dst_index)
 
     def adjust_directories(self, origin_section_va, adjusted_section_va, virtual_size):
         data_directories = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY
