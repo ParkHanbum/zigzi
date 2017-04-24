@@ -1,14 +1,94 @@
-import pefile
+from pefile import *
 import distorm3
 import PEUtil
 import binascii
 import operator
 import struct
+import shutil
 
-filename = "C:\\work\\check_pefile.exe"
-pefile = pefile.PE(filename)
+filename = "C:\\work\\firefox.exe"
 peutil = PEUtil.PEUtil(filename)
+imagebase = peutil.PE.OPTIONAL_HEADER.ImageBase
 
+peutil.PE.sections[0].Misc_VirtualSize = 136640
+pINT = peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.pINT
+peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.pINT = pINT + 0x1000
+pIAT = peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.pIAT
+peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.pIAT = pIAT + 0x1000
+peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.pBoundIAT += 0x1000
+peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.phmod += 0x1000
+peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.szName += 0x1000
+
+for importdata in peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].imports:
+    iat = importdata.struct_iat
+    ilt = importdata.struct_table
+    iat.AddressOfData += 0x1000
+    iat.ForwarderString += 0x1000
+    iat.Function += 0x1000
+    iat.Ordinal += 0x1000
+    ilt.AddressOfData += 0x1000
+    ilt.ForwarderString += 0x1000
+    ilt.Function += 0x1000
+    ilt.Ordinal += 0x1000
+
+
+for entry in peutil.PE.DIRECTORY_ENTRY_IMPORT:
+    entry.struct.Characteristics += 0x1000
+    entry.struct.FirstThunk += 0x1000
+    entry.struct.Name += 0x1000
+    entry.struct.OriginalFirstThunk += 0x1000
+
+    for importdata in entry.imports:
+        ilt = importdata.struct_table
+        ilt.AddressOfData += 0x1000
+        ilt.ForwarderString += 0x1000
+        ilt.Function += 0x1000
+        ilt.Ordinal += 0x1000
+
+        iat = importdata.struct_iat
+        if iat:
+            iat.AddressOfData += 0x1000
+            iat.ForwarderString += 0x1000
+            iat.Function += 0x1000
+            iat.Ordinal += 0x1000
+        else:
+            origin_iat_rva = importdata.address - imagebase
+            # name_rva = peutil.PE.get_dword_at_rva(origin_iat_rva)
+
+            name = peutil.PE.get_data(
+                origin_iat_rva,
+                Structure(peutil.PE.__IMAGE_THUNK_DATA_format__).sizeof())
+            # peutil.PE.set_dword_at_rva(origin_iat_rva, name_rva + 0x1000)
+            thunk_data = peutil.PE.__unpack_data__(
+                peutil.PE.__IMAGE_THUNK_DATA_format__, name,
+                file_offset=peutil.PE.get_offset_from_rva(origin_iat_rva))
+            thunk_data.AddressOfData += 0x1000
+            thunk_data.ForwarderString += 0x1000
+            thunk_data.Function += 0x1000
+            thunk_data.Ordinal += 0x1000
+            importdata.struct_iat = thunk_data
+
+peutil.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfFunctions += 0x1000
+peutil.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfNameOrdinals += 0x1000
+export_addressofname = peutil.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfNames
+peutil.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfNames = export_addressofname + 0x1000
+peutil.PE.DIRECTORY_ENTRY_EXPORT.struct.Name += 0x1000
+
+for index in xrange(len(peutil.PE.DIRECTORY_ENTRY_EXPORT.symbols)):
+    entry_name_rva = export_addressofname + (index*4)
+    name_rva = peutil.PE.get_dword_at_rva(entry_name_rva)
+    name_rva += 0x1000
+    peutil.PE.set_dword_at_rva(entry_name_rva, name_rva)
+
+for rsrc_entries in peutil.PE.DIRECTORY_ENTRY_RESOURCE.entries:
+    for rsrc_directory_entry in rsrc_entries.directory.entries:
+        for rsrc_entry_directory_entry in rsrc_directory_entry.directory.entries:
+            print "0x{:x}".format(rsrc_entry_directory_entry.data.struct.OffsetToData)
+            rsrc_entry_directory_entry.data.struct.OffsetToData += 0x1000
+
+peutil.write("c:\\work\\_test_pe.exe")
+
+"""
 basereloc_va = 0
 basereloc_size = 0
 'IMAGE_DIRECTORY_ENTRY_SECURITY'
@@ -56,7 +136,7 @@ for block_rva, reloc_block in sorted_map:
         print "BLOCK[{:x}]\t{:x}\toffset:{:x}".format(block_rva, entry, block_raw)
 
 
-"""
+
 sorted_map = sorted(reloc_blocks.items(),
                     key=operator.itemgetter(0))
 for block_rva, reloc_block in sorted_map:

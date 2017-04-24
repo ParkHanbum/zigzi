@@ -35,19 +35,6 @@ class PEInstrument(object):
         :param filename: Filename represent absolute filepath that include with filename
         :return:
         """
-        """
-        instrumented_map = self.instrument_history_map
-        entry_point_rva = self.peutil.get_entry_point_rva(self.entry_point_va)
-        print "entry point  va: {:x}".format(self.entry_point_va)
-        print "entry point rva: {:x}".format(entry_point_rva)
-        for address, instrumented_size in instrumented_map.iteritems():
-            if address < entry_point_rva:
-                self.entry_point_va += instrumented_size
-        execute_data = self.getdata()
-        self.peutil.create_new_section(execute_data)
-        print "entry point : {:x}".format(self.entry_point_va)
-        self.peutil.setentrypoint(self.entry_point_va)
-        """
         self.adjust_PE_layout()
         self.peutil.write(filename)
 
@@ -157,10 +144,15 @@ class PEInstrument(object):
         return block_instrumented_size
 
     def adjust_PE_layout(self):
-        self.adjust_executable_section()
+        """
+        adjust PE layout. keep order.
+        must do adjust first, and section modificate after.
+        :return:
+        """
         self.adjust_entry_point()
         if self.peutil.isrelocable():
             self.adjust_relocation()
+        self.adjust_executable_section()
 
     def adjust_entry_point(self):
         entry_va = self.peutil.get_entry_point_va()
@@ -174,6 +166,8 @@ class PEInstrument(object):
         for address, size in sorted_instruction_map:
             if address < va:
                 instrumented_size += size
+            else:
+                break
         return instrumented_size
 
     def adjust_executable_section(self):
@@ -299,6 +293,60 @@ class PEInstrument(object):
                                           :inst.address + inst.size])[0]
                         )
 
+    def adjust_relocation(self):
+        basereloc_list = self.peutil.PE.DIRECTORY_ENTRY_BASERELOC
+        (text_section, text_section_end) = self.peutil.get_executable_range_va()
+        overflowed_reloc_map = {}
+        for block_index in xrange(len(basereloc_list)):
+            reloc_block = basereloc_list[block_index]
+            block_va = reloc_block.struct.VirtualAddress
+            if block_va < text_section_end:
+                overflowed_reloc_entries = []
+                for entry_index in xrange(len(reloc_block.entries)):
+                    reloc_entry = reloc_block.entries[entry_index]
+                    if reloc_entry.struct.Data == 0:
+                        continue
+                    # Base of code
+                    entry_rva = reloc_entry.rva - 0x1000
+                    instrumented_size = self.get_instrument_size_until(entry_rva)
+                    entry_rva += instrumented_size
+                    reloc_entry.rva += instrumented_size
+                    # if entry's rva is over block, save entry for move to next block
+                    # TODO : judge about entry_rva is same as block_va
+                    if entry_rva >= block_va:
+                        overflowed_reloc_entries.append(reloc_entry)
+                    else:
+                        # self.peutil.PE.DIRECTORY_ENTRY_BASERELOC[block_index].entries[entry_index].struct.Data \
+                        #    += instrumented_size
+                        reloc_entry.struct.Data += instrumented_size
+
+                for index in xrange(len(overflowed_reloc_entries)):
+                    reloc_block.entries.remove(overflowed_reloc_entries[index])
+                    # relocation block size fixed by 2
+                    reloc_block.struct.SizeOfBlock -= 2
+                overflowed_reloc_map[block_index] = overflowed_reloc_entries
+            else:
+                self.peutil.PE.DIRECTORY_ENTRY_BASERELOC[block_index].struct.VirtualAddress += 0x1000
+                reloc_block.struct.VirtualAddress += 0x1000
+
+        if len(overflowed_reloc_map) > 0:
+            sorted_reloc_entry_map = sorted(overflowed_reloc_map.items(),
+                                            key=operator.itemgetter(0))
+
+            for (block_index, entries) in sorted_reloc_entry_map:
+                next_block = basereloc_list[block_index+1]
+                next_block_base = next_block.struct.VirtualAddress
+                for entry_index in xrange(len(entries)):
+                    entry = entries[entry_index]
+                    entry.base_rva = next_block_base
+                    entry.struct.Data = (entry.type * 0x1000) + entry.rva - next_block_base
+                    self.peutil.PE.DIRECTORY_ENTRY_BASERELOC[block_index+1].entries.insert(entry_index, entry)
+                    #next_block.entries.insert(entry_index, entry)
+                    next_block.struct.SizeOfBlock += 2
+
+        #self.peutil.PE.DIRECTORY_ENTRY_BASERELOC = basereloc_list
+        print "DEBUG"
+    """
     # TODO : handle relocation
     def adjust_relocation(self):
         relocation_map = self.peutil.get_reloc_map()
@@ -332,16 +380,22 @@ class PEInstrument(object):
                                                 key=operator.itemgetter(0))
         # save log
         log = []
-        for i in range(len(sorted_adjusted_relocation_map)):
-            (reloc_origin_rva, reloc_block) = sorted_adjusted_relocation_map[i]
-            for adjusted_reloc_rva, reloc_raw in reloc_block:
+        for block_index in xrange(len(sorted_adjusted_relocation_map)):
+            (reloc_block_rva, reloc_block) = sorted_adjusted_relocation_map[block_index]
+            (origin_reloc_block_rva, origin_reloc_block) = sorted_relocation_map[block_index]
+            for reloc_index in xrange(len(reloc_block)):
+                (origin_reloc_rva, origin_reloc_raw) = origin_reloc_block[reloc_index]
+                (adjusted_reloc_rva, reloc_raw) = reloc_block[reloc_index]
+
                 try:
-                    log.append("[0x{:x}] \t[0x{:x}]\t[0x{:x}]\n"
-                               .format(reloc_origin_rva, adjusted_reloc_rva, reloc_raw))
+                    log.append("[0x{:x}]\t[0x{:x}]\t[0x{:x}]\t[0x{:x}]\n"
+                               .format(reloc_block_rva, origin_reloc_rva,
+                                       adjusted_reloc_rva, reloc_raw))
                 except:
                     print "Test"
         open("c:\\work\\reloc.log", "w").write(''.join(log))
         return 0
+    """
 
     def get_adjusted_relocation_map(self, relocation_map):
         sorted_relocation_map = sorted(relocation_map.items(),

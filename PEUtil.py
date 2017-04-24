@@ -3,10 +3,12 @@
 """PEUtil, parse PE format and modify it.
 """
 
-import pefile
+import mmap
 import copy
 import struct
 import operator
+from pefile import *
+
 
 _DWORD_SIZE = 4
 _WORD_SIZE = 2
@@ -14,13 +16,15 @@ _WORD_SIZE = 2
 
 class PEUtil(object):
 
-    fast_load = False
-
     def __init__(self, name):
         self.PE_name = name
-        pe_file = open(name, 'rb')
+        pe_file = open(name, 'r+b')
         pe_file_bytes = bytearray(pe_file.read())
-        self.PE = pefile.PE(None, pe_file_bytes, self.fast_load)
+        fast_load = False
+        pe_data = mmap.mmap(pe_file.fileno(), 0, access=mmap.ACCESS_COPY)
+        self.PE = PE(None, data=pe_data, fast_load=False)
+        # self.PE.full_load()
+        # self.PE = pefile.PE(name)
 
     def get_pe_name(self):
         return self.PE_name
@@ -64,11 +68,13 @@ class PEUtil(object):
         aligned_orig_data_len = self.get_aligned_offset(orig_data_len)
         data_len = len(data)
         aligned_data_len = self.get_aligned_offset(data_len)
-        # make space
-        space = bytearray((aligned_orig_data_len+aligned_data_len) - orig_data_len)
-        self.PE.__data__[orig_data_len:aligned_orig_data_len+aligned_data_len] = space
+        # make null space for data.
+        space = bytearray((aligned_orig_data_len+aligned_data_len) - orig_data_len + 1)
+        self.PE.set_bytes_at_offset(orig_data_len - 1, bytes(space))
+        #self.PE.__data__[orig_data_len:aligned_orig_data_len+aligned_data_len] = space
         # Fill space with data
-        self.PE.__data__[aligned_orig_data_len:aligned_orig_data_len+aligned_data_len] = data
+        self.PE.set_bytes_at_offset(aligned_orig_data_len, bytes(data))
+        #self.PE.__data__[aligned_orig_data_len:aligned_orig_data_len+aligned_data_len] = data
         return aligned_orig_data_len, aligned_data_len
 
     def create_new_section_header(self, point_to_raw, size_of_raw):
@@ -168,11 +174,11 @@ class PEUtil(object):
 
     def write(self, path):
         self.uncerfication()
-        #self.adjust_PE_layout()
-        #self.PE.merge_modified_section_data()
-        #self.PE.OPTIONAL_HEADER.SizeOfImage = self.get_image_size()
+        self.adjust_PE_layout()
+        self.PE.merge_modified_section_data()
+        self.PE.OPTIONAL_HEADER.SizeOfImage = self.get_image_size()
         self.PE.OPTIONAL_HEADER.CheckSum = 0
-        #self.PE.OPTIONAL_HEADER.CheckSum = self.PE.generate_checksum()
+        self.PE.OPTIONAL_HEADER.CheckSum = self.PE.generate_checksum()
         self.PE.write(path)
 
     def get_image_size(self):
@@ -250,6 +256,13 @@ class PEUtil(object):
 
     def adjust_PE_layout(self):
         self.adjust_section()
+        """
+        TODO : adjust rva for relative with data directory entries
+        self.adjust_relocation()
+        self.adjust_import()
+        self.adjust_export()
+        self.adjust_resource()
+        """
 
     def adjust_section(self):
         for index in xrange(len(self.PE.sections)-1):
@@ -274,13 +287,32 @@ class PEUtil(object):
                 self.adjust_directories(section_va, adjusted_section_va, dst_section.Misc_VirtualSize)
 
     def adjust_directories(self, origin_section_va, adjusted_section_va, virtual_size):
+        directory_adjust = {
+            #'IMAGE_DIRECTORY_ENTRY_IMPORT': self.adjust_import,
+            'IMAGE_DIRECTORY_ENTRY_EXPORT': self.adjust_export,
+            'IMAGE_DIRECTORY_ENTRY_RESOURCE': self.adjust_resource,
+            # 'IMAGE_DIRECTORY_ENTRY_DEBUG': self.adjust_debug,
+            'IMAGE_DIRECTORY_ENTRY_BASERELOC': self.adjust_relocation,
+            # 'IMAGE_DIRECTORY_ENTRY_TLS': self.adjust_tls,
+            # 'IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG': self.adjust_load_config,
+            'IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT': self.adjust_delay_import,
+            'IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT': self.adjust_bound_imports
+        }
+
         data_directories = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY
         increase_vector = adjusted_section_va - origin_section_va
         for index in xrange(len(data_directories)):
             directory = data_directories[index]
-            if origin_section_va <= directory.VirtualAddress < origin_section_va+virtual_size:
-                self.PE.OPTIONAL_HEADER.DATA_DIRECTORY[index].VirtualAddress = \
-                    directory.VirtualAddress + increase_vector
+            if origin_section_va <= directory.VirtualAddress < origin_section_va + virtual_size:
+                self.PE.OPTIONAL_HEADER.DATA_DIRECTORY[index].VirtualAddress \
+                    = directory.VirtualAddress + increase_vector
+                try:
+                    if directory.name in directory_adjust:
+                        entry = directory_adjust[directory.name]
+                        entry(directory, directory.VirtualAddress, directory.Size, increase_vector)
+                except IndexError:
+                    print "===== [INDEX ERROR] ====="
+                    return False
 
     def uncerfication(self):
         for index in range(len(self.PE.OPTIONAL_HEADER.DATA_DIRECTORY)):
@@ -302,9 +334,95 @@ class PEUtil(object):
                 offset += 2
         return packed
 
-    def write_relocation(self, relocation_map):
-        packed_relocation = self.pack_relocation(relocation_map)
+    def write_relocation(self, adjusted_relocation_map):
+        self.adjusted_relocation_map = adjusted_relocation_map
 
+    def adjust_relocation(self, directory, rva, size, increase_size):
+        return 0
 
+    def adjust_load_config(self, directory, rva, size, increase_size):
+        return 0
 
+    def adjust_debug(self, directory, rva, size, increase_size):
+        return 0
 
+    def adjust_tls(self, directory, rva, size, increase_size):
+        return 0
+
+    def adjust_bound_imports(self, directory, rva, size, increase_size):
+        return 0
+
+    def adjust_delay_import(self, directory, rva, size, increase_size):
+        pINT = self.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.pINT
+        self.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.pINT = pINT + increase_size
+        pIAT = self.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.pIAT
+        self.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.pIAT = pIAT + increase_size
+        self.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.pBoundIAT += increase_size
+        self.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.phmod += increase_size
+        self.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.szName += increase_size
+
+        for importdata in self.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].imports:
+            iat = importdata.struct_iat
+            ilt = importdata.struct_table
+            iat.AddressOfData += increase_size
+            iat.ForwarderString += increase_size
+            iat.Function += increase_size
+            iat.Ordinal += increase_size
+            ilt.AddressOfData += increase_size
+            ilt.ForwarderString += increase_size
+            ilt.Function += increase_size
+            ilt.Ordinal += increase_size
+
+    def adjust_import(self, directory, rva, size, increase_size):
+        for importindex in xrange(len(self.PE.DIRECTORY_ENTRY_IMPORT)):
+            self.PE.DIRECTORY_ENTRY_IMPORT[importindex].struct.Characteristics += 0x1000
+            self.PE.DIRECTORY_ENTRY_IMPORT[importindex].struct.FirstThunk += 0x1000
+            self.PE.DIRECTORY_ENTRY_IMPORT[importindex].struct.Name += 0x1000
+            self.PE.DIRECTORY_ENTRY_IMPORT[importindex].struct.OriginalFirstThunk += 0x1000
+
+            for entryindex in xrange(len(self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports)):
+                importdata = self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports[entryindex]
+                iat = importdata.struct_iat
+                self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports[entryindex].struct_table.AddressOfData += 0x1000
+                self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports[entryindex].struct_table.ForwarderString += 0x1000
+                self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports[entryindex].struct_table.Function += 0x1000
+                self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports[entryindex].struct_table.Ordinal += 0x1000
+                if iat:
+                    self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports[entryindex].struct_iat.AddressOfData += 0x1000
+                    self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports[entryindex].struct_iat.ForwarderString += 0x1000
+                    self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports[entryindex].struct_iat.Function += 0x1000
+                    self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports[entryindex].struct_iat.Ordinal += 0x1000
+                else:
+                    origin_iat_rva = importdata.address - self.PE.OPTIONAL_HEADER.ImageBase
+                    # name_rva = peutil.PE.get_dword_at_rva(origin_iat_rva)
+                    name = self.PE.get_data(
+                        origin_iat_rva,
+                        Structure(self.PE.__IMAGE_THUNK_DATA_format__).sizeof())
+                    # peutil.PE.set_dword_at_rva(origin_iat_rva, name_rva + 0x1000)
+                    thunk_data = self.PE.__unpack_data__(
+                        self.PE.__IMAGE_THUNK_DATA_format__, name,
+                        file_offset=self.PE.get_offset_from_rva(origin_iat_rva))
+                    thunk_data.AddressOfData += 0x1000
+                    thunk_data.ForwarderString += 0x1000
+                    thunk_data.Function += 0x1000
+                    thunk_data.Ordinal += 0x1000
+                    self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports[entryindex].struct_iat = thunk_data
+
+    def adjust_export(self, directory, rva, size, increase_size):
+        self.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfFunctions += increase_size
+        self.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfNameOrdinals += increase_size
+        export_addressofname = self.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfNames
+        self.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfNames = export_addressofname + increase_size
+        self.PE.DIRECTORY_ENTRY_EXPORT.struct.Name += increase_size
+        for index in xrange(len(self.PE.DIRECTORY_ENTRY_EXPORT.symbols)):
+            entry_name_rva = export_addressofname + (index * 4)
+            name_rva = self.PE.get_dword_at_rva(entry_name_rva)
+            name_rva += increase_size
+            self.PE.set_dword_at_rva(entry_name_rva, name_rva)
+
+    def adjust_resource(self, directory, rva, size, increase_size):
+        for rsrc_entries in self.PE.DIRECTORY_ENTRY_RESOURCE.entries:
+            for rsrc_directory_entry in rsrc_entries.directory.entries:
+                for rsrc_entry_directory_entry in rsrc_directory_entry.directory.entries:
+                    print "0x{:x}".format(rsrc_entry_directory_entry.data.struct.OffsetToData)
+                    rsrc_entry_directory_entry.data.struct.OffsetToData += increase_size
