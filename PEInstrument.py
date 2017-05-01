@@ -4,6 +4,7 @@ import distorm3
 import operator
 from PEUtil import *
 from keystone import *
+import os.path
 
 
 class PEInstrument(object):
@@ -35,6 +36,7 @@ class PEInstrument(object):
         :param filename: Filename represent absolute filepath that include with filename
         :return:
         """
+        self.peutil.set_instrumentor(self)
         self.adjust_PE_layout()
         self.peutil.write(filename)
 
@@ -153,10 +155,12 @@ class PEInstrument(object):
         if self.peutil.isrelocable():
             self.adjust_relocation()
         self.adjust_executable_section()
+        self.peutil.adjust_import(self.get_instrument_size())
 
     def adjust_entry_point(self):
         entry_va = self.peutil.get_entry_point_va()
-        instrument_size = self.get_instrument_size_until(entry_va)
+        instrument_size = self.get_instrument_size_with_vector(entry_va - 0x1000)
+        # instrument_size = self.get_instrument_size_until(entry_va)
         self.peutil.setentrypoint(entry_va + instrument_size)
 
     def get_instrument_size_until(self, va):
@@ -168,6 +172,41 @@ class PEInstrument(object):
                 instrumented_size += size
             else:
                 break
+        return instrumented_size
+
+    def get_instrument_size_from_until_with_base(self, base, until_va):
+        va = until_va - base
+        return self.get_instrument_size_until(va)
+
+    def get_instrument_size_with_range(self, start, end):
+        sorted_instruction_map = sorted(self.instrument_history_map.items(),
+                                        key=operator.itemgetter(0))
+        instrumented_size = 0
+        for address, size in sorted_instruction_map:
+            if address > end:
+                break
+            if start < address < end:
+                instrumented_size += size
+        return instrumented_size
+
+    def get_instrument_size_with_vector(self, va):
+        sorted_instruction_map = sorted(self.instrument_history_map.items(),
+                                        key=operator.itemgetter(0))
+        instrumented_size = 0
+        for address, size in sorted_instruction_map:
+            if address < va:
+                instrumented_size += size
+                va += size
+            else:
+                break
+        return instrumented_size
+
+    def get_instrument_size(self):
+        sorted_instruction_map = sorted(self.instrument_history_map.items(),
+                                        key=operator.itemgetter(0))
+        instrumented_size = 0
+        for address, size in sorted_instruction_map:
+            instrumented_size += size
         return instrumented_size
 
     def adjust_executable_section(self):
@@ -294,108 +333,99 @@ class PEInstrument(object):
                         )
 
     def adjust_relocation(self):
-        basereloc_list = self.peutil.PE.DIRECTORY_ENTRY_BASERELOC
+        structures_relocation_block = {}
+        structures_relocation_entries = {}
+        log = open('c:\\work\\after_relocation.txt', 'w')
+        block_va = -1
+        for entry in self.peutil.PE.__structures__:
+            if entry.name.find('IMAGE_BASE_RELOCATION_ENTRY') != -1:
+                if block_va > 0:
+                    structures_relocation_entries[block_va].append(entry)
+                    # log.write("{}\n".format(entry))
+            elif entry.name.find('IMAGE_BASE_RELOCATION') != -1:
+                block_va = entry.VirtualAddress
+                structures_relocation_block[block_va] = entry
+                structures_relocation_entries[block_va] = []
+                # log.write("{}\n".format(entry))
+            elif entry.name.find('DIRECTORY_ENTRY_BASERELOC') != -1:
+                "DIRECTORY"
+
+        """
+        TODO:
+        #1
+        If the virtual address of the relocation block exceeds the range of the text section,
+        the virtual address of the relocation block is increased by the amount of movement of the section.
+        If there is an entry that has moved to the next block due to the size instrumented
+        in the previous relocation block, it must be processed.
+
+        #2
+        it can cause exception what address of next block is not exist.
+        next block address is not sequential increase
+        """
         (text_section, text_section_end) = self.peutil.get_executable_range_va()
-        overflowed_reloc_map = {}
-        for block_index in xrange(len(basereloc_list)):
-            reloc_block = basereloc_list[block_index]
-            block_va = reloc_block.struct.VirtualAddress
+        sorted_relocation_block = sorted(structures_relocation_block.items(), key=operator.itemgetter(0))
+        for index, (block_va, block) in enumerate(sorted_relocation_block):
+            log.write("{}\n".format(block))
             if block_va < text_section_end:
-                overflowed_reloc_entries = []
-                for entry_index in xrange(len(reloc_block.entries)):
-                    reloc_entry = reloc_block.entries[entry_index]
-                    if reloc_entry.struct.Data == 0:
+                for entry in structures_relocation_entries[block_va]:
+                    log.write("{}\n".format(entry))
+                    if entry.Data == 0:
                         continue
-                    # Base of code
-                    entry_rva = reloc_entry.rva - 0x1000
-                    instrumented_size = self.get_instrument_size_until(entry_rva)
+                    entry_rva = entry.Data & 0x0fff
+                    entry_type = entry.Data & 0xf000
+                    # 0x1000 mean virtual address of first section that text section.
+                    entry_va = block_va + entry_rva
+                    instrumented_size = self.get_instrument_size_from_until_with_base(0x1000, entry_va)
                     entry_rva += instrumented_size
-                    reloc_entry.rva += instrumented_size
-                    # if entry's rva is over block, save entry for move to next block
-                    # TODO : judge about entry_rva is same as block_va
-                    if entry_rva >= block_va:
-                        overflowed_reloc_entries.append(reloc_entry)
+
+                    # move entry to appropriate block
+                    if entry_rva >= 0x1000:
+                        self.peutil.PE.__structures__.remove(entry)
+                        self.peutil.PE.__structures__[self.peutil.PE.__structures__.index(block)].SizeOfBlock -= 2
+                        appropriate_block_va = (entry_rva & 0xf000) + block_va
+                        entry.Data = (entry_rva & 0xfff) + entry_type
+
+                        # if appropriate block address is exist.
+                        if appropriate_block_va in structures_relocation_block:
+                            appropriate_block_index = \
+                                self.peutil.PE.__structures__.index(structures_relocation_block[appropriate_block_va])
+                        else:
+                            # create new relocation block with appropriate_block_va
+                            next_block_va, next_block = sorted_relocation_block[index+1]
+                            next_block_index = self.peutil.PE.__structures__.index(next_block)
+                            new_block = next_block
+                            new_block.SizeOfBlock = 0
+                            new_block.VirtualAddress = appropriate_block_va
+                            appropriate_block_index = next_block_index-1
+                            self.peutil.PE.__structures__.insert(appropriate_block_index, new_block)
+                        self.peutil.PE.__structures__[appropriate_block_index].SizeOfBlock += 2
+                        self.peutil.PE.__structures__.insert(appropriate_block_index+1, entry)
                     else:
-                        # self.peutil.PE.DIRECTORY_ENTRY_BASERELOC[block_index].entries[entry_index].struct.Data \
-                        #    += instrumented_size
-                        reloc_entry.struct.Data += instrumented_size
-
-                for index in xrange(len(overflowed_reloc_entries)):
-                    reloc_block.entries.remove(overflowed_reloc_entries[index])
-                    # relocation block size fixed by 2
-                    reloc_block.struct.SizeOfBlock -= 2
-                overflowed_reloc_map[block_index] = overflowed_reloc_entries
+                        entry.Data = entry_rva + entry_type
             else:
-                self.peutil.PE.DIRECTORY_ENTRY_BASERELOC[block_index].struct.VirtualAddress += 0x1000
-                reloc_block.struct.VirtualAddress += 0x1000
+                # 0x1000 mean increased size of section va.
+                self.peutil.PE.__structures__[self.peutil.PE.__structures__.index(block)].VirtualAddress += 0x1000
 
-        if len(overflowed_reloc_map) > 0:
-            sorted_reloc_entry_map = sorted(overflowed_reloc_map.items(),
-                                            key=operator.itemgetter(0))
+        log = open('c:\\work\\after_relocation.txt', 'w')
 
-            for (block_index, entries) in sorted_reloc_entry_map:
-                next_block = basereloc_list[block_index+1]
-                next_block_base = next_block.struct.VirtualAddress
-                for entry_index in xrange(len(entries)):
-                    entry = entries[entry_index]
-                    entry.base_rva = next_block_base
-                    entry.struct.Data = (entry.type * 0x1000) + entry.rva - next_block_base
-                    self.peutil.PE.DIRECTORY_ENTRY_BASERELOC[block_index+1].entries.insert(entry_index, entry)
-                    #next_block.entries.insert(entry_index, entry)
-                    next_block.struct.SizeOfBlock += 2
-
-        #self.peutil.PE.DIRECTORY_ENTRY_BASERELOC = basereloc_list
-        print "DEBUG"
-    """
-    # TODO : handle relocation
-    def adjust_relocation(self):
-        relocation_map = self.peutil.get_reloc_map()
-        sorted_relocation_map = sorted(relocation_map.items(),
-                                       key=operator.itemgetter(0))
-        adjusted_relocation_map = self.get_adjusted_relocation_map(relocation_map)
-        sorted_adjusted_relocation_map = sorted(adjusted_relocation_map.items(),
-                                                key=operator.itemgetter(0))
-        last_entry_relocation = sorted_relocation_map[-1]
-        last_entry_adjusted_relocation = sorted_adjusted_relocation_map[-1]
-        reloc_block_end_rva = last_entry_relocation[0]
-        (reloc_rva, reloc_raw) = (last_entry_relocation[1])[0]
-        sorted_reloc_block_end_rva = last_entry_adjusted_relocation[0]
-        (adjusted_reloc_rva, reloc_raw) = (last_entry_adjusted_relocation[1])[0]
-        increase_size = adjusted_reloc_rva - reloc_rva
-
-        # TODO : calculate aligned
-        aligned = increase_size * 0xf000
-        if increase_size - aligned > 0:
-            aligned + 0x1000
-
-        if aligned > 0:
-            temp = {}
-            for (reloc_block_rva, reloc_block) in relocation_map.items():
-                if reloc_block_rva > sorted_reloc_block_end_rva:
-                    temp[reloc_block_rva + aligned] = reloc_block
-            adjusted_relocation_map.update(temp)
-
-        self.peutil.write_relocation(adjusted_relocation_map)
-        sorted_adjusted_relocation_map = sorted(adjusted_relocation_map.items(),
-                                                key=operator.itemgetter(0))
-        # save log
-        log = []
-        for block_index in xrange(len(sorted_adjusted_relocation_map)):
-            (reloc_block_rva, reloc_block) = sorted_adjusted_relocation_map[block_index]
-            (origin_reloc_block_rva, origin_reloc_block) = sorted_relocation_map[block_index]
-            for reloc_index in xrange(len(reloc_block)):
-                (origin_reloc_rva, origin_reloc_raw) = origin_reloc_block[reloc_index]
-                (adjusted_reloc_rva, reloc_raw) = reloc_block[reloc_index]
-
-                try:
-                    log.append("[0x{:x}]\t[0x{:x}]\t[0x{:x}]\t[0x{:x}]\n"
-                               .format(reloc_block_rva, origin_reloc_rva,
-                                       adjusted_reloc_rva, reloc_raw))
-                except:
-                    print "Test"
-        open("c:\\work\\reloc.log", "w").write(''.join(log))
-        return 0
-    """
+        """
+        structures has owned offset.
+        so, if modify position or order of structures element then must fix offset of structures element.
+        """
+        file_offset = 0
+        for entry in self.peutil.PE.__structures__:
+            if entry.name.find('IMAGE_BASE_RELOCATION_ENTRY') != -1:
+                entry.set_file_offset(file_offset)
+                file_offset += 2
+                log.write("{}\tfileoffset:[0x{}]\n".format(entry, file_offset))
+            elif entry.name.find('IMAGE_BASE_RELOCATION') != -1:
+                if file_offset == 0:
+                    file_offset = entry.get_file_offset()
+                entry.set_file_offset(file_offset)
+                file_offset += 8
+                log.write("{}\tfileoffset:[0x{}]\n".format(entry, file_offset))
+            elif entry.name.find('DIRECTORY_ENTRY_BASERELOC') != -1:
+                log.write("{}\n".format(entry))
 
     def get_adjusted_relocation_map(self, relocation_map):
         sorted_relocation_map = sorted(relocation_map.items(),
@@ -480,6 +510,31 @@ class PEInstrument(object):
         return True
 
     def adjust_address_by(self, adjust_to_map, adjust_by_map):
+        """
+
+        :param adjust_to_map: dict type.
+        :param adjust_by_map: dict type.
+        :return: adjusted instrumented history map.
+        """
+
+        for i in xrange(100):
+            fname = 'c:\\work\\tomap{:d}.log'.format(i)
+            if not os.path.exists(fname):
+                tomap = open(fname, 'w')
+                break
+
+        for i in xrange(100):
+            fname = 'c:\\work\\bymap{:d}.log'.format(i)
+            if not os.path.exists(fname):
+                bymap = open(fname, 'w')
+                break
+
+        for i in xrange(100):
+            fname = 'c:\\work\\adjustmap{:d}.log'.format(i)
+            if not os.path.exists(fname):
+                adjustmap = open(fname, 'w')
+                break
+
         adjusted_map = {}
         sorted_adjust_to_map = sorted(adjust_to_map.items(),
                                       key=operator.itemgetter(0))
@@ -491,14 +546,28 @@ class PEInstrument(object):
             for overflowed_address, increased_size in sorted_adjust_by_map:
                 if overflowed_address < instrumented_address:
                     adjust_instrument_address += increased_size
-                else:
-                    adjusted_map[adjust_instrument_address] = instrumented_size
-                    break
+            adjusted_map[adjust_instrument_address] = instrumented_size
+
+        for overflowed_address, increased_size in sorted_adjust_by_map:
+            if increased_size > 0:
+                adjusted_map[overflowed_address] = increased_size
+
+        sorted_adjusted_map = sorted(adjusted_map.items(),
+                                      key=operator.itemgetter(0))
+
+        print '===================[LOGGING]=============================='
+        for address, size in sorted_adjusted_map:
+            adjustmap.write('[0x{:x}]\t{}\n'.format(address, size))
+        for instrumented_address, instrumented_size in sorted_adjust_to_map:
+            tomap.write('[0x{:x}]\t{}\n'.format(instrumented_address, instrumented_size))
+        for overflowed_address, increased_size in sorted_adjust_by_map:
+            bymap.write('[0x{:x}]\t{}\n'.format(overflowed_address, increased_size))
+
         return adjusted_map
 
     def save_instrument_history(self, instrumented_map, handled_overflowed_map):
         adjusted_map = self.adjust_address_by(instrumented_map, handled_overflowed_map)
-        adjusted_map.update(handled_overflowed_map)
+        # adjusted_map.update(handled_overflowed_map)
         self.instrument_history_map = adjusted_map
         """
         if not self.instrument_history_map:
