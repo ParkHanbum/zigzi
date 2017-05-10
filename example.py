@@ -15,7 +15,6 @@ def test(instruction):
         # Initialize engine in X86-32bit mode
         ks = Ks(KS_ARCH_X86, KS_MODE_32)
         encoding, count = ks.asm(hexacode)
-        # print("%s = %s (number of statements: %u)" % (code, encoding, count))
         return (encoding, count)
     except KsError as e:
         print("ERROR: %s" % e)

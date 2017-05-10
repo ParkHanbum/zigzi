@@ -1,92 +1,115 @@
-from pefile import *
 import distorm3
-import PEUtil
 import binascii
 import operator
 import struct
 import shutil
-
-filename = "C:\\work\\firefox.exe"
-peutil = PEUtil.PEUtil(filename)
-imagebase = peutil.PE.OPTIONAL_HEADER.ImageBase
-
-peutil.PE.sections[0].Misc_VirtualSize = 136640
-pINT = peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.pINT
-peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.pINT = pINT + 0x1000
-pIAT = peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.pIAT
-peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.pIAT = pIAT + 0x1000
-peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.pBoundIAT += 0x1000
-peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.phmod += 0x1000
-peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.szName += 0x1000
-
-for importdata in peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].imports:
-    iat = importdata.struct_iat
-    ilt = importdata.struct_table
-    iat.AddressOfData += 0x1000
-    iat.ForwarderString += 0x1000
-    iat.Function += 0x1000
-    iat.Ordinal += 0x1000
-    ilt.AddressOfData += 0x1000
-    ilt.ForwarderString += 0x1000
-    ilt.Function += 0x1000
-    ilt.Ordinal += 0x1000
+from PEUtil import *
 
 
-for entry in peutil.PE.DIRECTORY_ENTRY_IMPORT:
-    entry.struct.Characteristics += 0x1000
-    entry.struct.FirstThunk += 0x1000
-    entry.struct.Name += 0x1000
-    entry.struct.OriginalFirstThunk += 0x1000
+class Test(object):
 
-    for importdata in entry.imports:
-        ilt = importdata.struct_table
-        ilt.AddressOfData += 0x1000
-        ilt.ForwarderString += 0x1000
-        ilt.Function += 0x1000
-        ilt.Ordinal += 0x1000
+    def test(self):
+        filename = "C:\\work\\firefox.exe"
+        peutil = PEUtil(filename)
+        imagebase = peutil.PE.OPTIONAL_HEADER.ImageBase
 
-        iat = importdata.struct_iat
-        if iat:
+        peutil.PE.sections[0].Misc_VirtualSize = 136640
+        pINT = peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.pINT
+        peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.pINT = pINT + 0x1000
+        pIAT = peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.pIAT
+        peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.pIAT = pIAT + 0x1000
+        peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.pBoundIAT += 0x1000
+        peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.phmod += 0x1000
+        peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].struct.szName += 0x1000
+
+        for importdata in peutil.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].imports:
+            iat = importdata.struct_iat
+            ilt = importdata.struct_table
             iat.AddressOfData += 0x1000
             iat.ForwarderString += 0x1000
             iat.Function += 0x1000
             iat.Ordinal += 0x1000
-        else:
-            origin_iat_rva = importdata.address - imagebase
-            # name_rva = peutil.PE.get_dword_at_rva(origin_iat_rva)
+            ilt.AddressOfData += 0x1000
+            ilt.ForwarderString += 0x1000
+            ilt.Function += 0x1000
+            ilt.Ordinal += 0x1000
 
-            name = peutil.PE.get_data(
-                origin_iat_rva,
-                Structure(peutil.PE.__IMAGE_THUNK_DATA_format__).sizeof())
-            # peutil.PE.set_dword_at_rva(origin_iat_rva, name_rva + 0x1000)
-            thunk_data = peutil.PE.__unpack_data__(
-                peutil.PE.__IMAGE_THUNK_DATA_format__, name,
-                file_offset=peutil.PE.get_offset_from_rva(origin_iat_rva))
-            thunk_data.AddressOfData += 0x1000
-            thunk_data.ForwarderString += 0x1000
-            thunk_data.Function += 0x1000
-            thunk_data.Ordinal += 0x1000
-            importdata.struct_iat = thunk_data
+        for entry in peutil.PE.DIRECTORY_ENTRY_IMPORT:
+            entry.struct.Characteristics += 0x1000
+            entry.struct.FirstThunk += 0x1000
+            entry.struct.Name += 0x1000
+            entry.struct.OriginalFirstThunk += 0x1000
 
-peutil.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfFunctions += 0x1000
-peutil.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfNameOrdinals += 0x1000
-export_addressofname = peutil.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfNames
-peutil.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfNames = export_addressofname + 0x1000
-peutil.PE.DIRECTORY_ENTRY_EXPORT.struct.Name += 0x1000
+            for importdata in entry.imports:
+                ilt = importdata.struct_table
+                ilt.AddressOfData += 0x1000
+                ilt.ForwarderString += 0x1000
+                ilt.Function += 0x1000
+                ilt.Ordinal += 0x1000
 
-for index in xrange(len(peutil.PE.DIRECTORY_ENTRY_EXPORT.symbols)):
-    entry_name_rva = export_addressofname + (index*4)
-    name_rva = peutil.PE.get_dword_at_rva(entry_name_rva)
-    name_rva += 0x1000
-    peutil.PE.set_dword_at_rva(entry_name_rva, name_rva)
+                iat = importdata.struct_iat
+                if iat:
+                    iat.AddressOfData += 0x1000
+                    iat.ForwarderString += 0x1000
+                    iat.Function += 0x1000
+                    iat.Ordinal += 0x1000
+                else:
+                    origin_iat_rva = importdata.address - imagebase
+                    # name_rva = peutil.PE.get_dword_at_rva(origin_iat_rva)
 
-for rsrc_entries in peutil.PE.DIRECTORY_ENTRY_RESOURCE.entries:
-    for rsrc_directory_entry in rsrc_entries.directory.entries:
-        for rsrc_entry_directory_entry in rsrc_directory_entry.directory.entries:
-            print "0x{:x}".format(rsrc_entry_directory_entry.data.struct.OffsetToData)
-            rsrc_entry_directory_entry.data.struct.OffsetToData += 0x1000
+                    name = peutil.PE.get_data(
+                        origin_iat_rva,
+                        Structure(peutil.PE.__IMAGE_THUNK_DATA_format__).sizeof())
+                    # peutil.PE.set_dword_at_rva(origin_iat_rva, name_rva + 0x1000)
+                    thunk_data = peutil.PE.__unpack_data__(
+                        peutil.PE.__IMAGE_THUNK_DATA_format__, name,
+                        file_offset=peutil.PE.get_offset_from_rva(origin_iat_rva))
+                    thunk_data.AddressOfData += 0x1000
+                    thunk_data.ForwarderString += 0x1000
+                    thunk_data.Function += 0x1000
+                    thunk_data.Ordinal += 0x1000
+                    importdata.struct_iat = thunk_data
 
-peutil.write("c:\\work\\_test_pe.exe")
+        peutil.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfFunctions += 0x1000
+        peutil.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfNameOrdinals += 0x1000
+        export_addressofname = peutil.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfNames
+        peutil.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfNames = export_addressofname + 0x1000
+        peutil.PE.DIRECTORY_ENTRY_EXPORT.struct.Name += 0x1000
+
+        for entry in peutil.PE.__structures__:
+            if entry.name == 'IMAGE_EXPORT_DIRECTORY':
+                print entry
+            elif 'EXPORT' in entry.name:
+                print entry
+
+        for index in xrange(len(peutil.PE.DIRECTORY_ENTRY_EXPORT.symbols)):
+            entry_name_rva = export_addressofname + (index * 4)
+            name_rva = peutil.PE.get_dword_at_rva(entry_name_rva)
+            name_rva += 0x1000
+            peutil.PE.set_dword_at_rva(entry_name_rva, name_rva)
+
+        for rsrc_entries in peutil.PE.DIRECTORY_ENTRY_RESOURCE.entries:
+            for rsrc_directory_entry in rsrc_entries.directory.entries:
+                for rsrc_entry_directory_entry in rsrc_directory_entry.directory.entries:
+                    print "0x{:x}".format(rsrc_entry_directory_entry.data.struct.OffsetToData)
+                    rsrc_entry_directory_entry.data.struct.OffsetToData += 0x1000
+
+        peutil.write("c:\\work\\_test_pe.exe")
+
+    def test_disassemble(self):
+        disassembly = distorm3.Decompose(
+            0x0,
+            binascii.hexlify(self.execute_data).decode('hex'),
+            distorm3.Decode32Bits,
+            distorm3.DF_NONE)
+
+        for inst in disassembly:
+            if inst.operand:
+                print "tes"
+
+if __name__ == '__main__':
+    Test().test()
+
 
 """
 basereloc_va = 0

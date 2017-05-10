@@ -1,6 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-"""PEUtil, parse PE format and modify it.
+"""PEUtil, Utility for parsing and modifying PE.
 """
 
 import mmap
@@ -8,6 +8,8 @@ import copy
 import struct
 import operator
 from pefile import *
+import distorm3
+import binascii
 
 
 _DWORD_SIZE = 4
@@ -25,6 +27,13 @@ class PEUtil(object):
         self.PE = PE(None, data=pe_data, fast_load=False)
         # self.PE.full_load()
         # self.PE = pefile.PE(name)
+        self.instrumentor = None
+
+    def set_instrumentor(self, instrumentor):
+        self.instrumentor = instrumentor
+
+    def get_instrumentor(self):
+        return self.instrumentor
 
     def get_pe_name(self):
         return self.PE_name
@@ -201,6 +210,7 @@ class PEUtil(object):
             return True
         return False
 
+
     def get_reloc_map(self):
         """
         [temporary]
@@ -256,13 +266,6 @@ class PEUtil(object):
 
     def adjust_PE_layout(self):
         self.adjust_section()
-        """
-        TODO : adjust rva for relative with data directory entries
-        self.adjust_relocation()
-        self.adjust_import()
-        self.adjust_export()
-        self.adjust_resource()
-        """
 
     def adjust_section(self):
         for index in xrange(len(self.PE.sections)-1):
@@ -288,13 +291,13 @@ class PEUtil(object):
 
     def adjust_directories(self, origin_section_va, adjusted_section_va, virtual_size):
         directory_adjust = {
-            #'IMAGE_DIRECTORY_ENTRY_IMPORT': self.adjust_import,
+            # 'IMAGE_DIRECTORY_ENTRY_IMPORT': self.adjust_import,
+            # 'IMAGE_DIRECTORY_ENTRY_DEBUG': self.adjust_debug,
+            # 'IMAGE_DIRECTORY_ENTRY_TLS': self.adjust_tls,
+            'IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG': self.adjust_load_config,
             'IMAGE_DIRECTORY_ENTRY_EXPORT': self.adjust_export,
             'IMAGE_DIRECTORY_ENTRY_RESOURCE': self.adjust_resource,
-            # 'IMAGE_DIRECTORY_ENTRY_DEBUG': self.adjust_debug,
             'IMAGE_DIRECTORY_ENTRY_BASERELOC': self.adjust_relocation,
-            # 'IMAGE_DIRECTORY_ENTRY_TLS': self.adjust_tls,
-            # 'IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG': self.adjust_load_config,
             'IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT': self.adjust_delay_import,
             'IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT': self.adjust_bound_imports
         }
@@ -313,6 +316,8 @@ class PEUtil(object):
                 except IndexError:
                     print "===== [INDEX ERROR] ====="
                     return False
+
+
 
     def uncerfication(self):
         for index in range(len(self.PE.OPTIONAL_HEADER.DATA_DIRECTORY)):
@@ -338,9 +343,51 @@ class PEUtil(object):
         self.adjusted_relocation_map = adjusted_relocation_map
 
     def adjust_relocation(self, directory, rva, size, increase_size):
+        block_va = -1
+        for entry in self.PE.__structures__:
+            if entry.name.find('IMAGE_BASE_RELOCATION_ENTRY') != -1:
+                if block_va > 0:
+                    entry_va = (entry.Data & 0xfff) + block_va
+                    if 0x0 < entry_va < 0x23000:
+                        value = self.PE.get_dword_at_rva(entry_va)
+                        if 0x400000 < value < 0x422000:
+                            self.set_dword_at_rva(entry_va, value)
+                        elif 0x422000 < value < 0x480000:
+                            self.set_dword_at_rva(entry_va, value)
+                    elif 0x23000 < entry_va < 0x80000:
+                        value = self.PE.get_dword_at_rva(entry_va)
+                        if 0x400000 < value < 0x422000:
+                            self.set_dword_at_rva(entry_va, value)
+                        elif 0x422000 < value < 0x480000:
+                            self.set_dword_at_rva(entry_va, value)
+            elif entry.name.find('IMAGE_BASE_RELOCATION') != -1:
+                block_va = entry.VirtualAddress
+            elif entry.name.find('DIRECTORY_ENTRY_BASERELOC') != -1:
+                "DIRECTORY"
         return 0
 
     def adjust_load_config(self, directory, rva, size, increase_size):
+        size = self.PE.get_dword_at_rva(rva)
+        time = self.PE.get_dword_at_rva(rva + 0x4)
+        version = self.PE.get_dword_at_rva(rva + 0x8)
+        global_flags_clear = self.PE.get_dword_at_rva(rva + 0xC)
+        global_flags_set = self.PE.get_dword_at_rva(rva + 0x10)
+        critical_section_default_timeout = self.PE.get_dword_at_rva(rva + 0x14)
+        decommit_free_block_threshold = self.PE.get_dword_at_rva(rva + 0x18)
+        decommit_total_free_threshold = self.PE.get_dword_at_rva(rva + 0x1C)
+        Lock_Prefix_Table_VA = self.PE.get_dword_at_rva(rva + 0x20)
+        Maximum_Allocation_Size = self.PE.get_dword_at_rva(rva + 0x24)
+        VIrtual_Memory_Threshold = self.PE.get_dword_at_rva(rva + 0x28)
+        Process_Heap_Flags = self.PE.get_dword_at_rva(rva + 0x2C)
+        Process_Affinity_Mask = self.PE.get_dword_at_rva(rva + 0x30)
+        CSD_Version = self.PE.get_dword_at_rva(rva + 0x34)
+        Edit_List_VA = self.PE.get_dword_at_rva(rva + 0x38)
+        Security_Cookie_VA = self.PE.get_dword_at_rva(rva + 0x3C)
+        self.set_dword_at_rva(rva + 0x3C, Security_Cookie_VA + 0x1000)
+        SE_Handler_Table_VA = self.PE.get_dword_at_rva(rva + 0x40)
+        self.set_dword_at_rva(rva + 0x40, SE_Handler_Table_VA + 0x1000)
+        SE_Handler_Count = self.PE.get_dword_at_rva(rva + 0x44)
+
         return 0
 
     def adjust_debug(self, directory, rva, size, increase_size):
@@ -373,13 +420,14 @@ class PEUtil(object):
             ilt.Function += increase_size
             ilt.Ordinal += increase_size
 
-    def adjust_import(self, directory, rva, size, increase_size):
+    # def adjust_import(self, directory, rva, size, increase_size):
+    def adjust_import(self, instrument_size):
+        log = open('c:\\work\\import_log.txt', 'w')
         for importindex in xrange(len(self.PE.DIRECTORY_ENTRY_IMPORT)):
             self.PE.DIRECTORY_ENTRY_IMPORT[importindex].struct.Characteristics += 0x1000
             self.PE.DIRECTORY_ENTRY_IMPORT[importindex].struct.FirstThunk += 0x1000
             self.PE.DIRECTORY_ENTRY_IMPORT[importindex].struct.Name += 0x1000
             self.PE.DIRECTORY_ENTRY_IMPORT[importindex].struct.OriginalFirstThunk += 0x1000
-
             for entryindex in xrange(len(self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports)):
                 importdata = self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports[entryindex]
                 iat = importdata.struct_iat
@@ -408,17 +456,39 @@ class PEUtil(object):
                     thunk_data.Ordinal += 0x1000
                     self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports[entryindex].struct_iat = thunk_data
 
+            log.write("{}\t{}\n".format(importdata.struct_table, importdata.struct_iat))
+        print "DEBUG"
+
     def adjust_export(self, directory, rva, size, increase_size):
         self.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfFunctions += increase_size
         self.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfNameOrdinals += increase_size
-        export_addressofname = self.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfNames
-        self.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfNames = export_addressofname + increase_size
+        self.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfNames += increase_size
         self.PE.DIRECTORY_ENTRY_EXPORT.struct.Name += increase_size
+
+        log = open('c:\\work\\adjust_export.log', 'w')
         for index in xrange(len(self.PE.DIRECTORY_ENTRY_EXPORT.symbols)):
-            entry_name_rva = export_addressofname + (index * 4)
+            entry_name_rva = self.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfNames + (index * 4)
             name_rva = self.PE.get_dword_at_rva(entry_name_rva)
             name_rva += increase_size
-            self.PE.set_dword_at_rva(entry_name_rva, name_rva)
+            self.set_dword_at_rva(entry_name_rva, name_rva)
+
+            entry_function_rva = self.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfFunctions + (index * 4)
+            function_rva = self.PE.get_dword_at_rva(entry_function_rva)
+            log.write("[EXPORT ELEMENT]\n[0x{:x}]\t".format(function_rva))
+
+            instrument_size = self.get_instrumentor().get_instrument_size_with_vector(function_rva - 0x1000)
+            log.write("[adjust][0x{:x}]\t".format(function_rva + instrument_size))
+
+            """
+            instrument_size = self.get_instrumentor(). \
+                get_instrument_size_from_until_with_base(0x1000, function_rva)
+            log.write("[1st][0x{:x}]\t".format(function_rva + instrument_size))
+            instrument_size += self.get_instrumentor(). \
+                get_instrument_size_with_range(function_rva - 0x1000,
+                                               function_rva+instrument_size - 0x1000)
+            log.write("[2nd][0x{:x}]\n".format(function_rva + instrument_size))
+            """
+            self.set_dword_at_rva(entry_function_rva, function_rva + instrument_size)
 
     def adjust_resource(self, directory, rva, size, increase_size):
         for rsrc_entries in self.PE.DIRECTORY_ENTRY_RESOURCE.entries:
@@ -426,3 +496,6 @@ class PEUtil(object):
                 for rsrc_entry_directory_entry in rsrc_directory_entry.directory.entries:
                     print "0x{:x}".format(rsrc_entry_directory_entry.data.struct.OffsetToData)
                     rsrc_entry_directory_entry.data.struct.OffsetToData += increase_size
+
+    def set_dword_at_rva(self, rva, dword):
+        return self.PE.set_dword_at_rva(rva, dword)

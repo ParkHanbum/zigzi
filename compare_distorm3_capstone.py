@@ -4,15 +4,17 @@ import PEUtil
 import binascii
 from capstone import *
 
-peutil = PEUtil.PEUtil('c:\\work\\PEview.exe')
+peutil = PEUtil.PEUtil('c:\\work\\firefox.exe')
 execute_section = peutil.get_executable_section()
 execute_section_data = peutil.get_section_raw_data(execute_section)
 hexacode = binascii.hexlify(execute_section_data).decode('hex')
 
-distorm3_log = open("c:\\work\\distorm3_disassemble.log", "w")
+# distorm3_log = open("c:\\work\\distorm3_disassemble.log", "w")
 distorm3_redirect_branches = {}
+instrs = []
 for inst in distorm3.Decompose(0x0, hexacode, distorm3.Decode32Bits):
-    distorm3_log.write("[0x{:x}]\t{:s}\n".format(inst.address, inst))
+    # distorm3_log.write("[0x{:x}]\t{:s}\n".format(inst.address, inst))
+    instrs.append(inst)
     instruction_types = ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH']
     cf = inst.flowControl
     if cf in instruction_types:
@@ -22,7 +24,11 @@ for inst in distorm3.Decompose(0x0, hexacode, distorm3.Decode32Bits):
             if operand.type == 'AbsoluteMemoryAddress' or operand.type == 'Register' \
                     or operand.type == 'AbsoluteMemory' or operand.type == 'Immediate':
                 distorm3_redirect_branches[inst.address] = inst
-
+for el in instrs:
+    if 0 < el.address < 100:
+        instrs.remove(el)
+print "END"
+"""
 capstone_log = open("c:\\work\\capstone_disassemble.log", "w")
 capstone_branch_log = open("c:\\work\\capstone_branch.log", "w")
 offset = 0
@@ -110,3 +116,4 @@ for (key, value) in distorm3_redirect_branches.items():
         print "SAME"
     else:
         print "[0x{:x}]\t{:s}".format(key, value)
+"""
