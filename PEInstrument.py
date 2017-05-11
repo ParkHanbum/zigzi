@@ -3,7 +3,6 @@ import binascii
 import distorm3
 import operator
 from PEUtil import *
-from Disassembler import *
 from keystone import *
 import os.path
 import copy
@@ -14,26 +13,21 @@ class PEInstrument(object):
     _INSTRUMENT_AFTER = 2
 
     def __init__(self, filename):
-        self.ks = Ks(KS_ARCH_X86, KS_MODE_32)
         self.peutil = PEUtil(filename)
         execute_section = self.peutil.get_executable_section()
         execute_section_data = self.peutil.get_section_raw_data(execute_section)
         self.entry_point_va = self.peutil.get_entry_point_va()
+        self.ks = Ks(KS_ARCH_X86, KS_MODE_32)
         self.execute_data = execute_section_data
-
-        # init disassembler
-        self.disassembler = Disassembler(execute_section_data)
+        self.instruction_map = {}
 
         # save histroy of instrument for relocation
         self.instrument_history_map = {}
         self.instrument_map = {}
-        self.overflowed_instrument = False
-        self.overflowed_instrument_map = {}
-        """ 0510
-        self.instruction_map = {}
         self.disassembly = []
         self.disassemble()
-        """
+        self.overflowed_instrument = False
+        self.overflowed_instrument_map = {}
 
 
     def writefile(self, filename):
@@ -55,32 +49,33 @@ class PEInstrument(object):
         self.adjust_PE_layout()
         self.peutil.write(filename)
 
-    """ 0510
-    def disassemble(self):
-        del self.disassembly[:]
-        self.disassembly = distorm3.Decompose(
-            0x0,
-            binascii.hexlify(self.execute_data).decode('hex'),
-            distorm3.Decode32Bits,
-            distorm3.DF_NONE)
-        self.instruction_map.clear()
-        for inst in self.disassembly:
-            self.instruction_map[inst.address] = inst
-    """
-
-    """ 0510
     def getdata(self):
         return self.execute_data
-    """
 
     def get_instrumented_map(self):
         return self.instrument_map
+
+    def get_instructions(self):
+        instructions = self.instruction_map
+        relocation_map = self.peutil.get_relocation_map()
+        sorted_relocation_map = sorted(relocation_map.items(),
+                                       key=operator.itemgetter(0))
+        for address, el in sorted_relocation_map:
+            for size in xrange(4):
+                relocation_address = address - 0x1000 + size
+                if relocation_address in instructions:
+                    print "Found : [RELOCA] 0x{:x} 0x{:x}\t[INS] {}".format(address, relocation_address, instructions[relocation_address])
+                    del self.instruction_map[relocation_address]
+        sorted_instructions = sorted(self.instruction_map.items(),
+                                     key=operator.itemgetter(0))
+        return sorted_instructions
 
     def instrument_redirect_controlflow_instruction(self, command, position=None):
         instructionTypes = ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH']
         # instruction_types = ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH', 'FC_RET']
         instrumentTotalAmount = 0
-        for inst in self.disassembler.get_disassemble_list():
+        instructions = self.get_instructions()
+        for address, inst in instructions:
             cf = inst.flowControl
             if cf in instructionTypes:
                 if self.isredirect(inst):
@@ -88,7 +83,7 @@ class PEInstrument(object):
                     instrumentTotalAmount += result
 
         print "INSTRUMENT TOTAL AMOUNT {:d}".format(instrumentTotalAmount)
-        # 0510  self.disassemble()
+        self.disassemble()
         self.adjust_instrumented_layout()
 
     def instrument(self, command, instruction, total_count=0):
@@ -108,8 +103,7 @@ class PEInstrument(object):
             instrument_size = len(instrument_inst)
             # put instrument instruction to execute_section_data
             offset = instruction.address + total_count
-            self.disassembler.set_instruction_at_offset(offset, instrument_inst)
-            # 0510 self.execute_data[offset:offset] = instrument_inst
+            self.execute_data[offset:offset] = instrument_inst
             self.instrument_map[offset] = len(instrument_inst)
         return instrument_size
 
@@ -213,7 +207,7 @@ class PEInstrument(object):
         return instrumented_size
 
     def adjust_executable_section(self):
-        execute_data = self.disassembler.get_code()
+        execute_data = self.getdata()
 
         """
         disassembly = distorm3.Decompose(
@@ -276,7 +270,6 @@ class PEInstrument(object):
         """
         self.peutil.append_data_to_execution(execute_data)
 
-    """
     def adjust_reference_for_code(self, inst, operand, refer, operand_index, size):
         offset = self.get_operand_offset_from_instruction(inst, operand, refer, operand_index)
         value = self.execute_data[inst.address+offset:inst.address+offset+size]
@@ -288,6 +281,18 @@ class PEInstrument(object):
         self.execute_data[inst.address+offset:inst.address+offset+size] = struct.pack('<I', value)
         self.log.write("[0x{:x}]\torigin {:x}\tafter {:x}\n".format(inst.address, refer, value))
         return 0
+
+    def get_operand_offset_from_instruction(self, inst, operand, refer, operand_index):
+        refer_hexa = struct.pack('<I', refer)
+        inst_hexa = (binascii.hexlify(inst.instructionBytes)).decode('hex')
+        refer_offset = inst_hexa.index(refer_hexa)
+        if operand_index > 0:
+            for index in xrange(operand_index):
+                try:
+                    refer_offset = inst_hexa.index(refer_hexa, refer_offset)
+                except ValueError:
+                    print "[0x{:x}]\t{:x}\t{:x}".format(inst.address, refer_hexa, inst_hexa)
+        return refer_offset
 
     def adjust_reference_for_others(self, inst, operand, refer, operand_index, size):
         offset = self.get_operand_offset_from_instruction(inst, operand, refer, operand_index)
@@ -302,20 +307,6 @@ class PEInstrument(object):
         self.log.write("[0x{:x}]\torigin {:x}\tafter {:x}\n".format(inst.address, refer, value))
         return 0
 
-
-    def get_operand_offset_from_instruction(self, inst, operand, refer, operand_index):
-        refer_hexa = struct.pack('<I', refer)
-        inst_hexa = (binascii.hexlify(inst.instructionBytes)).decode('hex')
-        refer_offset = inst_hexa.index(refer_hexa)
-        if operand_index > 0:
-            for index in xrange(operand_index):
-                try:
-                    refer_offset = inst_hexa.index(refer_hexa, refer_offset)
-                except ValueError:
-                    print "[0x{:x}]\t{:x}\t{:x}".format(inst.address, refer_hexa, inst_hexa)
-        return refer_offset
-    """
-
     def adjust_instrumented_layout(self):
         """
         Adjusts the binary layout that has changed due to the address
@@ -323,12 +314,10 @@ class PEInstrument(object):
         the instrumenting.
         :return:
         """
-        """ 0510
         self.disassemble()
         sorted_instruction_map = sorted(self.instruction_map.items(),
                                         key=operator.itemgetter(0))
-        """
-        sorted_instruction_map = self.disassembler.get_sorted_disassemble_map()
+
         if not self.peutil.isrelocable():
             for inst_address, inst in sorted_instruction_map:
                 if inst.flowControl in ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH']:
@@ -344,7 +333,7 @@ class PEInstrument(object):
         if self.overflowed_instrument:
             overflowed_inst_handled = self.handle_overflow_instrument()
             if overflowed_inst_handled:
-                # 0510  self.disassemble()
+                self.disassemble()
                 self.adjust_instrumented_layout()
 
     def adjust_relative_branches(self, inst):
@@ -366,10 +355,8 @@ class PEInstrument(object):
                 log.append("[0x{:x}] {:s}\n".format(inst.address, inst))
                 operand_size = inst.operands[0].size / 8
                 instruction_size = inst.size - operand_size
-
                 operand_start = inst.address + instruction_size
                 operand_end = inst.address + inst.size
-                """ 0510
                 if operand_size == 8:
                     fmt = 'l'
                 elif operand_size == 4:
@@ -381,8 +368,6 @@ class PEInstrument(object):
                 operand_value \
                     = struct.unpack(fmt,
                                     self.execute_data[operand_start:operand_end])[0]
-                """
-                operand_value = self.disassembler.get_data_from_offset(operand_start, operand_end)
                 log.append("\torigin operand value : {:x}\n".format(operand_value))
                 if operand_value > 0:
                     adjusted_operand_value = \
@@ -393,10 +378,8 @@ class PEInstrument(object):
                 log.append("\tadjust operand value : {:x}\n"
                            .format(adjusted_operand_value))
                 try:
-                    self.disassembler.set_data_at_offset(operand_start, operand_end, adjusted_operand_value)
-                    """ 0510
-                    self.execute_data[operand_start:operand_end] = struct.pack(fmt, adjusted_operand_value)
-                    """
+                    self.execute_data[operand_start:operand_end] \
+                        = struct.pack(fmt, adjusted_operand_value)
                 except:
                     self.overflowed_instrument = True
                     self.overflowed_instrument_map[inst.address] = (inst, adjusted_operand_value)
@@ -442,9 +425,12 @@ class PEInstrument(object):
                             # TODO : FarMemory
                             target_operand_index = 0
                         inst_size = inst.size - target_operand_index - (inst.operands[index].size / 8)
-                        inst_offset = inst.address + target_operand_index + inst_size
-                        inst_end = inst.address + inst.size
-                        print "0x{:x}".format(self.disassembler.get_dword_from_offset(inst_offset, inst_end))
+                        print "0x{:x}".format(
+                            struct.unpack("i",
+                                          self.execute_data[
+                                          inst.address + target_operand_index + inst_size
+                                          :inst.address + inst.size])[0]
+                        )
 
     def adjust_relocation(self):
         structures_relocation_block = {}
@@ -568,7 +554,7 @@ class PEInstrument(object):
 
         adjusted_relocation_map = {}
         executable_section_va_end = self.peutil.get_executable_range_va()[1]
-        executable_section_end = self.disassembler.get_code_size()
+        executable_section_end = len(self.execute_data)
         if executable_section_end < executable_section_va_end:
             executable_section_end = executable_section_va_end
 
@@ -599,7 +585,7 @@ class PEInstrument(object):
         extend the size of the operand if exceed the range of operand values while instrument.
         :return:
         """
-        # 0510  self.disassemble()
+        self.disassemble()
         total_instrument_size = 0
         # self.instrument_map.clear()
         handled_overflowed_map = {}
@@ -688,3 +674,20 @@ class PEInstrument(object):
                         or operand.type == 'AbsoluteMemory':
                     return True
         return False
+
+    def disassemble(self):
+        """
+        disassemble binary and mapping disassembled data. after clearing previous data.
+        :return:
+        """
+        del self.disassembly[:]
+        self.disassembly = distorm3.Decompose(
+            0x0,
+            binascii.hexlify(self.execute_data).decode('hex'),
+            distorm3.Decode32Bits,
+            distorm3.DF_NONE)
+        self.instruction_map.clear()
+        for inst in self.disassembly:
+            self.instruction_map[inst.address] = inst
+
+

@@ -201,15 +201,34 @@ class PEUtil(object):
         if hasattr(self.PE, 'DIRECTORY_ENTRY_BASERELOC'):
             for entry in self.PE.DIRECTORY_ENTRY_BASERELOC:
                 for el in entry.entries:
+                    if el.struct.Data == 0:
+                        continue
                     address = el.rva
                     relocation_map[address] = [el.rva, address, el.type]
         return relocation_map
+
+    def get_relocation_map_from_structure(self):
+        structures_relocation_block = {}
+        structures_relocation_entries = {}
+        log = open('c:\\work\\relocation_before.txt', 'w')
+        overflow_log = open('c:\\work\\relocation_overflowed.txt', 'w')
+        block_va = -1
+        for entry in self.PE.__structures__:
+            if entry.name.find('IMAGE_BASE_RELOCATION_ENTRY') != -1:
+                if block_va > 0:
+                    structures_relocation_entries[block_va].append(entry)
+            elif entry.name.find('IMAGE_BASE_RELOCATION') != -1:
+                block_va = entry.VirtualAddress
+                structures_relocation_block[block_va] = entry
+                structures_relocation_entries[block_va] = []
+            elif entry.name.find('DIRECTORY_ENTRY_BASERELOC') != -1:
+                "DIRECTORY"
+        return structures_relocation_entries
 
     def isrelocable(self):
         if hasattr(self.PE, 'DIRECTORY_ENTRY_BASERELOC'):
             return True
         return False
-
 
     def get_reloc_map(self):
         """
@@ -317,8 +336,6 @@ class PEUtil(object):
                     print "===== [INDEX ERROR] ====="
                     return False
 
-
-
     def uncerfication(self):
         for index in range(len(self.PE.OPTIONAL_HEADER.DATA_DIRECTORY)):
             directory = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY[index]
@@ -343,27 +360,26 @@ class PEUtil(object):
         self.adjusted_relocation_map = adjusted_relocation_map
 
     def adjust_relocation(self, directory, rva, size, increase_size):
-        block_va = -1
-        for entry in self.PE.__structures__:
-            if entry.name.find('IMAGE_BASE_RELOCATION_ENTRY') != -1:
-                if block_va > 0:
-                    entry_va = (entry.Data & 0xfff) + block_va
-                    if 0x0 < entry_va < 0x23000:
-                        value = self.PE.get_dword_at_rva(entry_va)
-                        if 0x400000 < value < 0x422000:
-                            self.set_dword_at_rva(entry_va, value)
-                        elif 0x422000 < value < 0x480000:
-                            self.set_dword_at_rva(entry_va, value)
-                    elif 0x23000 < entry_va < 0x80000:
-                        value = self.PE.get_dword_at_rva(entry_va)
-                        if 0x400000 < value < 0x422000:
-                            self.set_dword_at_rva(entry_va, value)
-                        elif 0x422000 < value < 0x480000:
-                            self.set_dword_at_rva(entry_va, value)
-            elif entry.name.find('IMAGE_BASE_RELOCATION') != -1:
-                block_va = entry.VirtualAddress
-            elif entry.name.find('DIRECTORY_ENTRY_BASERELOC') != -1:
-                "DIRECTORY"
+        log = open('c:\\work\\peutil_adjust_relocation.log', 'w')
+        relocation_map = self.get_relocation_map_from_structure()
+        (execute_section_start, execute_section_end) = self.get_executable_range_va()
+        sorted_relocation_map = sorted(relocation_map.items(),
+                                       key=operator.itemgetter(0))
+        for block_va, entries in sorted_relocation_map:
+            for entry in entries:
+                if entry.Data == 0x0:
+                    continue
+                # get instrument size from 0x0(imagebase 0x400000, textsection 0x1000, till value)
+                address = (entry.Data & 0xfff) + block_va
+                value = self.PE.get_dword_at_rva(address)
+                if 0x1000 < value < 0x421805:
+                    # get instrument size from 0x0(imagebase 0x400000, textsection 0x1000, till value)
+                    instrumented_size = self.get_instrumentor().get_instrument_size_with_vector(value - 0x400000 - 0x1000)
+                    self.set_dword_at_rva(address, value + instrumented_size)
+                    log.write("[0x{:x}]\t0x{:x}\t0x{:x}\t0x{:x}\n".format(address, value, self.PE.get_dword_at_rva(address), instrumented_size))
+                else:
+                    self.set_dword_at_rva(address, value + 0x1000)
+                    log.write("[0x{:x}]\t0x{:x}\t0x{:x}\t0x{:x}\n".format(address, value, self.PE.get_dword_at_rva(address), 0x1000))
         return 0
 
     def adjust_load_config(self, directory, rva, size, increase_size):
@@ -411,10 +427,12 @@ class PEUtil(object):
         for importdata in self.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0].imports:
             iat = importdata.struct_iat
             ilt = importdata.struct_table
-            iat.AddressOfData += increase_size
-            iat.ForwarderString += increase_size
-            iat.Function += increase_size
-            iat.Ordinal += increase_size
+            address = iat.AddressOfData
+            instrumented_size = self.get_instrumentor().get_instrument_size_with_vector(address - 0x400000 - 0x1000)
+            iat.AddressOfData += instrumented_size
+            iat.ForwarderString += instrumented_size
+            iat.Function += instrumented_size
+            iat.Ordinal += instrumented_size
             ilt.AddressOfData += increase_size
             ilt.ForwarderString += increase_size
             ilt.Function += increase_size
