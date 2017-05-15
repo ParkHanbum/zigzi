@@ -29,6 +29,8 @@ class PEInstrument(object):
         self.overflowed_instrument = False
         self.overflowed_instrument_map = {}
 
+        self.instrument_log_file = open('c:\\work\\instrument.log', 'w')
+
 
     def writefile(self, filename):
         """
@@ -97,6 +99,7 @@ class PEInstrument(object):
         :param total_count: total count of instrumented
         :return:
         """
+
         instrument_size = 0
         instrument_inst, count = command(instruction)
         if count > 0:
@@ -105,6 +108,7 @@ class PEInstrument(object):
             offset = instruction.address + total_count
             self.execute_data[offset:offset] = instrument_inst
             self.instrument_map[offset] = len(instrument_inst)
+            self.instrument_log_file.write("[0x{:x}]\t{}\n".format(instruction.address, instruction))
         return instrument_size
 
     def get_instrumented_size(self, inst):
@@ -150,6 +154,7 @@ class PEInstrument(object):
         """
         self.adjust_entry_point()
         if self.peutil.isrelocable():
+            print "[=========== RELOCATION ADJUST =============]"
             self.adjust_relocation()
         self.adjust_executable_section()
         self.peutil.adjust_import(self.get_instrument_size())
@@ -335,6 +340,8 @@ class PEInstrument(object):
             if overflowed_inst_handled:
                 self.disassemble()
                 self.adjust_instrumented_layout()
+        else:
+            self.instrument_history_map = self.instrument_map
 
     def adjust_relative_branches(self, inst):
         """
@@ -345,7 +352,8 @@ class PEInstrument(object):
         :param inst: branch instruction that has relatively operand value
         :return:
         """
-        logfile = open('c:\\work\\adjust.log', 'a')
+        if not hasattr(self, 'adjust_log'):
+            self.adjust_log = open('c:\\work\\adjust.log', 'w')
         log = []
         if not self.isredirect(inst):
             total_instrumented_size = \
@@ -384,7 +392,7 @@ class PEInstrument(object):
                     self.overflowed_instrument = True
                     self.overflowed_instrument_map[inst.address] = (inst, adjusted_operand_value)
                     log.append("operand value size overflowed {:x}\n".format(operand_value))
-        logfile.write(''.join(log))
+        self.adjust_log.write(''.join(log))
 
     def adjust_references(self, inst):
         """
@@ -530,6 +538,7 @@ class PEInstrument(object):
         structures has owned offset.
         so, if modify position or order of structures element then must fix offset of structures element.
         """
+        log.close()
         log = open('c:\\work\\relocation_after.txt', 'w')
         file_offset = 0
         for entry in self.peutil.PE.__structures__:
@@ -689,5 +698,3 @@ class PEInstrument(object):
         self.instruction_map.clear()
         for inst in self.disassembly:
             self.instruction_map[inst.address] = inst
-
-

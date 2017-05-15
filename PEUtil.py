@@ -24,6 +24,7 @@ class PEUtil(object):
         pe_file_bytes = bytearray(pe_file.read())
         fast_load = False
         pe_data = mmap.mmap(pe_file.fileno(), 0, access=mmap.ACCESS_COPY)
+        self.PE_ORIGIN = PE(None, data=pe_data, fast_load=False)
         self.PE = PE(None, data=pe_data, fast_load=False)
         # self.PE.full_load()
         # self.PE = pefile.PE(name)
@@ -210,8 +211,6 @@ class PEUtil(object):
     def get_relocation_map_from_structure(self):
         structures_relocation_block = {}
         structures_relocation_entries = {}
-        log = open('c:\\work\\relocation_before.txt', 'w')
-        overflow_log = open('c:\\work\\relocation_overflowed.txt', 'w')
         block_va = -1
         for entry in self.PE.__structures__:
             if entry.name.find('IMAGE_BASE_RELOCATION_ENTRY') != -1:
@@ -287,6 +286,7 @@ class PEUtil(object):
         self.adjust_section()
 
     def adjust_section(self):
+        data_directories = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY
         for index in xrange(len(self.PE.sections)-1):
             src_section = self.PE.sections[index]
             virtual_size = src_section.Misc_VirtualSize
@@ -306,9 +306,9 @@ class PEUtil(object):
                 self.PE.sections[index+1].VirtualAddress = adjusted_section_va
                 if section_va == self.PE.OPTIONAL_HEADER.BaseOfData:
                     self.PE.OPTIONAL_HEADER.BaseOfData = adjusted_section_va
-                self.adjust_directories(section_va, adjusted_section_va, dst_section.Misc_VirtualSize)
+                self.adjust_directories(data_directories, section_va, adjusted_section_va, dst_section.Misc_VirtualSize)
 
-    def adjust_directories(self, origin_section_va, adjusted_section_va, virtual_size):
+    def adjust_directories(self, data_directories, origin_section_va, adjusted_section_va, virtual_size):
         directory_adjust = {
             # 'IMAGE_DIRECTORY_ENTRY_IMPORT': self.adjust_import,
             # 'IMAGE_DIRECTORY_ENTRY_DEBUG': self.adjust_debug,
@@ -321,12 +321,10 @@ class PEUtil(object):
             'IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT': self.adjust_bound_imports
         }
 
-        data_directories = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY
         increase_vector = adjusted_section_va - origin_section_va
-        for index in xrange(len(data_directories)):
-            directory = data_directories[index]
+        for directory in data_directories:
             if origin_section_va <= directory.VirtualAddress < origin_section_va + virtual_size:
-                self.PE.OPTIONAL_HEADER.DATA_DIRECTORY[index].VirtualAddress \
+                self.PE.OPTIONAL_HEADER.DATA_DIRECTORY[self.PE.OPTIONAL_HEADER.DATA_DIRECTORY.index(directory)].VirtualAddress \
                     = directory.VirtualAddress + increase_vector
                 try:
                     if directory.name in directory_adjust:
@@ -335,6 +333,7 @@ class PEUtil(object):
                 except IndexError:
                     print "===== [INDEX ERROR] ====="
                     return False
+                data_directories.remove(directory)
 
     def uncerfication(self):
         for index in range(len(self.PE.OPTIONAL_HEADER.DATA_DIRECTORY)):
@@ -362,7 +361,13 @@ class PEUtil(object):
     def adjust_relocation(self, directory, rva, size, increase_size):
         log = open('c:\\work\\peutil_adjust_relocation.log', 'w')
         relocation_map = self.get_relocation_map_from_structure()
-        (execute_section_start, execute_section_end) = self.get_executable_range_va()
+
+        # TODO : fix assume that first section is text.
+        sections = self.PE_ORIGIN.sections
+        execute_section_start = sections[0].VirtualAddress
+        execute_section_end = execute_section_start + sections[0].Misc_VirtualSize
+        other_section_start = sections[1].VirtualAddress
+        other_section_end = sections[-1:][0].VirtualAddress + sections[-1:][0].Misc_VirtualSize
         sorted_relocation_map = sorted(relocation_map.items(),
                                        key=operator.itemgetter(0))
         for block_va, entries in sorted_relocation_map:
@@ -372,12 +377,12 @@ class PEUtil(object):
                 # get instrument size from 0x0(imagebase 0x400000, textsection 0x1000, till value)
                 address = (entry.Data & 0xfff) + block_va
                 value = self.PE.get_dword_at_rva(address)
-                if 0x1000 < value < 0x421805:
+                if execute_section_start + 0x400000 <= value < execute_section_end + 0x400000:
                     # get instrument size from 0x0(imagebase 0x400000, textsection 0x1000, till value)
                     instrumented_size = self.get_instrumentor().get_instrument_size_with_vector(value - 0x400000 - 0x1000)
                     self.set_dword_at_rva(address, value + instrumented_size)
                     log.write("[0x{:x}]\t0x{:x}\t0x{:x}\t0x{:x}\n".format(address, value, self.PE.get_dword_at_rva(address), instrumented_size))
-                else:
+                elif other_section_start + 0x400000 <= value < other_section_end + 0x400000:
                     self.set_dword_at_rva(address, value + 0x1000)
                     log.write("[0x{:x}]\t0x{:x}\t0x{:x}\t0x{:x}\n".format(address, value, self.PE.get_dword_at_rva(address), 0x1000))
         return 0
@@ -446,6 +451,8 @@ class PEUtil(object):
             self.PE.DIRECTORY_ENTRY_IMPORT[importindex].struct.FirstThunk += 0x1000
             self.PE.DIRECTORY_ENTRY_IMPORT[importindex].struct.Name += 0x1000
             self.PE.DIRECTORY_ENTRY_IMPORT[importindex].struct.OriginalFirstThunk += 0x1000
+            log.write("===============================================================\n")
+            log.write("{}\n".format(self.PE.DIRECTORY_ENTRY_IMPORT[importindex].struct))
             for entryindex in xrange(len(self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports)):
                 importdata = self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports[entryindex]
                 iat = importdata.struct_iat
@@ -458,6 +465,7 @@ class PEUtil(object):
                     self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports[entryindex].struct_iat.ForwarderString += 0x1000
                     self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports[entryindex].struct_iat.Function += 0x1000
                     self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports[entryindex].struct_iat.Ordinal += 0x1000
+                    log.write("{}\n".format(self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports[entryindex].struct_iat))
                 else:
                     origin_iat_rva = importdata.address - self.PE.OPTIONAL_HEADER.ImageBase
                     # name_rva = peutil.PE.get_dword_at_rva(origin_iat_rva)
@@ -473,8 +481,8 @@ class PEUtil(object):
                     thunk_data.Function += 0x1000
                     thunk_data.Ordinal += 0x1000
                     self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports[entryindex].struct_iat = thunk_data
-
-            log.write("{}\t{}\n".format(importdata.struct_table, importdata.struct_iat))
+                    log.write("{}\n".format(self.PE.DIRECTORY_ENTRY_IMPORT[importindex].imports[entryindex].struct_iat))
+            log.write("===============================================================\n")
         print "DEBUG"
 
     def adjust_export(self, directory, rva, size, increase_size):
