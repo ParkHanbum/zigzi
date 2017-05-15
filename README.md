@@ -5,7 +5,7 @@ Zigzi : Binary rewriting framework for Windows executable format. (PE)
 ## *About Zigzi*
 Zigzi is currently in prototyping. only for proof of concept.
 
-## *Introduce
+## *Introduce*
 Jigzi is the world's oldest extant book printed with movable metal type. (https://en.wikipedia.org/wiki/Jikji).
 
 The name zigzi comes from Jikji.
