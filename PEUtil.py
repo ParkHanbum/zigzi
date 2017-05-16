@@ -119,28 +119,6 @@ class PEUtil(object):
         (point_to_raw, size_of_raw) = self.append_data_to_PE(data)
         self.create_new_execution_section(point_to_raw, size_of_raw, size_of_data)
 
-    """
-    def create_new_section(self, data):
-        orig_data_len = len(self.PE.__data__)
-        aligned_orig_data_len = self.get_aligned_offset(orig_data_len)
-        # make data to aligned
-        data_len = len(data)
-        aligned_data_len = self.get_aligned_offset(data_len)
-        # padding to data for fit
-        # data = data.ljust(aligned_data_len, '\0')
-        # make space
-        space = bytearray((aligned_orig_data_len+aligned_data_len) - orig_data_len)
-        self.PE.__data__[orig_data_len:aligned_orig_data_len+aligned_data_len] = space
-        # Fill space with data
-        self.PE.__data__[aligned_orig_data_len:aligned_orig_data_len+aligned_data_len] = data
-
-        # assume that first section is executable
-        new_section = self.clone_section_header(self.PE.sections[0])
-        return self.create_new_section_header(new_section,
-                                              aligned_orig_data_len,
-                                              aligned_data_len)
-    """
-
     def get_section_raw_data(self, section_hdr):
         start_offset = section_hdr.PointerToRawData
         size = section_hdr.SizeOfRawData
@@ -504,16 +482,6 @@ class PEUtil(object):
 
             instrument_size = self.get_instrumentor().get_instrument_size_with_vector(function_rva - 0x1000)
             log.write("[adjust][0x{:x}]\t".format(function_rva + instrument_size))
-
-            """
-            instrument_size = self.get_instrumentor(). \
-                get_instrument_size_from_until_with_base(0x1000, function_rva)
-            log.write("[1st][0x{:x}]\t".format(function_rva + instrument_size))
-            instrument_size += self.get_instrumentor(). \
-                get_instrument_size_with_range(function_rva - 0x1000,
-                                               function_rva+instrument_size - 0x1000)
-            log.write("[2nd][0x{:x}]\n".format(function_rva + instrument_size))
-            """
             self.set_dword_at_rva(entry_function_rva, function_rva + instrument_size)
 
     def adjust_resource(self, directory, rva, size, increase_size):

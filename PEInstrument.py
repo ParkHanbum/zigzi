@@ -38,6 +38,7 @@ class PEInstrument(object):
 
         :param filename: Filename represent absolute filepath that include with filename
         :return:
+            None
         """
         cumulative = 0
         sorted_instrument_map = sorted(self.instrument_history_map.items(),
@@ -46,18 +47,23 @@ class PEInstrument(object):
         for address, size in sorted_instrument_map:
             cumulative += size
             log.write("[0x{:x}]\t{:x}\t{:d}\n".format(address, size, cumulative))
-
         self.peutil.set_instrumentor(self)
         self.adjust_PE_layout()
         self.peutil.write(filename)
 
-    def getdata(self):
-        return self.execute_data
-
     def get_instrumented_map(self):
-        return self.instrument_map
+        return self.instrument_history_map
+
+    def get_instructions_map(self):
+        return self.instruction_map
 
     def get_instructions(self):
+        """get disassembled instructions.
+        Instructions excluding data that exist in the text section.
+
+        :return:
+            list: tuple that contain instruction address, instruction
+        """
         instructions = self.instruction_map
         relocation_map = self.peutil.get_relocation_map()
         sorted_relocation_map = sorted(relocation_map.items(),
@@ -73,6 +79,13 @@ class PEInstrument(object):
         return sorted_instructions
 
     def instrument_redirect_controlflow_instruction(self, command, position=None):
+        """instrument instruction when reached instruction that has control flow as redirect.
+
+        :param command: A user-defined function that returns an instrument instruction.
+        :param position: The position to be instrumented by the command.
+        :return:
+            None
+        """
         instructionTypes = ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH']
         # instruction_types = ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH', 'FC_RET']
         instrumentTotalAmount = 0
@@ -98,6 +111,7 @@ class PEInstrument(object):
         :param instruction: Instruction to be passed to the user function.
         :param total_count: total count of instrumented
         :return:
+            int : size of instrumented instructions.
         """
 
         instrument_size = 0
@@ -117,6 +131,7 @@ class PEInstrument(object):
 
         :param inst: branch instruction that has relatively operand value
         :return:
+            int : size of instrumented size.
         """
         inst_address = inst.address
         inst_destiny = inst.operands[0].value
@@ -212,67 +227,7 @@ class PEInstrument(object):
         return instrumented_size
 
     def adjust_executable_section(self):
-        execute_data = self.getdata()
-
-        """
-        disassembly = distorm3.Decompose(
-            0x0,
-            binascii.hexlify(execute_data).decode('hex'),
-            distorm3.Decode32Bits,
-            distorm3.DF_NONE)
-        log = open('c:\\work\\operands.log', 'w')
-        self.log = open('c:\\work\\adjust_operands.log', 'w')
-        for inst in disassembly:
-            logmsg = []
-            needlog = False
-            logmsg.append("[0x{:x}]\t{}\t{}\n".format(inst.address, inst, binascii.hexlify(inst.instructionBytes)))
-            logmsg.append("dt:{} flowControl:{} instructionClass:{} opcode:{} rawFlags:{} segment:{} size:{}\n"
-                          .format(inst.dt, inst.flowControl, inst.instructionClass, inst.opcode, inst.rawFlags,
-                                  inst.segment, inst.size))
-
-            if len(inst.operands) > 0:
-                reference_count = 0
-                for operand in inst.operands:
-                    if 0x401000 < operand.value < 0x422000 \
-                            or 0x401000 < operand.disp < 0x422000:
-                        refer = 0
-                        size = 0
-                        if 0x401000 < operand.value < 0x422000:
-                            refer = operand.value
-                            size = operand.size / 8
-                        elif 0x401000 < operand.disp < 0x422000:
-                            refer = operand.disp
-                            size = operand.dispSize / 8
-                        self.adjust_reference_for_code(inst, operand, refer, reference_count, size)
-                        reference_count += 1
-                    elif 0x422000 < operand.value < 0x500000 \
-                            or 0x422000 < operand.disp < 0x500000:
-                        refer = 0
-                        size = 0
-                        if 0x422000 < operand.value < 0x500000:
-                            refer = operand.value
-                            size = operand.size / 8
-                        elif 0x422000 < operand.disp < 0x500000:
-                            refer = operand.disp
-                            size = operand.dispSize / 8
-                        self.adjust_reference_for_others(inst, operand, refer, reference_count, size)
-                        reference_count += 1
-
-            # logging
-            if len(inst.operands) > 0:
-                for operand in inst.operands:
-                    if 0x401000 < operand.value < 0x500000 \
-                            or 0x401000 < operand.disp < 0x500000:
-                        needlog = True
-                    logmsg.append(
-                        "\tbase:{} disp:{} dispSize:{} index:{} name:{} segment:{} size:{} type:{} value:{}\n"
-                            .format(operand.base, operand.disp, operand.dispSize, operand.index, operand.name,
-                                    operand.segment, operand.size, operand.type, operand.value))
-
-            if needlog:
-                for msg in logmsg:
-                    log.write(msg)
-        """
+        execute_data = self.execute_data
         self.peutil.append_data_to_execution(execute_data)
 
     def adjust_reference_for_code(self, inst, operand, refer, operand_index, size):
@@ -354,6 +309,7 @@ class PEInstrument(object):
         """
         if not hasattr(self, 'adjust_log'):
             self.adjust_log = open('c:\\work\\adjust.log', 'w')
+
         log = []
         if not self.isredirect(inst):
             total_instrumented_size = \
@@ -398,8 +354,9 @@ class PEInstrument(object):
         """
         when PE file has no relocation section, we can not make perfect adjustments.
         need some guess of type for static value in code.
-        :param inst:
+        :param inst: instruction to adjust.
         :return:
+            None
         """
         operand_size = len(inst.operands)
         if operand_size > 0:
@@ -555,44 +512,11 @@ class PEInstrument(object):
             elif entry.name.find('DIRECTORY_ENTRY_BASERELOC') != -1:
                 log.write("{}\n".format(entry))
 
-    def get_adjusted_relocation_map(self, relocation_map):
-        sorted_relocation_map = sorted(relocation_map.items(),
-                                       key=operator.itemgetter(0))
-        sorted_instrument_history_map = sorted(self.instrument_history_map.items(),
-                                               key=operator.itemgetter(0))
-
-        adjusted_relocation_map = {}
-        executable_section_va_end = self.peutil.get_executable_range_va()[1]
-        executable_section_end = len(self.execute_data)
-        if executable_section_end < executable_section_va_end:
-            executable_section_end = executable_section_va_end
-
-        for (reloc_block_va, reloc_block) in sorted_relocation_map:
-            adjusted_relocation_map[reloc_block_va] = []
-            for (reloc_rva, reloc_raw) in reloc_block:
-                if reloc_rva == reloc_block_va:
-                    continue
-                # finish when reach end of executable section
-                if executable_section_end < reloc_block_va:
-                    adjusted_relocation_map.pop(reloc_block_va, None)
-                    return adjusted_relocation_map
-                # TODO : fix this assumption
-                reloc_rva -= 0x1000
-                total_instrument_size = 0
-                for instrumented_address, size in sorted_instrument_history_map:
-                    if instrumented_address < reloc_rva:
-                        total_instrument_size += size
-                    else:
-                        break
-                adjusted_reloc_rva = reloc_rva + 0x1000 + total_instrument_size
-                adjusted_relocation_map[reloc_block_va].append((adjusted_reloc_rva, reloc_raw))
-                # adjusted_relocation_map[reloc_block_va] = (adjusted_reloc_rva, reloc_raw)
-        return adjusted_relocation_map
-
     def handle_overflow_instrument(self):
         """
         extend the size of the operand if exceed the range of operand values while instrument.
         :return:
+            bool :
         """
         self.disassemble()
         total_instrument_size = 0
@@ -638,11 +562,12 @@ class PEInstrument(object):
         return True
 
     def adjust_address_by(self, adjust_to_map, adjust_by_map):
-        """
+        """Merging previous adjust map with later adjust map
 
-        :param adjust_to_map: dict type.
-        :param adjust_by_map: dict type.
-        :return: adjusted instrumented history map.
+        :param adjust_to_map: dict: previous adjust map.
+        :param adjust_by_map: dict: later adjust map.
+        :return:
+            dict : adjusted instrumented map.
         """
         adjusted_map = {}
         sorted_adjust_to_map = sorted(adjust_to_map.items(),
@@ -671,7 +596,8 @@ class PEInstrument(object):
         """
         Returns true or false if the branch type of the instruction is redirect.
         :param inst: instruction
-        :return: True or False
+        :return:
+            bool : True or False
         """
         instruction_types = ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH']
         cf = inst.flowControl
