@@ -140,14 +140,12 @@ class Disassembler(object):
         self.codeHandled()
         self.disassembleMapHandled()
 
-    def removeDisassembleElementByRange(self, start, range):
-        for position in xrange(range):
-            if (start + position) in self.instructionsMap:
-                del self.instructionsMap[(start + position)]
-                self.disassembleListNeedHandled()
-
-    def setInstructionAtOffset(self, offset, instrumented_instruction):
+    def instrument(self, offset, instrumented_instruction):
         self.code[offset:offset] = instrumented_instruction
+        self.codeNeedHandled()
+
+    def setInstructionAtOffset(self, offset, offset_end, instruction):
+        self.code[offset:offset_end] = instruction
         self.codeNeedHandled()
 
     def setDataAtOffset(self, offset, offset_end, instruction):
@@ -156,6 +154,6 @@ class Disassembler(object):
 
     def setDataAtOffsetWithFormat(self, offset, offset_end, data):
         size = offset_end - offset
-        fmt = self.getFormatFromSizeLE(size)
+        fmt = self.getFormatFromSize(size)
         self.code[offset:offset_end] = struct.pack(fmt, data)
         self.codeNeedHandled()

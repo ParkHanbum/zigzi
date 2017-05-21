@@ -120,7 +120,7 @@ class PEInstrument(object):
             instrument_size = len(instrument_inst)
             # put instrument instruction to execute_section_data
             offset = instruction.address + total_count
-            self.Disassembler.setInstructionAtOffset(offset, instrument_inst)
+            self.Disassembler.instrument(offset, instrument_inst)
             self.instrumentMap[offset] = len(instrument_inst)
             self.instrument_log_file.write("[0x{:x}]\t{}\n".format(instruction.address, instruction))
         return instrument_size
@@ -483,7 +483,7 @@ class PEInstrument(object):
                 encoding, count = ks.asm(hexacode)
                 print "{:s}".format(encoding)
                 # patch
-                self.Disassembler.setInstructionAtOffset(inst_address, encoding)
+                self.Disassembler.setInstructionAtOffset(inst.address, inst.address + inst.size, encoding)
                 instrumented_size = len(encoding)
                 print "writed : {:s}".format(binascii.hexlify(self.Disassembler.getDataAtOffset(inst_address, inst_address+inst.size)))
                 # save increased opcode, operand size for adjust again
