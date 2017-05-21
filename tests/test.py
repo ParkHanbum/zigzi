@@ -25,9 +25,9 @@ class Tests(unittest.TestCase):
         self.src_filename = os.path.join(os.getcwd(), "tests", "sample.exe")
         self.dst_filename = os.path.join(os.getcwd(), "tests", "sample_test.exe")
         src_pei = PEInstrument(self.src_filename)
-        src_pei.instrument_redirect_controlflow_instruction(instrument)
+        src_pei.instrumentRedirectControlflowInstruction(instrument)
         src_pei.writefile(self.dst_filename)
-        self.instrumented_map = src_pei.get_instrumented_map()
+        self.instrumented_map = src_pei.getInstrumentedMap()
 
     def tearDown(self):
         try:
@@ -40,11 +40,11 @@ class Tests(unittest.TestCase):
         self.dst_pei = PEInstrument(self.dst_filename)
         src_pei = self.src_pei
         dst_pei = self.dst_pei
-        src_disassemble = src_pei.get_instructions()
-        dst_disassemble = dst_pei.get_instructions()
-        execute_start, execute_end = src_pei.peutil.get_executable_range_va()
+        src_disassemble = src_pei.getInstructions()
+        dst_disassemble = dst_pei.getInstructions()
+        execute_start, execute_end = src_pei.peutil.getExecutableVirtualAddressRange()
         src_size = execute_end - execute_start
-        execute_start, execute_end = dst_pei.peutil.get_executable_range_va()
+        execute_start, execute_end = dst_pei.peutil.getExecutableVirtualAddressRange()
         dst_size = execute_end - execute_start
 
         dst_index = 0
@@ -102,7 +102,7 @@ class Tests(unittest.TestCase):
             result = True
         elif dst_dis.flowControl == src_dis.flowControl \
                 and (dst_dis.flowControl in self._Branch_Instruction_Types_):
-            if self.dst_pei.isredirect(dst_dis):
+            if self.dst_pei.isRedirect(dst_dis):
                 result = self.checkRedirectJmp(dst_dis, src_dis)
             else:
                 result = self.checkDirectJmp(dst_dis, src_dis)

@@ -5,8 +5,8 @@ import binascii
 from capstone import *
 
 peutil = PEUtil.PEUtil('c:\\work\\firefox.exe')
-execute_section = peutil.get_executable_section()
-execute_section_data = peutil.get_section_raw_data(execute_section)
+execute_section = peutil.getExecutableSection()
+execute_section_data = peutil.getSectionRawData(execute_section)
 hexacode = binascii.hexlify(execute_section_data).decode('hex')
 
 # distorm3_log = open("c:\\work\\distorm3_disassemble.log", "w")

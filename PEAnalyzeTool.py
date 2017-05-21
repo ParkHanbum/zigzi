@@ -3,10 +3,6 @@
 """PEAnalyzeTool, Analyze tool for PE that Windows Portable Executable Format
 """
 
-__author__ = 'ParkHanbum'
-__version__ = '2017.3.28'
-__contact__ = 'kese111@gmail.com'
-
 import Queue
 import struct
 import binascii
