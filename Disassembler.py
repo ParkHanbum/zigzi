@@ -28,42 +28,69 @@ class Disassembler(object):
 
     def __init__(self, code):
         self.code = code
-        self.instructions_map = {}
-        self.instructions_list = []
-        self.code_updated = False
-        self.instructions_list_updated = False
-        self.instructions_map_updated = False
+        self.instructionsMap = {}
+        self.instructionsList = []
+        self._codeNeedHandled = True
+        self._instructionsListNeedHandled = True
+        self._instructionsMapNeedHandled = True
         self.disassemble()
 
-    def is_code_updated(self):
-        return self.code_updated
+    def setCode(self, code):
+        self.code = code
+        self.disassemble()
 
-    def get_code(self):
+    def getCode(self):
         return self.code
 
-    def get_code_size(self):
+    def getCodeSize(self):
         return len(self.code)
 
-    def disassemble_list_updated(self):
-        self.instructions_list_updated = True
+    def isCodeNeedHandled(self):
+        return self._codeNeedHandled
 
-    def is_disassemble_list_changed(self):
-        return self.instructions_list_updated
+    def codeHandled(self):
+        self._codeNeedHandled = False
 
-    def get_disassemble_map(self):
-        if self.is_code_updated():
+    def codeNeedHandled(self):
+        self._codeNeedHandled = True
+        self.disassembleMapNeedHandled()
+
+    def isDisassembleMapNeedHandled(self):
+        return self._instructionsMapNeedHandled
+
+    def disassembleMapHandled(self):
+        self._instructionsMapNeedHandled = False
+
+    def disassembleMapNeedHandled(self):
+        self._instructionsMapNeedHandled = True
+        self.disassembleListNeedHandled()
+
+    def isDisassembleListNeedHandled(self):
+        return self._instructionsListNeedHandled
+
+    def disassembleListHandled(self):
+        self._instructionsListNeedHandled = False
+
+    def disassembleListNeedHandled(self):
+        self._instructionsListNeedHandled = True
+
+    def getDisassembleMap(self):
+        if self.isCodeNeedHandled():
             self.disassemble()
-        return self.instructions_map
+        return self.instructionsMap
 
-    def get_disassemble_list(self):
-        if self.is_code_updated() or self.instructions_map_updated:
-            self.disassemble()
-        return self.instructions_list
+    def getDisassembleList(self):
+        if self.isDisassembleListNeedHandled():
+            disassembleMap = self.getDisassembleMap()
+            sorted_instructions = sorted(disassembleMap.items(),
+                                         key=operator.itemgetter(0))
+            self.instructionsList = sorted_instructions
+        return self.instructionsList
 
-    def get_dword_from_offset(self, offset, offset_end):
-        return self.get_data_from_offset_with_format(offset, offset_end)
+    def getDwordFromOffset(self, offset, offset_end):
+        return self.getDataFromOffsetWithFormat(offset, offset_end)
 
-    def get_format_from_size(self, size):
+    def getFormatFromSize(self, size):
         if size == 8:
             fmt = 'l'
         elif size == 4:
@@ -77,56 +104,56 @@ class Disassembler(object):
             exit()
         return fmt
 
-    def get_data_from_offset_with_format(self, offset, offset_end):
-        size = offset_end - offset
-        return struct.unpack(self.get_format_from_size(size), self.code[offset:offset_end])[0]
+    def getFormatFromSizeLE(self, size):
+        if size == 8:
+            fmt = '<l'
+        elif size == 4:
+            fmt = '<i'
+        elif size == 2:
+            fmt = '<h'
+        elif size == 1:
+            fmt = '<b'
+        else:
+            print "ERROR"
+            exit()
+        return fmt
 
-    def get_data_at_offset(self, offset, offset_end):
+    def getDataFromOffsetWithFormat(self, offset, offset_end):
+        size = offset_end - offset
+        return struct.unpack(self.getFormatFromSize(size), self.code[offset:offset_end])[0]
+
+    def getDataAtOffset(self, offset, offset_end):
         return self.code[offset:offset_end]
 
     def disassemble(self):
         if not self.code:
             return 0
-        del self.instructions_list[:]
-        self.instructions_list = distorm3.Decompose(
+        self.instructionsMap.clear()
+        del self.instructionsList[:]
+        instructionsList = distorm3.Decompose(
             0x0,
             binascii.hexlify(self.code).decode('hex'),
             distorm3.Decode32Bits,
             distorm3.DF_NONE)
-        for inst in self.instructions_list:
-            self.instructions_map[inst.address] = inst
+        for inst in instructionsList:
+            self.instructionsMap[inst.address] = inst
+        self.codeHandled()
+        self.disassembleMapHandled()
 
-        self.code_updated = False
-        self.instructions_list_updated = False
-        self.instructions_map_updated = False
-
-    def remove_analysis(self, va, size):
-        for index in xrange(size):
-            if (va + index) in self.instructions_map:
-                del self.instructions_map[(va + index)]
-                self.instructions_map_updated = True
-
-    def get_sorted_disassemble_map(self):
-        disassemble_map = self.get_disassemble_map()
-        sorted_disassemble_map = sorted(disassemble_map.items(),
-                                        key=operator.itemgetter(0))
-        return sorted_disassemble_map
-
-    def set_code(self, code):
-        self.code = code
-        self.disassemble()
-
-    def set_instruction_at_offset(self, offset, instrumented_instruction):
+    def instrument(self, offset, instrumented_instruction):
         self.code[offset:offset] = instrumented_instruction
-        self.code_updated = True
+        self.codeNeedHandled()
 
-    def set_data_at_offset_with_format(self, offset, offset_end, data):
-        size = offset_end - offset
-        fmt = self.get_format_from_size(size)
-        self.code[offset:offset_end] = struct.pack(fmt, data)
-        self.code_updated = True
-
-    def set_data_at_offset(self, offset, offset_end, instruction):
+    def setInstructionAtOffset(self, offset, offset_end, instruction):
         self.code[offset:offset_end] = instruction
-        self.code_updated = True
+        self.codeNeedHandled()
 
+    def setDataAtOffset(self, offset, offset_end, instruction):
+        self.code[offset:offset_end] = instruction
+        self.codeNeedHandled()
+
+    def setDataAtOffsetWithFormat(self, offset, offset_end, data):
+        size = offset_end - offset
+        fmt = self.getFormatFromSize(size)
+        self.code[offset:offset_end] = struct.pack(fmt, data)
+        self.codeNeedHandled()

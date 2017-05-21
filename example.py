@@ -21,12 +21,14 @@ def test(instruction):
     return (None, 0)
 
 if __name__ == '__main__':
+    """
     filename = "C:\\work\\sample.exe"
     pei = PEInstrument(filename)
-    pei.instrument_redirect_controlflow_instruction(test)
+    pei.instrumentRedirectControlflowInstruction(test)
     pei.writefile('c:\\work\\sample_test.exe')
+    """
 
     filename = "c:\\work\\firefox.exe"
     pei = PEInstrument(filename)
-    pei.instrument_redirect_controlflow_instruction(test)
+    pei.instrumentRedirectControlflowInstruction(test)
     pei.writefile('c:\\work\\firefox_test.exe')

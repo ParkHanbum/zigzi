@@ -1,11 +1,18 @@
+#!/usr/bin/python
+# -*- coding: utf-8 -*-
+"""PEInstrument, support instrumentation feature for window executable binary format(PE).
+"""
+
 import struct
 import binascii
 import distorm3
 import operator
-from PEUtil import *
-from keystone import *
 import os.path
 import copy
+
+from PEUtil import *
+from keystone import *
+from Disassembler import *
 
 
 class PEInstrument(object):
@@ -14,23 +21,20 @@ class PEInstrument(object):
 
     def __init__(self, filename):
         self.peutil = PEUtil(filename)
-        execute_section = self.peutil.get_executable_section()
-        execute_section_data = self.peutil.get_section_raw_data(execute_section)
-        self.entry_point_va = self.peutil.get_entry_point_va()
+        self.entry_point_va = self.peutil.getEntryPointVA()
         self.ks = Ks(KS_ARCH_X86, KS_MODE_32)
-        self.execute_data = execute_section_data
-        self.instruction_map = {}
+
+        execute_section = self.peutil.getExecutableSection()
+        execute_section_data = self.peutil.getSectionRawData(execute_section)
+        self.Disassembler = Disassembler(execute_section_data)
 
         # save histroy of instrument for relocation
-        self.instrument_history_map = {}
-        self.instrument_map = {}
-        self.disassembly = []
-        self.disassemble()
-        self.overflowed_instrument = False
-        self.overflowed_instrument_map = {}
+        self.instrumentHistoryMap = {}
+        self.instrumentMap = {}
+        self.overflowedInstrument = False
+        self.overflowedInstrumentMap = {}
 
         self.instrument_log_file = open('c:\\work\\instrument.log', 'w')
-
 
     def writefile(self, filename):
         """
@@ -41,31 +45,28 @@ class PEInstrument(object):
             None
         """
         cumulative = 0
-        sorted_instrument_map = sorted(self.instrument_history_map.items(),
+        sorted_instrument_map = sorted(self.instrumentHistoryMap.items(),
                                        key=operator.itemgetter(0))
         log = open("c:\\work\\instrumentmap.log", 'w')
         for address, size in sorted_instrument_map:
             cumulative += size
             log.write("[0x{:x}]\t{:x}\t{:d}\n".format(address, size, cumulative))
-        self.peutil.set_instrumentor(self)
-        self.adjust_PE_layout()
+        self.peutil.setInstrumentor(self)
+        self.adjustFileLayout()
         self.peutil.write(filename)
 
-    def get_instrumented_map(self):
-        return self.instrument_history_map
+    def getInstrumentedMap(self):
+        return self.instrumentHistoryMap
 
-    def get_instructions_map(self):
-        return self.instruction_map
-
-    def get_instructions(self):
+    def getInstructions(self):
         """get disassembled instructions.
         Instructions excluding data that exist in the text section.
 
         :return:
             list: tuple that contain instruction address, instruction
         """
-        instructions = self.instruction_map
-        relocation_map = self.peutil.get_relocation_map()
+        instructions = self.Disassembler.getDisassembleMap()
+        relocation_map = self.peutil.getRelocationMap()
         sorted_relocation_map = sorted(relocation_map.items(),
                                        key=operator.itemgetter(0))
         for address, el in sorted_relocation_map:
@@ -73,12 +74,12 @@ class PEInstrument(object):
                 relocation_address = address - 0x1000 + size
                 if relocation_address in instructions:
                     print "Found : [RELOCA] 0x{:x} 0x{:x}\t[INS] {}".format(address, relocation_address, instructions[relocation_address])
-                    del self.instruction_map[relocation_address]
-        sorted_instructions = sorted(self.instruction_map.items(),
+                    del instructions[relocation_address]
+        sorted_instructions = sorted(instructions.items(),
                                      key=operator.itemgetter(0))
         return sorted_instructions
 
-    def instrument_redirect_controlflow_instruction(self, command, position=None):
+    def instrumentRedirectControlflowInstruction(self, command, position=None):
         """instrument instruction when reached instruction that has control flow as redirect.
 
         :param command: A user-defined function that returns an instrument instruction.
@@ -89,17 +90,16 @@ class PEInstrument(object):
         instructionTypes = ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH']
         # instruction_types = ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH', 'FC_RET']
         instrumentTotalAmount = 0
-        instructions = self.get_instructions()
+        instructions = self.getInstructions()
         for address, inst in instructions:
             cf = inst.flowControl
             if cf in instructionTypes:
-                if self.isredirect(inst):
+                if self.isRedirect(inst):
                     result = self.instrument(command, inst, instrumentTotalAmount)
                     instrumentTotalAmount += result
 
         print "INSTRUMENT TOTAL AMOUNT {:d}".format(instrumentTotalAmount)
-        self.disassemble()
-        self.adjust_instrumented_layout()
+        self.adjustInstrumentedLayout()
 
     def instrument(self, command, instruction, total_count=0):
         """
@@ -120,12 +120,12 @@ class PEInstrument(object):
             instrument_size = len(instrument_inst)
             # put instrument instruction to execute_section_data
             offset = instruction.address + total_count
-            self.execute_data[offset:offset] = instrument_inst
-            self.instrument_map[offset] = len(instrument_inst)
+            self.Disassembler.instrument(offset, instrument_inst)
+            self.instrumentMap[offset] = len(instrument_inst)
             self.instrument_log_file.write("[0x{:x}]\t{}\n".format(instruction.address, instruction))
         return instrument_size
 
-    def get_instrumented_size(self, inst):
+    def getInstrumentedSize(self, inst):
         """
         Calculate the instrumented size from the current address to the branch target.
 
@@ -137,7 +137,7 @@ class PEInstrument(object):
         inst_destiny = inst.operands[0].value
         block_instrumented_size = 0
         if inst_address <= inst_destiny:
-            sorted_instrument_map = sorted(self.instrument_map.items(),
+            sorted_instrument_map = sorted(self.instrumentMap.items(),
                                            key=operator.itemgetter(0))
             for instrument_address, instrument_size in sorted_instrument_map:
                 if instrument_address > inst_destiny:
@@ -147,7 +147,7 @@ class PEInstrument(object):
                     block_instrumented_size += instrumented_size
                     inst_destiny += instrumented_size
         else:
-            sorted_instrument_map = sorted(self.instrument_map.items(),
+            sorted_instrument_map = sorted(self.instrumentMap.items(),
                                            key=operator.itemgetter(0),
                                            reverse=True)
             for instrument_address, instrument_size in sorted_instrument_map:
@@ -161,27 +161,27 @@ class PEInstrument(object):
                     inst_destiny -= instrumented_size
         return block_instrumented_size
 
-    def adjust_PE_layout(self):
+    def adjustFileLayout(self):
         """
         adjust PE layout. keep order.
         must do adjust first, and section modificate after.
         :return:
         """
-        self.adjust_entry_point()
-        if self.peutil.isrelocable():
+        self.adjustEntryPoint()
+        if self.peutil.isRelocable():
             print "[=========== RELOCATION ADJUST =============]"
-            self.adjust_relocation()
-        self.adjust_executable_section()
-        self.peutil.adjust_import(self.get_instrument_size())
+            self.adjustRelocation()
+        self.adjustExecutableSection()
+        self.peutil.adjustImport(self.getInstrumentSize())
 
-    def adjust_entry_point(self):
-        entry_va = self.peutil.get_entry_point_va()
-        instrument_size = self.get_instrument_size_with_vector(entry_va - 0x1000)
+    def adjustEntryPoint(self):
+        entry_va = self.peutil.getEntryPointVA()
+        instrument_size = self.getInstrumentSizeWithVector(entry_va - 0x1000)
         # instrument_size = self.get_instrument_size_until(entry_va)
-        self.peutil.setentrypoint(entry_va + instrument_size)
+        self.peutil.setEntryPoint(entry_va + instrument_size)
 
-    def get_instrument_size_until(self, va):
-        sorted_instruction_map = sorted(self.instrument_history_map.items(),
+    def getInstrumentSizeUntil(self, va):
+        sorted_instruction_map = sorted(self.instrumentHistoryMap.items(),
                                         key=operator.itemgetter(0))
         instrumented_size = 0
         for address, size in sorted_instruction_map:
@@ -191,12 +191,12 @@ class PEInstrument(object):
                 break
         return instrumented_size
 
-    def get_instrument_size_from_until_with_base(self, base, until_va):
+    def getInstrumentSizeFromUntilWithBase(self, base, until_va):
         va = until_va - base
-        return self.get_instrument_size_until(va)
+        return self.getInstrumentSizeUntil(va)
 
-    def get_instrument_size_with_range(self, start, end):
-        sorted_instruction_map = sorted(self.instrument_history_map.items(),
+    def getInstrumentSizeWithRange(self, start, end):
+        sorted_instruction_map = sorted(self.instrumentHistoryMap.items(),
                                         key=operator.itemgetter(0))
         instrumented_size = 0
         for address, size in sorted_instruction_map:
@@ -206,8 +206,8 @@ class PEInstrument(object):
                 instrumented_size += size
         return instrumented_size
 
-    def get_instrument_size_with_vector(self, va):
-        sorted_instruction_map = sorted(self.instrument_history_map.items(),
+    def getInstrumentSizeWithVector(self, va):
+        sorted_instruction_map = sorted(self.instrumentHistoryMap.items(),
                                         key=operator.itemgetter(0))
         instrumented_size = 0
         for address, size in sorted_instruction_map:
@@ -218,87 +218,44 @@ class PEInstrument(object):
                 break
         return instrumented_size
 
-    def get_instrument_size(self):
-        sorted_instruction_map = sorted(self.instrument_history_map.items(),
+    def getInstrumentSize(self):
+        sorted_instruction_map = sorted(self.instrumentHistoryMap.items(),
                                         key=operator.itemgetter(0))
         instrumented_size = 0
         for address, size in sorted_instruction_map:
             instrumented_size += size
         return instrumented_size
 
-    def adjust_executable_section(self):
-        execute_data = self.execute_data
-        self.peutil.append_data_to_execution(execute_data)
+    def adjustExecutableSection(self):
+        execute_data = self.Disassembler.getCode()
+        self.peutil.appendDataToExecution(execute_data)
 
-    def adjust_reference_for_code(self, inst, operand, refer, operand_index, size):
-        offset = self.get_operand_offset_from_instruction(inst, operand, refer, operand_index)
-        value = self.execute_data[inst.address+offset:inst.address+offset+size]
-        value = struct.unpack('<I', value)[0]
-        # TODO : temporary, Imagebase + section start va.
-        value -= 0x401000
-        instrumented_size = self.get_instrument_size_with_vector(value)
-        value = value + instrumented_size + 0x401000
-        self.execute_data[inst.address+offset:inst.address+offset+size] = struct.pack('<I', value)
-        self.log.write("[0x{:x}]\torigin {:x}\tafter {:x}\n".format(inst.address, refer, value))
-        return 0
-
-    def get_operand_offset_from_instruction(self, inst, operand, refer, operand_index):
-        refer_hexa = struct.pack('<I', refer)
-        inst_hexa = (binascii.hexlify(inst.instructionBytes)).decode('hex')
-        refer_offset = inst_hexa.index(refer_hexa)
-        if operand_index > 0:
-            for index in xrange(operand_index):
-                try:
-                    refer_offset = inst_hexa.index(refer_hexa, refer_offset)
-                except ValueError:
-                    print "[0x{:x}]\t{:x}\t{:x}".format(inst.address, refer_hexa, inst_hexa)
-        return refer_offset
-
-    def adjust_reference_for_others(self, inst, operand, refer, operand_index, size):
-        offset = self.get_operand_offset_from_instruction(inst, operand, refer, operand_index)
-        value = self.execute_data[inst.address + offset:inst.address + offset + size]
-        value = struct.unpack('<I', value)[0]
-        # TODO : temporary, Imagebase + section start va.
-        value -= 0x401000
-        # TODO : temporary, adjust_size mean adjust size of section which address belongs.
-        adjust_size = 0x1000
-        value = value + adjust_size + 0x401000
-        self.execute_data[inst.address + offset:inst.address + offset + size] = struct.pack('<I', value)
-        self.log.write("[0x{:x}]\torigin {:x}\tafter {:x}\n".format(inst.address, refer, value))
-        return 0
-
-    def adjust_instrumented_layout(self):
+    def adjustInstrumentedLayout(self):
         """
         Adjusts the binary layout that has changed due to the address
         and the relatively operand of the instruction being changed during
         the instrumenting.
         :return:
         """
-        self.disassemble()
-        sorted_instruction_map = sorted(self.instruction_map.items(),
-                                        key=operator.itemgetter(0))
-
-        if not self.peutil.isrelocable():
-            for inst_address, inst in sorted_instruction_map:
+        instructionsList = self.Disassembler.getDisassembleList()
+        if not self.peutil.isRelocable():
+            for inst_address, inst in instructionsList:
                 if inst.flowControl in ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH']:
-                    self.adjust_relative_branches(inst)
+                    self.adjustRelativeBranches(inst)
                 else:
                     # Temporary, adjust reference of text-section.
-                    self.adjust_references(inst)
+                    self.adjustReferences(inst)
         else:
-            for inst_address, inst in sorted_instruction_map:
+            for inst_address, inst in instructionsList:
                 if inst.flowControl in ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH']:
-                    self.adjust_relative_branches(inst)
+                    self.adjustRelativeBranches(inst)
 
-        if self.overflowed_instrument:
-            overflowed_inst_handled = self.handle_overflow_instrument()
+        if self.overflowedInstrument:
+            overflowed_inst_handled = self.handleOverflowInstrument()
             if overflowed_inst_handled:
-                self.disassemble()
-                self.adjust_instrumented_layout()
-        else:
-            self.instrument_history_map = self.instrument_map
+                self.adjustInstrumentedLayout()
 
-    def adjust_relative_branches(self, inst):
+    def adjustRelativeBranches(self, inst):
         """
         adjust instruction's operand value.
         Because the instructions calculate the address to branch relatively from the current position,
@@ -311,9 +268,8 @@ class PEInstrument(object):
             self.adjust_log = open('c:\\work\\adjust.log', 'w')
 
         log = []
-        if not self.isredirect(inst):
-            total_instrumented_size = \
-                self.get_instrumented_size(inst)
+        if not self.isRedirect(inst):
+            total_instrumented_size = self.getInstrumentedSize(inst)
             # adjust operand value
             if total_instrumented_size > 0:
                 log.append("[0x{:x}] {:s}\n".format(inst.address, inst))
@@ -321,17 +277,7 @@ class PEInstrument(object):
                 instruction_size = inst.size - operand_size
                 operand_start = inst.address + instruction_size
                 operand_end = inst.address + inst.size
-                if operand_size == 8:
-                    fmt = 'l'
-                elif operand_size == 4:
-                    fmt = 'i'
-                elif operand_size == 2:
-                    fmt = 'h'
-                elif operand_size == 1:
-                    fmt = 'b'
-                operand_value \
-                    = struct.unpack(fmt,
-                                    self.execute_data[operand_start:operand_end])[0]
+                operand_value = self.Disassembler.getDataFromOffsetWithFormat(operand_start, operand_end)
                 log.append("\torigin operand value : {:x}\n".format(operand_value))
                 if operand_value > 0:
                     adjusted_operand_value = \
@@ -342,15 +288,14 @@ class PEInstrument(object):
                 log.append("\tadjust operand value : {:x}\n"
                            .format(adjusted_operand_value))
                 try:
-                    self.execute_data[operand_start:operand_end] \
-                        = struct.pack(fmt, adjusted_operand_value)
+                    self.Disassembler.setDataAtOffsetWithFormat(operand_start, operand_end, adjusted_operand_value)
                 except:
-                    self.overflowed_instrument = True
-                    self.overflowed_instrument_map[inst.address] = (inst, adjusted_operand_value)
+                    self.overflowedInstrument = True
+                    self.overflowedInstrumentMap[inst.address] = (inst, adjusted_operand_value)
                     log.append("operand value size overflowed {:x}\n".format(operand_value))
         self.adjust_log.write(''.join(log))
 
-    def adjust_references(self, inst):
+    def adjustReferences(self, inst):
         """
         when PE file has no relocation section, we can not make perfect adjustments.
         need some guess of type for static value in code.
@@ -391,13 +336,12 @@ class PEInstrument(object):
                             target_operand_index = 0
                         inst_size = inst.size - target_operand_index - (inst.operands[index].size / 8)
                         print "0x{:x}".format(
-                            struct.unpack("i",
-                                          self.execute_data[
-                                          inst.address + target_operand_index + inst_size
-                                          :inst.address + inst.size])[0]
+                            self.Disassembler.getDataFromOffsetWithFormat(
+                                inst.address + target_operand_index + inst_size,
+                                inst.address + inst.size)
                         )
 
-    def adjust_relocation(self):
+    def adjustRelocation(self):
         structures_relocation_block = {}
         structures_relocation_entries = {}
         log = open('c:\\work\\relocation_before.txt', 'w')
@@ -427,7 +371,7 @@ class PEInstrument(object):
         next block address is not sequential increase
         """
         sorted_relocation_block = sorted(structures_relocation_block.items(), key=operator.itemgetter(0))
-        sections = self.peutil.get_section_headers()
+        sections = self.peutil.getSectionHeaders()
         section_start = sections[1].VirtualAddress
         structures_relocation_block.clear()
         for index, (block_va, block) in enumerate(sorted_relocation_block):
@@ -461,7 +405,7 @@ class PEInstrument(object):
                     entry_type = entry.Data & 0xf000
                     # 0x1000 mean virtual address of first section that text section.
                     entry_va = block_va + entry_rva
-                    instrumented_size = self.get_instrument_size_with_vector(entry_va - 0x1000)
+                    instrumented_size = self.getInstrumentSizeWithVector(entry_va - 0x1000)
                     entry_rva += instrumented_size
 
                     # move entry to appropriate block
@@ -512,19 +456,18 @@ class PEInstrument(object):
             elif entry.name.find('DIRECTORY_ENTRY_BASERELOC') != -1:
                 log.write("{}\n".format(entry))
 
-    def handle_overflow_instrument(self):
+    def handleOverflowInstrument(self):
         """
         extend the size of the operand if exceed the range of operand values while instrument.
         :return:
             bool :
         """
-        self.disassemble()
         total_instrument_size = 0
         # self.instrument_map.clear()
         handled_overflowed_map = {}
         ks = Ks(KS_ARCH_X86, KS_MODE_32)
         index = 1
-        sorted_instrument_map = sorted(self.overflowed_instrument_map.items(),
+        sorted_instrument_map = sorted(self.overflowedInstrumentMap.items(),
                                        key=operator.itemgetter(0))
         for (inst_address, (inst, adjusted_operand_value)) in sorted_instrument_map:
             inst_address += total_instrument_size
@@ -540,11 +483,9 @@ class PEInstrument(object):
                 encoding, count = ks.asm(hexacode)
                 print "{:s}".format(encoding)
                 # patch
-                self.execute_data[inst_address:inst_address+inst.size] = encoding
+                self.Disassembler.setInstructionAtOffset(inst.address, inst.address + inst.size, encoding)
                 instrumented_size = len(encoding)
-                print "writed : {:s}".format(
-                    binascii.hexlify(
-                        self.execute_data[inst_address:inst_address+instrumented_size]))
+                print "writed : {:s}".format(binascii.hexlify(self.Disassembler.getDataAtOffset(inst_address, inst_address+inst.size)))
                 # save increased opcode, operand size for adjust again
                 increased_size = instrumented_size - inst.size
                 handled_overflowed_map[inst_address] = increased_size
@@ -552,47 +493,47 @@ class PEInstrument(object):
             except KsError as e:
                 print("ERROR: %s" % e)
 
-        if not self.instrument_history_map:
-            self.save_instrument_history(self.instrument_map, handled_overflowed_map)
+        if not self.instrumentHistoryMap:
+            self.saveInstrumentHistory(self.instrumentMap, handled_overflowed_map)
         else:
-            self.save_instrument_history(self.instrument_history_map, handled_overflowed_map)
-        self.instrument_map = handled_overflowed_map
-        self.overflowed_instrument = False
-        self.overflowed_instrument_map.clear()
+            self.saveInstrumentHistory(self.instrumentHistoryMap, handled_overflowed_map)
+        self.instrumentMap = handled_overflowed_map
+        self.overflowedInstrument = False
+        self.overflowedInstrumentMap.clear()
         return True
 
-    def adjust_address_by(self, adjust_to_map, adjust_by_map):
+    def mergeAdjustMapWithPrev(self, prevAdjustMap, adjustMap):
         """Merging previous adjust map with later adjust map
 
-        :param adjust_to_map: dict: previous adjust map.
-        :param adjust_by_map: dict: later adjust map.
+        :param prevAdjustMap: dict: previous adjust map.
+        :param adjustMap: dict: later adjust map.
         :return:
             dict : adjusted instrumented map.
         """
         adjusted_map = {}
-        sorted_adjust_to_map = sorted(adjust_to_map.items(),
-                                      key=operator.itemgetter(0))
-        sorted_adjust_by_map = sorted(adjust_by_map.items(),
-                                      key=operator.itemgetter(0))
+        sortedPrevAdjustMap = sorted(prevAdjustMap.items(),
+                                     key=operator.itemgetter(0))
+        sortedAdjustMap = sorted(adjustMap.items(),
+                                 key=operator.itemgetter(0))
 
-        for instrumented_address, instrumented_size in sorted_adjust_to_map:
+        for instrumented_address, instrumented_size in sortedPrevAdjustMap:
             adjust_instrument_address = instrumented_address
-            for overflowed_address, increased_size in sorted_adjust_by_map:
+            for overflowed_address, increased_size in sortedAdjustMap:
                 if overflowed_address < instrumented_address:
                     adjust_instrument_address += increased_size
             adjusted_map[adjust_instrument_address] = instrumented_size
 
-        for overflowed_address, increased_size in sorted_adjust_by_map:
+        for overflowed_address, increased_size in sortedAdjustMap:
             if increased_size > 0:
                 adjusted_map[overflowed_address] = increased_size
         return adjusted_map
 
-    def save_instrument_history(self, instrumented_map, handled_overflowed_map):
-        adjusted_map = self.adjust_address_by(instrumented_map, handled_overflowed_map)
+    def saveInstrumentHistory(self, instrumented_map, handled_overflowed_map):
+        adjusted_map = self.mergeAdjustMapWithPrev(instrumented_map, handled_overflowed_map)
         # adjusted_map.update(handled_overflowed_map)
-        self.instrument_history_map = adjusted_map
+        self.instrumentHistoryMap = adjusted_map
 
-    def isredirect(self, inst):
+    def isRedirect(self, inst):
         """
         Returns true or false if the branch type of the instruction is redirect.
         :param inst: instruction
@@ -609,18 +550,3 @@ class PEInstrument(object):
                         or operand.type == 'AbsoluteMemory':
                     return True
         return False
-
-    def disassemble(self):
-        """
-        disassemble binary and mapping disassembled data. after clearing previous data.
-        :return:
-        """
-        del self.disassembly[:]
-        self.disassembly = distorm3.Decompose(
-            0x0,
-            binascii.hexlify(self.execute_data).decode('hex'),
-            distorm3.Decode32Bits,
-            distorm3.DF_NONE)
-        self.instruction_map.clear()
-        for inst in self.disassembly:
-            self.instruction_map[inst.address] = inst
