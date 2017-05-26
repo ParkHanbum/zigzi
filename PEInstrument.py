@@ -79,6 +79,22 @@ class PEInstrument(object):
                                      key=operator.itemgetter(0))
         return sorted_instructions
 
+    def instrumentInstructions(self, command, position=None):
+        """instrument instruction
+
+        :param command: A user-defined function that returns an instrument instruction.
+        :param position: The position to be instrumented by the command.
+        :return:
+            None
+        """
+        instrumentTotalAmount = 0
+        instructions = self.getInstructions()
+        for address, inst in instructions:
+            result = self.instrument(command, inst, instrumentTotalAmount)
+            instrumentTotalAmount += result
+        print "INSTRUMENT TOTAL AMOUNT {:d}".format(instrumentTotalAmount)
+        self.adjustInstrumentedLayout()
+
     def instrumentRedirectControlflowInstruction(self, command, position=None):
         """instrument instruction when reached instruction that has control flow as redirect.
 
@@ -254,6 +270,8 @@ class PEInstrument(object):
             overflowed_inst_handled = self.handleOverflowInstrument()
             if overflowed_inst_handled:
                 self.adjustInstrumentedLayout()
+        elif not self.instrumentHistoryMap:
+            self.instrumentHistoryMap = self.instrumentMap
 
     def adjustRelativeBranches(self, inst):
         """
