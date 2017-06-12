@@ -154,11 +154,11 @@ class PEUtil(object):
 
     def write(self, path):
         self.uncerfication()
+        self.adjustFileLayout()
         self.PE.merge_modified_section_data()
         self.PE.OPTIONAL_HEADER.SizeOfImage = self.getImageSize()
         self.PE.OPTIONAL_HEADER.CheckSum = 0
         self.PE.OPTIONAL_HEADER.CheckSum = self.PE.generate_checksum()
-        self.adjustFileLayout()
         self.PE.write(path)
 
     def getImageSize(self):
@@ -230,19 +230,18 @@ class PEUtil(object):
     def adjustDataDirectories(self):
         Sections = self.PE.sections
         OriginSections = self.PE_ORIGIN.sections
-        DataDirectories = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY
 
         for index in xrange(len(Sections)):
             section = Sections[index]
             originSection = OriginSections[index]
             sectionOriginVA = originSection.VirtualAddress
             sectionAdjustedVA = section.VirtualAddress
-            self.adjustFileHeaderDirectories(DataDirectories,
-                                             sectionOriginVA,
+            self.adjustFileHeaderDirectories(sectionOriginVA,
                                              sectionAdjustedVA,
                                              section.Misc_VirtualSize)
 
-    def adjustFileHeaderDirectories(self, data_directories, origin_section_va, adjusted_section_va, virtual_size):
+    def adjustFileHeaderDirectories(self, sectionOriginVA, sectionAdjustedVA, sectionSize):
+        DataDirectories = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY
         directory_adjust = {
             # 'IMAGE_DIRECTORY_ENTRY_IMPORT': self.adjustImport,
             # 'IMAGE_DIRECTORY_ENTRY_DEBUG': self.adjust_debug,
@@ -254,24 +253,18 @@ class PEUtil(object):
             'IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT': self.adjustDelayImport,
             'IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT': self.adjustBoundImports
         }
-
-        removeList = []
-        increase_vector = adjusted_section_va - origin_section_va
-        for directory in data_directories:
-            if origin_section_va <= directory.VirtualAddress < origin_section_va + virtual_size:
-                self.PE.OPTIONAL_HEADER.DATA_DIRECTORY[self.PE.OPTIONAL_HEADER.DATA_DIRECTORY.index(directory)].VirtualAddress \
-                    = directory.VirtualAddress + increase_vector
+        increasedSize = sectionAdjustedVA - sectionOriginVA
+        for directory in DataDirectories:
+            if sectionOriginVA <= directory.VirtualAddress < sectionOriginVA + sectionSize:
+                index = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY.index(directory)
+                self.PE.OPTIONAL_HEADER.DATA_DIRECTORY[index].VirtualAddress = directory.VirtualAddress + increasedSize
                 try:
                     if directory.name in directory_adjust:
                         entry = directory_adjust[directory.name]
-                        entry(directory, directory.VirtualAddress, directory.Size, increase_vector)
+                        entry(directory, directory.VirtualAddress, directory.Size, increasedSize)
                 except IndexError:
                     print "===== [INDEX ERROR] ====="
                     return False
-                removeList.append(directory)
-        for el in removeList:
-            data_directories.remove(el)
-        return data_directories
 
     def uncerfication(self):
         for index in range(len(self.PE.OPTIONAL_HEADER.DATA_DIRECTORY)):
