@@ -8,25 +8,12 @@ peutil = PEUtil.PEUtil('c:\\work\\firefox.exe')
 execute_section = peutil.getExecutableSection()
 execute_section_data = peutil.getSectionRawData(execute_section)
 hexacode = binascii.hexlify(execute_section_data).decode('hex')
-
-# distorm3_log = open("c:\\work\\distorm3_disassemble.log", "w")
+distorm3_log = open("c:\\work\\distorm3_disassemble.log", "w")
 distorm3_redirect_branches = {}
 instrs = []
 for inst in distorm3.Decompose(0x0, hexacode, distorm3.Decode32Bits):
-    # distorm3_log.write("[0x{:x}]\t{:s}\n".format(inst.address, inst))
-    instrs.append(inst)
-    instruction_types = ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH']
-    cf = inst.flowControl
-    if cf in instruction_types:
-        operands = inst.operands
-        if len(operands) > 0:
-            operand = operands[0]
-            if operand.type == 'AbsoluteMemoryAddress' or operand.type == 'Register' \
-                    or operand.type == 'AbsoluteMemory' or operand.type == 'Immediate':
-                distorm3_redirect_branches[inst.address] = inst
-for el in instrs:
-    if 0 < el.address < 100:
-        instrs.remove(el)
+    distorm3_log.write("[{:x}]\t{}\n".format(inst.address, inst))
+
 print "END"
 """
 capstone_log = open("c:\\work\\capstone_disassemble.log", "w")
