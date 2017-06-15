@@ -1,0 +1,4 @@
+*.pyc
+*.log
+.idea/
+tests/sample_test.exe

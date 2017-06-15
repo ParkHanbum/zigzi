@@ -1,19 +1,58 @@
-before_script:
-        - wget https://github.com/keystone-engine/keystone/archive/master.zip
-        - tar -xvf master.zip -C keystone
-        - pushd keystone
-        - mkdir build
-        - cd build
-        - ../make-share.sh
-        - sudo make install
-        - sudo ldconfig
-        - popd
-
+dist: trusty
+sudo: required
+matrix:
+  include:
+    - os: linux
+      env:
+        - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+      addons:
+        apt:
+          packages:
+            - g++-6
+          sources:
+            - ubuntu-toolchain-r-test
+before_install:
+    - eval "${MATRIX_EVAL}"
+    - wget https://github.com/keystone-engine/keystone/archive/master.zip
+    - unzip master.zip
+    - pushd keystone-master
+    - mkdir build
+    - cd build
+    - ../make-share.sh
+    - sudo make install
+    - sudo ldconfig
+    - popd
+    - git clone https://github.com/ParkHanbum/capstone.git -b next
+    - pushd capstone
+    - ./make.sh
+    - sudo make install
+    - pushd bindings/python
+    - python setup.py install
+    - popd
+    - popd
+install:
+    - pip install -r requirements.txt
+compiler: gcc
 language: python
 python:
-        - "2.7"
-install:
-        - pip install -r requirements.txt
-
+    - "2.7"
 script:
-        - python -m tests/test
+    - python -m tests/test
+after_success:
+    - sphinx-apidoc -F -o doc .
+    - cd doc
+    - make html
+    - git init
+    - git config --global user.email "kese111@gmail.com"
+    - git config --global user.name "ParkHanbum"
+    - git remote add upstream "https://${GITHUB_TOKEN}@github.com/ParkHanbum/zigzi.git"
+    - git fetch upstream
+    - git reset upstream/gh-pages
+    - cp _build/html/* . -f -R
+    - git add -A .
+    - git commit -m "update page at ${rev}"
+    - git push -q upstream HEAD:gh-pages
+cache:
+  - pip
+  - $HOME/keystone-master
+

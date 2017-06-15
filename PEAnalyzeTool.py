@@ -11,7 +11,7 @@ import sys
 import threading
 import distorm3
 import pydotplus
-import PEUtil
+import PEManager
 import array
 from threading import Thread
 from keystone import *

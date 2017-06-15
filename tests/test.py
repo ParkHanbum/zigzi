@@ -1,203 +1,463 @@
+"""
+test class for zigzi
+"""
+
+
 from PEInstrument import *
 from keystone import *
-from PEUtil import *
+from PEManager import *
+from capstone.x86 import *
 import os
 import unittest
 
 
-def instrument(instruction):
-    code = "MOV EAX, EAX"
-    hexacode = binascii.hexlify(code).decode('hex')
+# code_mnemonic = "and"
+# code_op_str = "dx, 0xffff"
+code_mnemonic = "and"
+code_op_str = "edx, 0x7fffffff"
+code = code_mnemonic + " " + code_op_str
+
+
+def instrument_test(instruction):
+    hex_code = binascii.hexlify(code).decode('hex')
     try:
         # Initialize engine in X86-32bit mode
         ks = Ks(KS_ARCH_X86, KS_MODE_32)
-        encoding, count = ks.asm(hexacode)
-        return (encoding, count)
+        encoding, count = ks.asm(hex_code)
+        return encoding, count
     except KsError as e:
         print("ERROR: %s" % e)
-    return (None, 0)
+    return None, 0
 
 
 class Tests(unittest.TestCase):
-    _Branch_Instruction_Types_ = ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH']
+    # default setting
     _Image_Base_ = 0x400000
     _Adjust_Size_ = 0x1000
 
     def __init__(self, *args, **kwargs):
+        """
+        in test case, each test will execute __init__ method.
+        so if you want common initializing at each test, do it here.
+        """
         super(Tests, self).__init__(*args, **kwargs)
-        self.src_filename = 'c:\\work\\firefox.exe'
-        self.dst_filename = 'c:\\work\\firefox_test.exe'
-        self.codeLog = open(os.path.join(os.getcwd(), "tests", "codelog.txt"), 'w')
-        self.relocLog = open(os.path.join(os.getcwd(), "tests", "reloclog.txt"), 'w')
-        # self.src_filename = os.path.join(os.getcwd(), "tests", "sample.exe")
-        # self.dst_filename = os.path.join(os.getcwd(), "tests", "sample_test.exe")
-        src_pei = PEInstrument(self.src_filename)
-        src_pei.instrumentRedirectControlflowInstruction(instrument)
-        src_pei.writefile(self.dst_filename)
-        self.instrumented_map = src_pei.getInstrumentedMap()
 
-    def __del__(self):
-        try:
-            os.remove(self.dst_filename)
-        except:
-            pass
+    def setUp(self):
+        """
+        This method will execute at init time each test case like init method.
+        so if you want common initializing at each test, do it here.
+        """
+        print("THIS IS SETUP")
+        self.src_instrument = PEInstrument.from_filename(self.src_filename)
+        self.dst_instrument = PEInstrument.from_filename(self.dst_filename)
+
+    def tearDown(self):
+        """
+        This method will execute when each test case end.
+        so if you want common destroy at each test case, do it here.
+        """
+        print("THIS IS TEARDOWN")
+
+    @classmethod
+    def setUpClass(cls):
+        """
+        This method execute once at test class initializing.
+        so if you want common initializing at each test class, do it here.
+        """
+        print("THIS IS setUpClass")
+        path = os.getcwd()
+        cls.code_log = open(os.path.join(path, "tests", "codelog.log"), 'w')
+        cls.reloc_log = open(os.path.join(path, "tests", "reloclog.log"), 'w')
+        cls.src_filename = os.path.join(path, "tests", "sample.exe")
+        cls.dst_filename = os.path.join(path, "tests", "sample_test.exe")
+        cls.src_filename = os.path.join(path, "tests", "firefox.exe")
+        cls.dst_filename = os.path.join(path, "tests", "firefox_test.exe")
+        src_instrument = PEInstrument.from_filename(cls.src_filename)
+        src_instrument.instrument_pre_indirect_branch(instrument_test)
+        src_instrument.writefile(cls.dst_filename)
+        cls.instrumented_dict = src_instrument.get_instrumented_pos()
+
+        cls.src_peutil = PEManager(cls.src_filename)
+        cls.dst_peutil = PEManager(cls.dst_filename)
+        dst_data_section = cls.dst_peutil.get_data_section()
+        src_data_section = cls.src_peutil.get_data_section()
+        cls._Adjust_Size_ = dst_data_section.VirtualAddress \
+                            - src_data_section.VirtualAddress
+
+    @classmethod
+    def tearDownClass(cls):
+        """
+        This method execute once at test class closing.
+        so if you want common destroying at each test class, do it here.
+        """
+        print("THIS IS tearDownClass")
+
+
+    def test_export_function(self):
+        test_fail_flag = False
+        log = ""
+        src_instrument = self.src_instrument
+        dst_instrument = self.dst_instrument
+        src_util = src_instrument.get_peutil()
+        dst_util = dst_instrument.get_peutil()
+        if not hasattr(src_util.PE, "DIRECTORY_ENTRY_EXPORT"):
+            print("THIS BINARY HAS NOT EXPORT.")
+            return True
+        src_export_entry = src_util.PE.DIRECTORY_ENTRY_EXPORT
+        dst_export_entry = dst_util.PE.DIRECTORY_ENTRY_EXPORT
+        src_export_entry_struct = src_export_entry.struct
+        dst_export_entry_struct = dst_export_entry.struct
+        src_fn_rva = []
+        dst_fn_rva = []
+
+        for index in range(len(src_export_entry.symbols)):
+            entry_fn_rva = src_export_entry_struct.AddressOfFunctions \
+                           + (index * 4)
+            fn_rva = src_util.PE.get_dword_at_rva(entry_fn_rva)
+            src_fn_rva.append(fn_rva)
+
+        for index in range(len(dst_export_entry.symbols)):
+            entry_fn_rva = dst_export_entry_struct.AddressOfFunctions \
+                           + (index * 4)
+            fn_rva = dst_util.PE.get_dword_at_rva(entry_fn_rva)
+            dst_fn_rva.append(fn_rva)
+
+        if len(src_fn_rva) != len(dst_fn_rva):
+            log += "Export function length is not matched\n"
+
+        test_fail_flag = True
+        for index in range(len(src_fn_rva)):
+            src_rva = src_fn_rva[index]
+            dst_rva = dst_fn_rva[index]
+            if not self.compare_bytes(src_rva, dst_rva, 4):
+                test_fail_flag = False
+                log += "{:x} {:x}\n".format(src_rva, dst_rva)
+        if not test_fail_flag:
+            self.fail(log)
 
     def test_relocation(self):
-        testFailFlag = False
-        srcPei = PEInstrument(self.src_filename)
-        dstPei = PEInstrument(self.dst_filename)
-        srcUtil = srcPei.peutil
-        dstUtil = dstPei.peutil
-        srcRelocationMap = srcUtil.getRelocationMap()
-        dstRelocationMap = dstUtil.getRelocationMap()
+        test_fail_flag = False
+        src_instrument = self.src_instrument
+        dst_instrument = self.dst_instrument
+        src_util = src_instrument.get_peutil()
+        dst_util = dst_instrument.get_peutil()
+        src_relocation_dict = src_util.get_relocation()
+        dst_relocation_dict = dst_util.get_relocation()
 
-        srcExecuteStart, srcExecuteEnd = srcUtil.getExecutableVirtualAddressRange()
-        dstExecuteStart, dstExecuteEnd = dstUtil.getExecutableVirtualAddressRange()
-        srcExecuteStart += self._Image_Base_
-        srcExecuteEnd += self._Image_Base_
-        dstExecuteStart += self._Image_Base_
-        dstExecuteEnd += self._Image_Base_
+        src_execute_start, src_execute_end = \
+            src_util.get_text_section_virtual_address_range()
+        dst_execute_start, dst_execute_end = \
+            dst_util.get_text_section_virtual_address_range()
+        src_execute_start += self._Image_Base_
+        src_execute_end += self._Image_Base_
+        dst_execute_start += self._Image_Base_
+        dst_execute_end += self._Image_Base_
 
-        sortedSrcRelocMap = sorted(srcRelocationMap.items(),
-                                   key=operator.itemgetter(0))
-        sortedDstRelocMap = sorted(dstRelocationMap.items(),
-                                   key=operator.itemgetter(0))
+        sorted_src_reloc_dict = sorted(src_relocation_dict.items(),
+                                       key=operator.itemgetter(0))
+        sorted_dst_reloc_dict = sorted(dst_relocation_dict.items(),
+                                       key=operator.itemgetter(0))
 
-        for index in xrange(len(sortedSrcRelocMap)):
-            srcRelocEl = sortedSrcRelocMap[index]
-            dstRelocEl = sortedDstRelocMap[index]
-            srcRelocAddress = int(srcRelocEl[0])
-            srcReloc = srcRelocEl[1]
-            dstRelocAddress = int(dstRelocEl[0])
-            dstReloc = dstRelocEl[1]
-            srcData = int(srcUtil.PE.get_dword_at_rva(srcRelocAddress))
-            dstData = int(dstUtil.PE.get_dword_at_rva(dstRelocAddress))
+        src_relocation_length = len(src_relocation_dict.keys())
+        dst_relocation_length = len(dst_relocation_dict.keys())
 
-            self.relocLog.write(
-                "[{:04x}]\t[0x{:x}][0x{:x}][{}]\t[0x{:x}][0x{:x}][{}]\n".format(index,
-                                                            srcRelocAddress, srcData, srcReloc,
-                                                            dstRelocAddress, dstData, dstReloc))
+        if src_relocation_length == dst_relocation_length:
+            print("RELOCATION DIRECTORY LENGTH IS SAME")
 
-            if srcExecuteStart < srcData < srcExecuteEnd and \
-                                    dstExecuteStart < dstData < dstExecuteEnd:
-                dstValue = dstData - self._Image_Base_ - self._Adjust_Size_
-                instrumentedSize = self.getInstrumentedSizeUntil(dstValue)
-                dstValue -= instrumentedSize
-                srcValue = srcData - self._Image_Base_ - self._Adjust_Size_
-                if dstValue != srcValue:
-                    self.relocLog.write("\t[FAILED] ==> [0x{:x}]\t[0x{:x}]\n".format(srcValue, dstValue))
-                    testFailFlag = True
-            elif srcExecuteEnd < srcData and dstExecuteEnd < dstData:
-                if srcData + self._Adjust_Size_ != dstData:
-                    self.relocLog.write("\t[FAILED] ==> [0x{:x}]\t[0x{:x}]\n".format(srcData, dstData))
-                    testFailFlag = True
+        for index in range(len(sorted_src_reloc_dict)):
+            src_reloc_el = sorted_src_reloc_dict[index]
+            dst_reloc_el = sorted_dst_reloc_dict[index]
+            src_reloc_address = int(src_reloc_el[0])
+            src_reloc = src_reloc_el[1]
+            dst_reloc_address = int(dst_reloc_el[0])
+            dst_reloc = dst_reloc_el[1]
+            src_reloc_data = int(src_util.PE.get_dword_at_rva(src_reloc_address))
+            dst_reloc_data = int(dst_util.PE.get_dword_at_rva(dst_reloc_address))
 
-        if testFailFlag:
+            self.reloc_log.write(
+                "[{:04x}]\t[0x{:x}][0x{:x}][{}]\t[0x{:x}][0x{:x}][{}]\n"
+                    .format(index, src_reloc_address, src_reloc_data, src_reloc,
+                            dst_reloc_address, dst_reloc_data, dst_reloc))
+            if src_execute_start < src_reloc_data < src_execute_end \
+                    and dst_execute_start < dst_reloc_data < dst_execute_end:
+                dst_rva = dst_reloc_data - self._Image_Base_ - 0x1000
+                src_rva = src_reloc_data - self._Image_Base_ - 0x1000
+                instrumented_size = \
+                    self.getInstrumentedSizeUntil(dst_rva,
+                                                  self.instrumented_dict)
+                dst_rva -= instrumented_size
+                if dst_rva != src_rva:
+                    self.reloc_log.write("\t[FAILED] ==> [0x{:x}]\t{:x}\t"
+                                         "expected [0x{:x}] but [0x{:x}]\n"
+                                         .format(src_rva, instrumented_size,
+                                                 src_rva + instrumented_size,
+                                                 dst_rva))
+                    test_fail_flag = True
+            elif src_execute_end < src_reloc_data and dst_execute_end < dst_reloc_data:
+                if src_reloc_data + self._Adjust_Size_ != dst_reloc_data:
+                    self.reloc_log.write("\t[FAILED] ==> [0x{:x}]\t[0x{:x}]\n"
+                                         .format(src_reloc_data, dst_reloc_data))
+                    test_fail_flag = True
+
+        if test_fail_flag:
             self.fail("RELOCATION ADJUST FAILED")
 
     def test_codes(self):
-        self.src_pei = PEInstrument(self.src_filename)
-        self.dst_pei = PEInstrument(self.dst_filename)
-        src_pei = self.src_pei
-        dst_pei = self.dst_pei
-        src_disassemble = src_pei.getInstructions()
-        dst_disassemble = dst_pei.getInstructions()
-        execute_start, execute_end = src_pei.peutil.getExecutableVirtualAddressRange()
+        src_instrument = self.src_instrument
+        dst_instrument = self.dst_instrument
+        src_disassemble = src_instrument.get_instructions()
+        dst_disassemble = dst_instrument.get_instructions()
+        execute_start, execute_end = \
+            src_instrument.peutil.get_text_section_virtual_address_range()
         src_size = execute_end - execute_start
-        execute_start, execute_end = dst_pei.peutil.getExecutableVirtualAddressRange()
+        execute_start, execute_end = \
+            dst_instrument.peutil.get_text_section_virtual_address_range()
         dst_size = execute_end - execute_start
 
         dst_index = 0
         src_index = 0
-        for index in xrange(len(dst_disassemble)):
+        for index in range(len(dst_disassemble)):
             try:
-                dst_dis_address, dst_dis = dst_disassemble[dst_index]
-                src_dis_address, src_dis = src_disassemble[src_index]
-                if dst_dis_address >= dst_size or src_dis_address >= src_size:
+                dst_inst_address, dst_inst = dst_disassemble[dst_index]
+                src_inst_address, src_inst = src_disassemble[src_index]
+                if dst_inst_address >= dst_size \
+                        or src_inst_address >= src_size:
                     break
             except:
                 self.fail("Something wrong when disassemble codes")
 
-            self.codeLog.write("[{:03x}]\t{}\t[{:03x}]\t{}\n".format(src_dis_address, src_dis, dst_dis_address, dst_dis))
-            dst_el = str(dst_dis)
-            src_el = str(src_dis)
-            if dst_el == 'MOV EAX, EAX' and src_el != 'MOV EAX, EAX':
-                # print "0x{:x}".format(dst_dis.address)
+            self.log_code(dst_inst, src_inst)
+            dst_str = self.inst_to_str(dst_inst)
+            src_str = self.inst_to_str(src_inst)
+
+            if dst_str == code:
                 dst_index += 1
                 continue
-            if dst_el != src_el:
-                if dst_dis.mnemonic == src_dis.mnemonic and len(dst_dis.operands) == len(src_dis.operands):
-                    if not(self.checkCompareInstruction(dst_dis, src_dis)):
-                        print "{}\t{}".format(src_dis, dst_dis)
-                        # self.assertTrue(self.checkCompareInstruction(dst_dis, src_dis), msg="NO!!!!")
+
+            if dst_str != src_str:
+                if(dst_inst.mnemonic == src_inst.mnemonic
+                   and len(dst_inst.operands) == len(src_inst.operands)):
+                    if not(self.checkCompareInstruction(dst_inst, src_inst)):
+                        find_match = False
+                        for dst_search_depth in range(6):
+                            if find_match:
+                                break
+                            for srcSearchDepth in range(6):
+                                dst_search_addr, dst_dis_search = \
+                                    dst_disassemble[dst_index + dst_search_depth]
+                                src_search_addr, src_dis_search = \
+                                    src_disassemble[src_index + srcSearchDepth]
+
+                                if self.checkCompareInstruction(dst_dis_search,
+                                                                src_dis_search):
+                                    self.log_code(dst_inst, src_inst)
+                                    for search_depth \
+                                            in range(dst_search_depth + 1):
+                                        addr, dst_dis_search = \
+                                            dst_disassemble[dst_index
+                                                            + search_depth]
+                                        self.log_code(dst_inst=dst_dis_search)
+                                    for search_depth in range(srcSearchDepth+1):
+                                        addr, src_dis_search = \
+                                            src_disassemble[
+                                                src_index + search_depth
+                                                ]
+                                        self.log_code(src_inst=src_dis_search)
+                                    dst_index += dst_search_depth
+                                    src_index += srcSearchDepth
+                                    find_match = True
+
+                        if find_match == False:
+                            self.log_code(dst_inst, src_inst)
+                            # assert False
+
+                        """    
+                        print("[TESTCODE]\t[0x{:x}]{:s}{:s}\t[0x{:x}]{:s}{:s}"
+                              .format(dst_inst.address,
+                                      dst_inst.mnemonic, dst_inst.op_str,
+                                      src_dis.address,
+                                      src_dis.mnemonic, src_dis.op_str))
+                        assert False
+                        """
+
                 else:
-                    self.codeLog.write("=======================================================")
-                    assert False, "ERROR\t[0x{:x}]{}\t[0x{:x}]{}".format(dst_dis.address, dst_el,
-                                                                         src_dis.address, src_el)
+                    find_match = False
+                    for dst_search_depth in range(6):
+                        if find_match:
+                            break
+                        for srcSearchDepth in range(6):
+                            dst_search_addr, dst_dis_search = \
+                                dst_disassemble[dst_index + dst_search_depth]
+                            src_search_addr, src_dis_search = \
+                                src_disassemble[src_index + srcSearchDepth]
+
+                            if self.checkCompareInstruction(dst_dis_search,
+                                                            src_dis_search):
+
+                                print("[DIFF MNEMONIC] ====================")
+                                for search_depth in range(dst_search_depth + 1):
+                                    addr, dst_dis_search = \
+                                        dst_disassemble[dst_index
+                                                        + search_depth]
+                                    self.log_code(dst_inst=dst_dis_search)
+
+                                for search_depth in range(srcSearchDepth + 1):
+                                    addr, src_dis_search = \
+                                        src_disassemble[src_index + search_depth]
+                                    self.log_code(src_inst=src_dis_search)
+                                dst_index += dst_search_depth
+                                src_index += srcSearchDepth
+                                find_match = True
+
+                    if not find_match:
+                        self.log_code(dst_inst, src_inst)
             dst_index += 1
             src_index += 1
 
-    def checkDirectJmp(self, dst_dis, src_dis):
+    def log_code(self, dst_inst=None, src_inst=None, prev_str=None,
+                 next_str=None):
+
+        if prev_str is not None:
+            self.code_log.write(prev_str + "\n")
+        if src_inst is None and dst_inst is not None:
+            self.code_log.write("[DESTINY] ==> [0x{:04x}]\t{:35s}\n"
+                                .format(dst_inst.address,
+                                        self.inst_to_str(dst_inst))
+                                )
+        elif src_inst is not None and dst_inst is None:
+            self.code_log.write("\t\t\t\t\t\t\t\t\t\t\t\t"
+                                "[SOURCE] ==> [0x{:04x}]\t{:35s}\n"
+                                .format(src_inst.address,
+                                        self.inst_to_str(src_inst))
+                                )
+        else:
+            self.code_log.write("[0x{:04x}]\t{:35s}\t[0x{:04x}]\t{:35s}\n"
+                                .format(dst_inst.address,
+                                        self.inst_to_str(dst_inst),
+                                        src_inst.address,
+                                        self.inst_to_str(src_inst))
+                                )
+        if next_str is not None:
+            self.code_log.write(next_str + "\n")
+
+    def checkDirectJmp(self, dst_inst, src_inst):
         result = False
-        src_jmp_target = src_dis.operands[0].value
-        dst_jmp_target = dst_dis.operands[0].value
-        if dst_jmp_target - src_jmp_target == self.getInstrumentedSizeUntil(dst_jmp_target):
+        src_jmp_target = src_inst.operands[0].imm
+        dst_jmp_target = dst_inst.operands[0].imm
+        if(dst_jmp_target - src_jmp_target
+           == self.getInstrumentedSizeUntil(dst_jmp_target,
+                                            self.instrumented_dict)
+           ):
             result = True
         return result
 
-    def checkRedirectJmp(self, dst_dis, src_dis):
-        result = False
-        dst_operand = dst_dis.operands[0]
-        src_operand = src_dis.operands[0]
+    def checkIndirectJmp(self, dst_inst, src_inst):
+        return self.checkCompareOperands(dst_inst.operands, src_inst.operands)
 
-        if (dst_operand.value + dst_operand.disp) - (src_operand.value + src_operand.disp) == self._Adjust_Size_:
+    def checkCompareOperands(self, dst_operands, src_operands):
+        result = False
+        if len(dst_operands) == len(src_operands):
+            for index in range(len(dst_operands)):
+                dst_operand = dst_operands[index]
+                src_operand = src_operands[index]
+                if dst_operand.type == X86_OP_REG \
+                        and src_operand.type == X86_OP_REG:
+                    if dst_operand.reg == src_operand.reg:
+                        result = True
+                elif dst_operand.type == X86_OP_IMM \
+                        and src_operand.type == X86_OP_IMM:
+                    if dst_operand.imm == src_operand.imm \
+                            or ((dst_operand.imm - src_operand.imm)
+                                    == self._Adjust_Size_):
+                        result = True
+                    elif ((dst_operand.imm - src_operand.imm)
+                            == self.getInstrumentedSizeUntil(dst_operand.imm
+                                                             - 0x401000,
+                                                             self.instrumented_dict)
+                          ):
+                        result = True
+                    else:
+                        result = False
+                elif dst_operand.type == X86_OP_MEM \
+                        and src_operand.type == X86_OP_MEM:
+                    if dst_operand.mem.segment != 0:
+                        if dst_operand.mem.segment != src_operand.mem.segment:
+                            return False
+                    if dst_operand.mem.base != 0:
+                        if dst_operand.mem.base != src_operand.mem.base:
+                            return False
+                    if dst_operand.mem.index != 0:
+                        if dst_operand.mem.index != src_operand.mem.index:
+                            return False
+                    if dst_operand.mem.scale != 1:
+                        if not (dst_operand.mem.scale == src_operand.mem.scale):
+                            return False
+                    if dst_operand.mem.disp != 0:
+                        if not (dst_operand.mem.disp == src_operand.mem.disp):
+                            if not (dst_operand.mem.disp - src_operand.mem.disp
+                                        == self._Adjust_Size_):
+                                return False
+                    result = True
+                else:
+                    result = False
+        return result
+
+    def checkCompareInstruction(self, dst_inst, src_inst):
+        if dst_inst.mnemonic == src_inst.mnemonic \
+                and dst_inst.op_str == src_inst.op_str:
             result = True
-        elif (dst_operand.value + dst_operand.disp) - (src_operand.value + src_operand.disp) \
-                == self.getInstrumentedSizeUntil(dst_operand.value + dst_operand.disp - 0x401000):
-            result = True
+        elif dst_inst.groups == src_inst.groups:
+            if self.dst_instrument.disassembler.is_direct_branch(dst_inst):
+                result = self.checkDirectJmp(dst_inst, src_inst)
+            elif self.dst_instrument.disassembler.is_indirect_branch(dst_inst):
+                result = self.checkIndirectJmp(dst_inst, src_inst)
+            else:
+                result = self.checkCompareOperands(dst_inst.operands,
+                                                   src_inst.operands)
         else:
             result = False
         return result
 
-    def checkCompareInstruction(self, dst_dis, src_dis):
-        result = False
-        if str(dst_dis) == str(src_dis):
-            result = True
-        elif dst_dis.flowControl == src_dis.flowControl \
-                and (dst_dis.flowControl in self._Branch_Instruction_Types_):
-            if self.dst_pei.isRedirect(dst_dis):
-                result = self.checkRedirectJmp(dst_dis, src_dis)
-            else:
-                result = self.checkDirectJmp(dst_dis, src_dis)
-        else:
-            for index in xrange(len(dst_dis.operands)):
-                dst_operand = dst_dis.operands[index]
-                src_operand = src_dis.operands[index]
-                dst_str = "{}".format(dst_operand)
-                src_str = "{}".format(src_operand)
-                if dst_str == src_str:
-                    continue
-                else:
-                    if (dst_operand.value + dst_operand.disp) - (src_operand.value + src_operand.disp) == self._Adjust_Size_:
-                        result = True
-                    elif (dst_operand.value + dst_operand.disp) - (src_operand.value + src_operand.disp) \
-                            == self.getInstrumentedSizeUntil(dst_operand.value + dst_operand.disp - 0x401000):
-                        result = True
-                    else:
-                        result = False
-        return result
-
-    def getInstrumentedSizeUntil(self, va):
-        if not hasattr(self, 'sorted_instrumented_map'):
-            self.sorted_instrumented_map = sorted(self.instrumented_map.items(),
-                                                  key=operator.itemgetter(0))
+    @staticmethod
+    def getInstrumentedSizeUntil(rva, instrument_dict):
+        sorted_instrumented_dict = sorted(instrument_dict.items(),
+                                          key=operator.itemgetter(0))
         instrumented_size = 0
-        for address, size in self.sorted_instrumented_map:
-            if address < va:
+        for address, size in sorted_instrumented_dict:
+            if address < rva:
                 instrumented_size += size
             else:
                 break
         return instrumented_size
+
+    @staticmethod
+    def inst_to_str(instruction):
+        return instruction.mnemonic + " " + instruction.op_str
+
+    def compare_bytes(self, src_rva, dst_rva, length):
+        src_data = \
+            self.src_instrument.code_manager.get_data_from_rva(src_rva, length)
+        dst_data = \
+            self.dst_instrument.code_manager.get_data_from_rva(dst_rva, length)
+
+        if src_data == dst_data:
+            return True
+
+        return False
+
+
+def setUpModule():
+    """
+    This function will run before create test class instance.
+    """
+    print("THIS IS setUpModule")
+
+
+def tearDownModule():
+    """
+    This function will run after test case closed.
+    """
+    print("THIS IS tearDownModule")
 
 if __name__ == '__main__':
     unittest.main()

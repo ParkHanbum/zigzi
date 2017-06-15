@@ -1,163 +1,112 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-"""
-DIsassembler for disassemble base on disassembler engine distorm3
+"""Disassembler engine for disassemble and instrumentation base on Capstone
+disassemble engine.
+
 """
 
-__author__ = 'ParkHanbum'
-__version__ = '2017.5.10'
-__contact__ = 'kese111@gmail.com'
 
-import struct
 import binascii
 import operator
-import distorm3
-
-
-# OPERAND TYPES
-_OPERAND_NONE = ""
-_OPERAND_IMMEDIATE = "Immediate"
-_OPERAND_REGISTER = "Register"
-# the operand is a memory address
-_OPERAND_ABSOLUTE_ADDRESS = "AbsoluteMemoryAddress"  # The address calculated is absolute
-_OPERAND_MEMORY = "AbsoluteMemory"  # The address calculated uses registers expression
-_OPERAND_FAR_MEMORY = "FarMemory"  # like absolute but with selector/segment specified too
+import os
+from capstone import *
+from Log import LoggerFactory
 
 
 class Disassembler(object):
 
-    def __init__(self, code):
-        self.code = code
-        self.dataChunkList = []
-        self.instructionsMap = {}
-        self.instructionsList = []
-        self.instrumentMap = {}
-        self._codeNeedHandled = True
-        self._instructionsListNeedHandled = True
-        self._instructionsMapNeedHandled = True
-        self.writeLog = open('c:\\work\\writelog.txt', 'w')
+    def __init__(self, _code_manager):
+        self.code_manager = _code_manager
+        self.instructions_dict = {}
+        self.instructions_list = []
+        self._code_need_handled = True
+        self._instructions_list_need_handled = True
+        self._instruction_dict_need_handled = True
+        self.Logger = LoggerFactory()
 
-    def setCode(self, code):
-        self.code = code
-        self.disassemble()
+        # initiation disassembler
+        self.disassembler = Cs(CS_ARCH_X86, CS_MODE_32)
+        self.disassembler.skipdata = True
+        self.disassembler.detail = True
 
-    def getCode(self):
-        return self.code
+    def __del__(self):
+        pass
 
-    def getCodeSize(self):
-        return len(self.code)
+    def is_need_handle_disassemble_dict(self):
+        return self._instruction_dict_need_handled
 
-    def isCodeNeedHandled(self):
-        return self._codeNeedHandled
+    def need_handled_disassemble_dict(self):
+        self._instruction_dict_need_handled = False
 
-    def codeHandled(self):
-        self._codeNeedHandled = False
+    def disassemble_dict_handle(self):
+        self._instruction_dict_need_handled = True
+        self.disassemble_list_handle()
 
-    def codeNeedHandled(self):
-        self._codeNeedHandled = True
-        self.disassembleMapNeedHandled()
+    def is_need_handle_disassemble_list(self):
+        return self._instructions_list_need_handled
 
-    def isDisassembleMapNeedHandled(self):
-        return self._instructionsMapNeedHandled
+    def need_handle_disassemble_list(self):
+        self._instructions_list_need_handled = False
 
-    def disassembleMapHandled(self):
-        self._instructionsMapNeedHandled = False
+    def disassemble_list_handle(self):
+        self._instructions_list_need_handled = True
 
-    def disassembleMapNeedHandled(self):
-        self._instructionsMapNeedHandled = True
-        self.disassembleListNeedHandled()
-
-    def isDisassembleListNeedHandled(self):
-        return self._instructionsListNeedHandled
-
-    def disassembleListHandled(self):
-        self._instructionsListNeedHandled = False
-
-    def disassembleListNeedHandled(self):
-        self._instructionsListNeedHandled = True
-
-    def getDisassembleMap(self):
-        if self.isCodeNeedHandled():
+    def get_disassemble_dict(self):
+        if self.code_manager.is_need_code_handle():
             self.disassemble()
-        return self.instructionsMap
+        return self.instructions_dict
 
-    def getDisassembleList(self):
-        if self.isDisassembleListNeedHandled():
-            disassembleMap = self.getDisassembleMap()
-            sorted_instructions = sorted(disassembleMap.items(),
+    def get_disassemble_list(self):
+        if self.is_need_handle_disassemble_list():
+            disassemble_dict = self.get_disassemble_dict()
+            sorted_instructions = sorted(disassemble_dict.items(),
                                          key=operator.itemgetter(0))
-            self.instructionsList = sorted_instructions
-        return self.instructionsList
-
-    def getDwordFromOffset(self, offset, offset_end):
-        return self.getDataFromOffsetWithFormat(offset, offset_end)
-
-    def getFormatFromSize(self, size):
-        if size == 8:
-            fmt = 'l'
-        elif size == 4:
-            fmt = 'i'
-        elif size == 2:
-            fmt = 'h'
-        elif size == 1:
-            fmt = 'b'
-        else:
-            print "ERROR"
-            exit()
-        return fmt
-
-    def getFormatFromSizeLE(self, size):
-        if size == 8:
-            fmt = '<l'
-        elif size == 4:
-            fmt = '<i'
-        elif size == 2:
-            fmt = '<h'
-        elif size == 1:
-            fmt = '<b'
-        else:
-            print "ERROR"
-            exit()
-        return fmt
-
-    def getDataFromOffsetWithFormat(self, offset, offset_end):
-        size = offset_end - offset
-        return struct.unpack(self.getFormatFromSize(size), self.code[offset:offset_end])[0]
-
-    def getDataAtOffset(self, offset, offset_end):
-        return self.code[offset:offset_end]
+            self.instructions_list = sorted_instructions
+        return self.instructions_list
 
     def disassemble(self):
-        if not self.code:
+        if not self.code_manager:
             return 0
-        self.instructionsMap.clear()
-        del self.instructionsList[:]
-        instructionsList = distorm3.Decompose(
-            0x0,
-            binascii.hexlify(self.code).decode('hex'),
-            distorm3.Decode32Bits,
-            distorm3.DF_NONE)
-        for inst in instructionsList:
-            self.instructionsMap[inst.address] = inst
-        self.codeHandled()
-        self.disassembleMapHandled()
+        self.instructions_dict.clear()
+        del self.instructions_list[:]
+        instructions = \
+            self.disassembler.disasm(
+                binascii.hexlify(self.code_manager.get_code()).decode('hex'),
+                0x0
+            )
+        for instruction in instructions:
+            self.instructions_dict[instruction.address] = instruction
+        self.code_manager.code_handled()
+        self.need_handled_disassemble_dict()
 
-    def instrument(self, offset, instrumented_instruction):
-        self.writeLog.write('[0] [0x{:05x}]\t{}\n'.format(offset, instrumented_instruction))
-        self.code[offset:offset] = instrumented_instruction
-        self.codeNeedHandled()
+    @staticmethod
+    def is_indirect_branch(instruction):
+        """
+        Check whether it is a indirect branch instruction.
 
-    def setInstructionAtOffset(self, offset, offset_end, instruction):
-        self.writeLog.write('[1] [0x{:05x}]\t{}\n'.format(offset, instruction))
-        self.code[offset:offset_end] = instruction
-        self.codeNeedHandled()
+        Args:
+            instruction(instruction): instruction for check.
+        Returns:
+            bool : True if instruction is indirect branch, False otherwise.
+        """
+        if hasattr(instruction, "groups"):
+            for group in instruction.groups:
+                if group == CS_GRP_INDIRECT_BRANCH:
+                    return True
+        return False
 
-    def setDataAtOffsetWithFormat(self, offset, offset_end, data):
-        self.writeLog.write('[3] [0x{:05x}]\t{}\n'.format(offset, data))
-        size = offset_end - offset
-        fmt = self.getFormatFromSize(size)
-        self.code[offset:offset_end] = struct.pack(fmt, data)
-        self.codeNeedHandled()
+    @staticmethod
+    def is_direct_branch(instruction):
+        """
+        Check whether it is a direct branch instruction.
 
-    def setDataChunkList(self, chunkList):
-        self.dataChunkList = chunkList
+        Args:
+            instruction(instruction): instruction for check.
+        Returns:
+            bool : True if instruction is direct branch, False otherwise.
+        """
+        if hasattr(instruction, "groups"):
+            for group in instruction.groups:
+                if group == CS_GRP_BRANCH:
+                    return True
+        return False
