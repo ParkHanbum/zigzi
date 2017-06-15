@@ -35,7 +35,7 @@ class PEInstrument(object):
         self.overflowedInstrument = False
         self.overflowedInstrumentMap = {}
 
-        self.instrument_log_file = open('c:\\work\\instrument.log', 'w')
+        self.instrument_log_file = open(os.path.join(os.getcwd(), 'instrument.log'), 'w')
 
     def writefile(self, filename):
         """
@@ -48,7 +48,7 @@ class PEInstrument(object):
         cumulative = 0
         sorted_instrument_map = sorted(self.instrumentHistoryMap.items(),
                                        key=operator.itemgetter(0))
-        log = open("c:\\work\\instrumentmap.log", 'w')
+        log = open(os.path.join(os.getcwd(), "instrument.txt"), 'w')
         for address, size in sorted_instrument_map:
             cumulative += size
             log.write("[0x{:x}]\t{:x}\t{:d}\n".format(address, size, cumulative))
@@ -97,7 +97,7 @@ class PEInstrument(object):
 
         sorted_instructions = sorted(instructions.items(),
                                      key=operator.itemgetter(0))
-        temp = open('c:\\work\\getinstructions.txt', 'a')
+        temp = open(os.path.join(os.getcwd(), "instructions.txt"), 'a')
         for address, instruction in sorted_instructions:
             temp.write("[0x{:x}]\t{}\n".format(address, instruction))
         return sorted_instructions
@@ -130,7 +130,7 @@ class PEInstrument(object):
         # instruction_types = ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH', 'FC_RET']
         instrumentTotalAmount = 0
         instructions = self.getInstructions()
-        log = open('c:\\work\\before_instrument_disassemble.log', 'w')
+        log = open(os.path.join(os.getcwd(), "before_instrument_disassemble.txt"), 'w')
         for address, inst in instructions:
             log.write("[0x{:x}]\t{}".format(address, inst))
             cf = inst.flowControl
@@ -270,7 +270,7 @@ class PEInstrument(object):
         :return:
         """
 
-        log = open('c:\\work\\after_instrument_disassemble.log', 'a')
+        log = open(os.path.join(os.getcwd(), 'after_instrument_disassemble.log'), 'a')
         log.write("===================================================================================\n")
         # instructionsList = self.Disassembler.getDisassembleList()
         instructionsList = self.getInstructions()
@@ -306,7 +306,7 @@ class PEInstrument(object):
         """
         adjusted_operand_value = 0
         if not hasattr(self, 'adjust_log'):
-            self.adjust_log = open('c:\\work\\adjust.log', 'w')
+            self.adjust_log = open(os.path.join(os.getcwd(), 'adjust.log'), 'w')
 
         log = []
         if not self.isRedirect(inst):
@@ -386,8 +386,8 @@ class PEInstrument(object):
     def adjustRelocation(self):
         structures_relocation_block = {}
         structures_relocation_entries = {}
-        log = open('c:\\work\\relocation_before.txt', 'w')
-        overflow_log = open('c:\\work\\relocation_overflowed.txt', 'w')
+        log = open(os.path.join(os.getcwd(), 'relocation_before.txt'), 'w')
+        overflow_log = open(os.path.join(os.getcwd(), 'relocation_overflowed.txt'), 'w')
         block_va = -1
         for entry in self.peutil.PE.__structures__:
             if entry.name.find('IMAGE_BASE_RELOCATION_ENTRY') != -1:
@@ -482,7 +482,7 @@ class PEInstrument(object):
         so, if modify position or order of structures element then must fix offset of structures element.
         """
         log.close()
-        log = open('c:\\work\\relocation_after.txt', 'w')
+        log = open(os.path.join(os.getcwd(), 'relocation_after.txt'), 'w')
         file_offset = 0
         for entry in self.peutil.PE.__structures__:
             if entry.name.find('IMAGE_BASE_RELOCATION_ENTRY') != -1:

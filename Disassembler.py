@@ -12,7 +12,7 @@ import struct
 import binascii
 import operator
 import distorm3
-
+import os
 
 # OPERAND TYPES
 _OPERAND_NONE = ""
@@ -35,7 +35,7 @@ class Disassembler(object):
         self._codeNeedHandled = True
         self._instructionsListNeedHandled = True
         self._instructionsMapNeedHandled = True
-        self.writeLog = open('c:\\work\\writelog.txt', 'w')
+        self.writeLog = open(os.path.join(os.getcwd(), "writelog.txt"), 'w')
 
     def setCode(self, code):
         self.code = code

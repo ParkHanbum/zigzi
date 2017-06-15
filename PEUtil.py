@@ -281,7 +281,7 @@ class PEUtil(object):
                 self.PE.OPTIONAL_HEADER.DATA_DIRECTORY[index].Size = 0
 
     def adjustRelocation(self, directory, rva, size, increase_size):
-        log = open('c:\\work\\peutil_adjust_relocation.log', 'w')
+        log = open(os.path.join(os.getcwd(), 'peutil_adjust_relocation.log'), 'w')
         relocation_map = self.getRelocationMapFromFile()
         # TODO : fix assume that first section is text.
         sections = self.PE_ORIGIN.sections
@@ -384,7 +384,7 @@ class PEUtil(object):
 
     # def adjustImport(self, directory, rva, size, increase_size):
     def adjustImport(self, instrument_size):
-        log = open('c:\\work\\import_log.txt', 'w')
+        log = open(os.path.join(os.getcwd(), 'import_log.txt'), 'w')
         for importindex in xrange(len(self.PE.DIRECTORY_ENTRY_IMPORT)):
             self.PE.DIRECTORY_ENTRY_IMPORT[importindex].struct.Characteristics += 0x1000
             self.PE.DIRECTORY_ENTRY_IMPORT[importindex].struct.FirstThunk += 0x1000
@@ -429,7 +429,7 @@ class PEUtil(object):
         self.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfNames += increase_size
         self.PE.DIRECTORY_ENTRY_EXPORT.struct.Name += increase_size
 
-        log = open('c:\\work\\adjust_export.log', 'w')
+        log = open(os.path.join(os.getcwd(), 'adjust_export.log'), 'w')
         for index in xrange(len(self.PE.DIRECTORY_ENTRY_EXPORT.symbols)):
             entry_name_rva = self.PE.DIRECTORY_ENTRY_EXPORT.struct.AddressOfNames + (index * 4)
             name_rva = self.PE.get_dword_at_rva(entry_name_rva)

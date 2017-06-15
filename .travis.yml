@@ -1,19 +1,36 @@
-before_script:
-        - wget https://github.com/keystone-engine/keystone/archive/master.zip
-        - tar -xvf master.zip -C keystone
-        - pushd keystone
-        - mkdir build
-        - cd build
-        - ../make-share.sh
-        - sudo make install
-        - sudo ldconfig
-        - popd
-
+dist: trusty
+sudo: required
+matrix:
+  include:
+    - os: linux
+      env:
+        - MATRIX_EVAL="CC=gcc-6 && CXX=g++-6"
+      addons:
+        apt:
+          packages:
+            - g++-6
+          sources:
+            - ubuntu-toolchain-r-test
+before_install:
+    - eval "${MATRIX_EVAL}"
+    - wget https://github.com/keystone-engine/keystone/archive/master.zip
+    - unzip master.zip
+    - pushd keystone-master
+    - mkdir build
+    - cd build
+    - ../make-share.sh
+    - sudo make install
+    - sudo ldconfig
+    - popd
+install:
+    - pip install -r requirements.txt
+compiler: gcc
 language: python
 python:
-        - "2.7"
-install:
-        - pip install -r requirements.txt
-
+    - "2.7"
 script:
-        - python -m tests/test
+    - python -m tests/test
+cache:
+  - pip
+  - $HOME/keystone-master
+

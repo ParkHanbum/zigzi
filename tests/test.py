@@ -25,12 +25,10 @@ class Tests(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(Tests, self).__init__(*args, **kwargs)
-        self.src_filename = 'c:\\work\\firefox.exe'
-        self.dst_filename = 'c:\\work\\firefox_test.exe'
         self.codeLog = open(os.path.join(os.getcwd(), "tests", "codelog.txt"), 'w')
         self.relocLog = open(os.path.join(os.getcwd(), "tests", "reloclog.txt"), 'w')
-        # self.src_filename = os.path.join(os.getcwd(), "tests", "sample.exe")
-        # self.dst_filename = os.path.join(os.getcwd(), "tests", "sample_test.exe")
+        self.src_filename = os.path.join(os.getcwd(), "tests", "sample.exe")
+        self.dst_filename = os.path.join(os.getcwd(), "tests", "sample_test.exe")
         src_pei = PEInstrument(self.src_filename)
         src_pei.instrumentRedirectControlflowInstruction(instrument)
         src_pei.writefile(self.dst_filename)
