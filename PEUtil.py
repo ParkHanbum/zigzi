@@ -236,12 +236,13 @@ class PEUtil(object):
             originSection = OriginSections[index]
             sectionOriginVA = originSection.VirtualAddress
             sectionAdjustedVA = section.VirtualAddress
-            self.adjustFileHeaderDirectories(sectionOriginVA,
+            dataDirectories = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY
+            self.adjustFileHeaderDirectories(dataDirectories,
+                                             sectionOriginVA,
                                              sectionAdjustedVA,
                                              section.Misc_VirtualSize)
 
-    def adjustFileHeaderDirectories(self, sectionOriginVA, sectionAdjustedVA, sectionSize):
-        DataDirectories = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY
+    def adjustFileHeaderDirectories(self, dataDirectories, sectionOriginVA, sectionAdjustedVA, sectionSize):
         directory_adjust = {
             # 'IMAGE_DIRECTORY_ENTRY_IMPORT': self.adjustImport,
             # 'IMAGE_DIRECTORY_ENTRY_DEBUG': self.adjust_debug,
@@ -253,8 +254,10 @@ class PEUtil(object):
             'IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT': self.adjustDelayImport,
             'IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT': self.adjustBoundImports
         }
+
+        removeList = []
         increasedSize = sectionAdjustedVA - sectionOriginVA
-        for directory in DataDirectories:
+        for directory in dataDirectories:
             if sectionOriginVA <= directory.VirtualAddress < sectionOriginVA + sectionSize:
                 index = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY.index(directory)
                 self.PE.OPTIONAL_HEADER.DATA_DIRECTORY[index].VirtualAddress = directory.VirtualAddress + increasedSize
@@ -265,6 +268,10 @@ class PEUtil(object):
                 except IndexError:
                     print "===== [INDEX ERROR] ====="
                     return False
+                removeList.append(directory)
+        for el in removeList:
+            dataDirectories.remove(el)
+        return dataDirectories
 
     def uncerfication(self):
         for index in range(len(self.PE.OPTIONAL_HEADER.DATA_DIRECTORY)):
