@@ -16,6 +16,7 @@ from Disassembler import *
 
 
 class PEInstrument(object):
+    _INT_SIZE_ = 4
     _INSTRUMENT_BEFORE = 1
     _INSTRUMENT_AFTER = 2
 
@@ -65,19 +66,57 @@ class PEInstrument(object):
         :return:
             list: tuple that contain instruction address, instruction
         """
-        instructions = self.Disassembler.getDisassembleMap()
         relocation_map = self.peutil.getRelocationMap()
         sorted_relocation_map = sorted(relocation_map.items(),
                                        key=operator.itemgetter(0))
+        instructions = self.Disassembler.getDisassembleMap()
+        relocationList = []
+        if len(self.instrumentHistoryMap) > 0:
+            for index, (address, el) in enumerate(sorted_relocation_map):
+                increasedSize = self.getInstrumentSizeWithVector(address - 0x1000)
+                relocationList.append(address - 0x1000 + increasedSize)
+        else:
+            for index, (address, el) in enumerate(sorted_relocation_map):
+                relocationList.append(address - 0x1000)
+
+        for address in relocationList:
+            for size in xrange(4):
+                relocation_address = address + size
+                if relocation_address in instructions:
+                    print "Found : [RELOCA] 0x{:x}\t0x{:x}\t[INS] {}".format(address, relocation_address,
+                                                                            instructions[relocation_address])
+                    del instructions[relocation_address]
+        """
         for address, el in sorted_relocation_map:
             for size in xrange(4):
                 relocation_address = address - 0x1000 + size
                 if relocation_address in instructions:
                     print "Found : [RELOCA] 0x{:x} 0x{:x}\t[INS] {}".format(address, relocation_address, instructions[relocation_address])
                     del instructions[relocation_address]
+        """
+
         sorted_instructions = sorted(instructions.items(),
                                      key=operator.itemgetter(0))
+        temp = open('c:\\work\\getinstructions.txt', 'a')
+        for address, instruction in sorted_instructions:
+            temp.write("[0x{:x}]\t{}\n".format(address, instruction))
         return sorted_instructions
+
+    def instrumentInstructions(self, command, position=None):
+        """instrument instruction
+
+        :param command: A user-defined function that returns an instrument instruction.
+        :param position: The position to be instrumented by the command.
+        :return:
+            None
+        """
+        instrumentTotalAmount = 0
+        instructions = self.getInstructions()
+        for address, inst in instructions:
+            result = self.instrument(command, inst, instrumentTotalAmount)
+            instrumentTotalAmount += result
+        print "INSTRUMENT TOTAL AMOUNT {:d}".format(instrumentTotalAmount)
+        self.adjustInstrumentedLayout()
 
     def instrumentRedirectControlflowInstruction(self, command, position=None):
         """instrument instruction when reached instruction that has control flow as redirect.
@@ -91,13 +130,20 @@ class PEInstrument(object):
         # instruction_types = ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH', 'FC_RET']
         instrumentTotalAmount = 0
         instructions = self.getInstructions()
+        log = open('c:\\work\\before_instrument_disassemble.log', 'w')
         for address, inst in instructions:
+            log.write("[0x{:x}]\t{}".format(address, inst))
             cf = inst.flowControl
             if cf in instructionTypes:
                 if self.isRedirect(inst):
                     result = self.instrument(command, inst, instrumentTotalAmount)
                     instrumentTotalAmount += result
-
+                    log.write("\n\t=>\t[0x{:x}]\t{}".format(address + instrumentTotalAmount, inst))
+            log.write("\n")
+        listForLog = self.Disassembler.getDisassembleList()
+        log.write("=============================================================================\n")
+        for address, instr in listForLog:
+            log.write("[0x{:x}]\t{}\n".format(instr.address, instr))
         print "INSTRUMENT TOTAL AMOUNT {:d}".format(instrumentTotalAmount)
         self.adjustInstrumentedLayout()
 
@@ -122,7 +168,8 @@ class PEInstrument(object):
             offset = instruction.address + total_count
             self.Disassembler.instrument(offset, instrument_inst)
             self.instrumentMap[offset] = len(instrument_inst)
-            self.instrument_log_file.write("[0x{:x}]\t{}\n".format(instruction.address, instruction))
+            self.instrumentHistoryMap[offset] = len(instrument_inst)
+            self.instrument_log_file.write("[0x{:x}]\t{}\n".format(offset, instruction))
         return instrument_size
 
     def getInstrumentedSize(self, inst):
@@ -191,21 +238,6 @@ class PEInstrument(object):
                 break
         return instrumented_size
 
-    def getInstrumentSizeFromUntilWithBase(self, base, until_va):
-        va = until_va - base
-        return self.getInstrumentSizeUntil(va)
-
-    def getInstrumentSizeWithRange(self, start, end):
-        sorted_instruction_map = sorted(self.instrumentHistoryMap.items(),
-                                        key=operator.itemgetter(0))
-        instrumented_size = 0
-        for address, size in sorted_instruction_map:
-            if address > end:
-                break
-            if start < address < end:
-                instrumented_size += size
-        return instrumented_size
-
     def getInstrumentSizeWithVector(self, va):
         sorted_instruction_map = sorted(self.instrumentHistoryMap.items(),
                                         key=operator.itemgetter(0))
@@ -237,7 +269,11 @@ class PEInstrument(object):
         the instrumenting.
         :return:
         """
-        instructionsList = self.Disassembler.getDisassembleList()
+
+        log = open('c:\\work\\after_instrument_disassemble.log', 'a')
+        log.write("===================================================================================\n")
+        # instructionsList = self.Disassembler.getDisassembleList()
+        instructionsList = self.getInstructions()
         if not self.peutil.isRelocable():
             for inst_address, inst in instructionsList:
                 if inst.flowControl in ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH']:
@@ -247,13 +283,17 @@ class PEInstrument(object):
                     self.adjustReferences(inst)
         else:
             for inst_address, inst in instructionsList:
+                log.write("[0x{:x}]\t{}".format(inst_address, inst))
                 if inst.flowControl in ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH']:
-                    self.adjustRelativeBranches(inst)
-
+                    adjustedValue = self.adjustRelativeBranches(inst)
+                    log.write("\n\t=>\t[0x{:x}]".format(adjustedValue))
+                log.write('\n')
         if self.overflowedInstrument:
             overflowed_inst_handled = self.handleOverflowInstrument()
             if overflowed_inst_handled:
                 self.adjustInstrumentedLayout()
+        elif not self.instrumentHistoryMap:
+            self.instrumentHistoryMap = self.instrumentMap
 
     def adjustRelativeBranches(self, inst):
         """
@@ -264,6 +304,7 @@ class PEInstrument(object):
         :param inst: branch instruction that has relatively operand value
         :return:
         """
+        adjusted_operand_value = 0
         if not hasattr(self, 'adjust_log'):
             self.adjust_log = open('c:\\work\\adjust.log', 'w')
 
@@ -294,6 +335,7 @@ class PEInstrument(object):
                     self.overflowedInstrumentMap[inst.address] = (inst, adjusted_operand_value)
                     log.append("operand value size overflowed {:x}\n".format(operand_value))
         self.adjust_log.write(''.join(log))
+        return adjusted_operand_value
 
     def adjustReferences(self, inst):
         """
@@ -466,15 +508,12 @@ class PEInstrument(object):
         # self.instrument_map.clear()
         handled_overflowed_map = {}
         ks = Ks(KS_ARCH_X86, KS_MODE_32)
-        index = 1
         sorted_instrument_map = sorted(self.overflowedInstrumentMap.items(),
                                        key=operator.itemgetter(0))
-        for (inst_address, (inst, adjusted_operand_value)) in sorted_instrument_map:
+        for index, (inst_address, (inst, adjusted_operand_value)) in enumerate(sorted_instrument_map):
             inst_address += total_instrument_size
             print "[{}] overflowed instrument instruction : [0x{:x}] {:s}  {:x} => {}" \
-                .format(index, inst_address, inst,
-                        inst.operands[0].value, adjusted_operand_value)
-            index += 1
+                .format(index, inst_address, inst, inst.operands[0].value, adjusted_operand_value)
             # TODO : fix constant 6 to increased opcode, operand size
             code = "{:s} {}".format(inst.mnemonic, adjusted_operand_value + 6)
             hexacode = binascii.hexlify(code).decode('hex')
@@ -483,9 +522,8 @@ class PEInstrument(object):
                 encoding, count = ks.asm(hexacode)
                 print "{:s}".format(encoding)
                 # patch
-                self.Disassembler.setInstructionAtOffset(inst.address, inst.address + inst.size, encoding)
+                self.Disassembler.setInstructionAtOffset(inst_address, inst_address + inst.size, encoding)
                 instrumented_size = len(encoding)
-                print "writed : {:s}".format(binascii.hexlify(self.Disassembler.getDataAtOffset(inst_address, inst_address+inst.size)))
                 # save increased opcode, operand size for adjust again
                 increased_size = instrumented_size - inst.size
                 handled_overflowed_map[inst_address] = increased_size

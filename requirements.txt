@@ -1,5 +1,5 @@
 pydotplus
 keystone-engine
-distorm3==3.3.4
-pefile==2016.3.28
+distorm3
+pefile
 

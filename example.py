@@ -5,7 +5,7 @@ from PEAnalyzeTool import *
 from keystone import *
 
 
-def test(instruction):
+def instrumentExample(instruction):
     instruction_types = ['FC_CALL', 'FC_UND_BRANCH', 'FC_CND_BRANCH']
     operand = instruction.operands[0]
     # code = "PUSH eax;PUSH {:s};POP eax;POP eax".format(operand)
@@ -30,5 +30,5 @@ if __name__ == '__main__':
 
     filename = "c:\\work\\firefox.exe"
     pei = PEInstrument(filename)
-    pei.instrumentRedirectControlflowInstruction(test)
+    pei.instrumentRedirectControlflowInstruction(instrumentExample)
     pei.writefile('c:\\work\\firefox_test.exe')

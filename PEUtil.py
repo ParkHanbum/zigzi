@@ -26,6 +26,9 @@ class PEUtil(object):
         pe_data = mmap.mmap(pe_file.fileno(), 0, access=mmap.ACCESS_COPY)
         self.PE_ORIGIN = PE(None, data=pe_data, fast_load=False)
         self.PE = PE(None, data=pe_data, fast_load=False)
+
+        self._IMAGE_BASE_ = self.PE.OPTIONAL_HEADER.ImageBase
+
         # self.PE.full_load()
         # self.PE = pefile.PE(name)
         self.instrumentor = None
@@ -198,6 +201,7 @@ class PEUtil(object):
 
     def adjustFileLayout(self):
         self.adjustSection()
+        self.adjustDataDirectories()
 
     def adjustSection(self):
         data_directories = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY
@@ -212,21 +216,37 @@ class PEUtil(object):
 
             dst_section = self.PE.sections[index+1]
             if src_va <= dst_section.VirtualAddress < src_va_end:
-                adjusted = True
                 print "adjust virtual address"
                 section_va = dst_section.VirtualAddress
                 adjusted_section_va = section_va + (src_va_end - section_va)
                 adjusted_section_va = self.getAlignedVA(adjusted_section_va)
                 self.PE.sections[index+1].VirtualAddress = adjusted_section_va
-                if section_va == self.PE.OPTIONAL_HEADER.BaseOfData:
-                    self.PE.OPTIONAL_HEADER.BaseOfData = adjusted_section_va
-            data_directories = self.adjustFileHeaderDirectories(data_directories, section_va, adjusted_section_va, dst_section.Misc_VirtualSize)
+                self.PE.sections[index].next_section_virtual_address = adjusted_section_va
 
-    def adjustFileHeaderDirectories(self, data_directories, origin_section_va, adjusted_section_va, virtual_size):
+                if hasattr(self.PE.OPTIONAL_HEADER, 'BaseOfData'):
+                    if section_va == self.PE.OPTIONAL_HEADER.BaseOfData:
+                        self.PE.OPTIONAL_HEADER.BaseOfData = adjusted_section_va
+
+    def adjustDataDirectories(self):
+        Sections = self.PE.sections
+        OriginSections = self.PE_ORIGIN.sections
+
+        for index in xrange(len(Sections)):
+            section = Sections[index]
+            originSection = OriginSections[index]
+            sectionOriginVA = originSection.VirtualAddress
+            sectionAdjustedVA = section.VirtualAddress
+            dataDirectories = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY
+            self.adjustFileHeaderDirectories(dataDirectories,
+                                             sectionOriginVA,
+                                             sectionAdjustedVA,
+                                             section.Misc_VirtualSize)
+
+    def adjustFileHeaderDirectories(self, dataDirectories, sectionOriginVA, sectionAdjustedVA, sectionSize):
         directory_adjust = {
-            # 'IMAGE_DIRECTORY_ENTRY_IMPORT': self.adjust_import,
+            # 'IMAGE_DIRECTORY_ENTRY_IMPORT': self.adjustImport,
             # 'IMAGE_DIRECTORY_ENTRY_DEBUG': self.adjust_debug,
-            # 'IMAGE_DIRECTORY_ENTRY_TLS': self.adjust_tls,
+            'IMAGE_DIRECTORY_ENTRY_TLS': self.adjustTLS,
             'IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG': self.adjustLoadConfig,
             'IMAGE_DIRECTORY_ENTRY_EXPORT': self.adjustExport,
             'IMAGE_DIRECTORY_ENTRY_RESOURCE': self.adjustResource,
@@ -236,22 +256,22 @@ class PEUtil(object):
         }
 
         removeList = []
-        increase_vector = adjusted_section_va - origin_section_va
-        for directory in data_directories:
-            if origin_section_va <= directory.VirtualAddress < origin_section_va + virtual_size:
-                self.PE.OPTIONAL_HEADER.DATA_DIRECTORY[self.PE.OPTIONAL_HEADER.DATA_DIRECTORY.index(directory)].VirtualAddress \
-                    = directory.VirtualAddress + increase_vector
+        increasedSize = sectionAdjustedVA - sectionOriginVA
+        for directory in dataDirectories:
+            if sectionOriginVA <= directory.VirtualAddress < sectionOriginVA + sectionSize:
+                index = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY.index(directory)
+                self.PE.OPTIONAL_HEADER.DATA_DIRECTORY[index].VirtualAddress = directory.VirtualAddress + increasedSize
                 try:
                     if directory.name in directory_adjust:
                         entry = directory_adjust[directory.name]
-                        entry(directory, directory.VirtualAddress, directory.Size, increase_vector)
+                        entry(directory, directory.VirtualAddress, directory.Size, increasedSize)
                 except IndexError:
                     print "===== [INDEX ERROR] ====="
                     return False
                 removeList.append(directory)
         for el in removeList:
-            data_directories.remove(el)
-        return data_directories
+            dataDirectories.remove(el)
+        return dataDirectories
 
     def uncerfication(self):
         for index in range(len(self.PE.OPTIONAL_HEADER.DATA_DIRECTORY)):
@@ -263,7 +283,6 @@ class PEUtil(object):
     def adjustRelocation(self, directory, rva, size, increase_size):
         log = open('c:\\work\\peutil_adjust_relocation.log', 'w')
         relocation_map = self.getRelocationMapFromFile()
-
         # TODO : fix assume that first section is text.
         sections = self.PE_ORIGIN.sections
         execute_section_start = sections[0].VirtualAddress
@@ -279,14 +298,18 @@ class PEUtil(object):
                 # get instrument size from 0x0(imagebase 0x400000, textsection 0x1000, till value)
                 address = (entry.Data & 0xfff) + block_va
                 value = self.PE.get_dword_at_rva(address)
-                if execute_section_start + 0x400000 <= value < execute_section_end + 0x400000:
-                    # get instrument size from 0x0(imagebase 0x400000, textsection 0x1000, till value)
-                    instrumented_size = self.getInstrumentor().getInstrumentSizeWithVector(value - 0x400000 - 0x1000)
+                if execute_section_start + self._IMAGE_BASE_ <= value < execute_section_end + self._IMAGE_BASE_:
+                    # get instrument size from 0x0(imagebase self._IMAGE_BASE_, textsection 0x1000, till value)
+                    instrumented_size = self.getInstrumentor().getInstrumentSizeWithVector(value - self._IMAGE_BASE_ - increase_size)
                     self.setDwordAtRVA(address, value + instrumented_size)
-                    log.write("[0x{:x}]\t0x{:x}\t0x{:x}\t0x{:x}\n".format(address, value, self.PE.get_dword_at_rva(address), instrumented_size))
-                elif other_section_start + 0x400000 <= value < other_section_end + 0x400000:
-                    self.setDwordAtRVA(address, value + 0x1000)
-                    log.write("[0x{:x}]\t0x{:x}\t0x{:x}\t0x{:x}\n".format(address, value, self.PE.get_dword_at_rva(address), 0x1000))
+                    log.write("[IF] [0x{:x}]\t0x{:x}\t0x{:x}\t0x{:x}\n".format(address, value, self.PE.get_dword_at_rva(address), instrumented_size))
+                elif other_section_start + self._IMAGE_BASE_ <= value < other_section_end + self._IMAGE_BASE_:
+                    self.setDwordAtRVA(address, value + increase_size)
+                    log.write("[ELIF] [0x{:x}]\t0x{:x}\t0x{:x}\t0x{:x}\n".format(address, value, self.PE.get_dword_at_rva(address), increase_size))
+                else:
+                    log.write(
+                        "[ELSE] [0x{:x}]\t0x{:x}\t0x{:x}\t0x{:x}\n".format(address, value, self.PE.get_dword_at_rva(address), increase_size))
+                    # if execute_section_end + self._IMAGE_BASE_ < value < other_section_start + self._IMAGE_BASE_:
         return 0
 
     def adjustLoadConfig(self, directory, rva, size, increase_size):
@@ -305,18 +328,31 @@ class PEUtil(object):
         Process_Affinity_Mask = self.PE.get_dword_at_rva(rva + 0x30)
         CSD_Version = self.PE.get_dword_at_rva(rva + 0x34)
         Edit_List_VA = self.PE.get_dword_at_rva(rva + 0x38)
-        Security_Cookie_VA = self.PE.get_dword_at_rva(rva + 0x3C)
-        self.setDwordAtRVA(rva + 0x3C, Security_Cookie_VA + 0x1000)
-        SE_Handler_Table_VA = self.PE.get_dword_at_rva(rva + 0x40)
-        self.setDwordAtRVA(rva + 0x40, SE_Handler_Table_VA + 0x1000)
+        if self.PE.DIRECTORY_ENTRY_LOAD_CONFIG.struct.SecurityCookie > 0x0:
+            self.PE.DIRECTORY_ENTRY_LOAD_CONFIG.struct.SecurityCookie += increase_size
+        if self.PE.DIRECTORY_ENTRY_LOAD_CONFIG.struct.SEHandlerTable > 0x0:
+            self.PE.DIRECTORY_ENTRY_LOAD_CONFIG.struct.SEHandlerTable += increase_size
+        if self.PE.DIRECTORY_ENTRY_LOAD_CONFIG.struct.GuardCFCheckFunctionPointer > 0x0:
+            self.PE.DIRECTORY_ENTRY_LOAD_CONFIG.struct.GuardCFCheckFunctionPointer += increase_size
+        # Security_Cookie_VA = self.PE.get_dword_at_rva(rva + 0x3C)
+        # self.setDwordAtRVA(rva + 0x3C, Security_Cookie_VA + increase_size)
+        # SE_Handler_Table_VA = self.PE.get_dword_at_rva(rva + 0x40)
+        # self.setDwordAtRVA(rva + 0x40, SE_Handler_Table_VA + increase_size)
         SE_Handler_Count = self.PE.get_dword_at_rva(rva + 0x44)
-
         return 0
 
     def adjustDebug(self, directory, rva, size, increase_size):
         return 0
 
     def adjustTLS(self, directory, rva, size, increase_size):
+        if self.PE.DIRECTORY_ENTRY_TLS.struct.AddressOfCallBacks > 0:
+            self.PE.DIRECTORY_ENTRY_TLS.struct.AddressOfCallBacks += increase_size
+        if self.PE.DIRECTORY_ENTRY_TLS.struct.AddressOfIndex > 0:
+            self.PE.DIRECTORY_ENTRY_TLS.struct.AddressOfIndex += increase_size
+        if self.PE.DIRECTORY_ENTRY_TLS.struct.EndAddressOfRawData > 0:
+            self.PE.DIRECTORY_ENTRY_TLS.struct.EndAddressOfRawData += increase_size
+        if self.PE.DIRECTORY_ENTRY_TLS.struct.StartAddressOfRawData > 0:
+            self.PE.DIRECTORY_ENTRY_TLS.struct.StartAddressOfRawData += increase_size
         return 0
 
     def adjustBoundImports(self, directory, rva, size, increase_size):
@@ -335,7 +371,8 @@ class PEUtil(object):
             iat = importdata.struct_iat
             ilt = importdata.struct_table
             address = iat.AddressOfData
-            instrumented_size = self.getInstrumentor().getInstrumentSizeWithVector(address - 0x400000 - 0x1000)
+            instrumented_size = self.getInstrumentor(). \
+                getInstrumentSizeWithVector(address - self._IMAGE_BASE_ - increase_size)
             iat.AddressOfData += instrumented_size
             iat.ForwarderString += instrumented_size
             iat.Function += instrumented_size
@@ -345,7 +382,7 @@ class PEUtil(object):
             ilt.Function += increase_size
             ilt.Ordinal += increase_size
 
-    # def adjust_import(self, directory, rva, size, increase_size):
+    # def adjustImport(self, directory, rva, size, increase_size):
     def adjustImport(self, instrument_size):
         log = open('c:\\work\\import_log.txt', 'w')
         for importindex in xrange(len(self.PE.DIRECTORY_ENTRY_IMPORT)):
@@ -403,7 +440,7 @@ class PEUtil(object):
             function_rva = self.PE.get_dword_at_rva(entry_function_rva)
             log.write("[EXPORT ELEMENT]\n[0x{:x}]\t".format(function_rva))
 
-            instrument_size = self.getInstrumentor().getInstrumentSizeWithVector(function_rva - 0x1000)
+            instrument_size = self.getInstrumentor().getInstrumentSizeWithVector(function_rva - increase_size)
             log.write("[adjust][0x{:x}]\t".format(function_rva + instrument_size))
             self.setDwordAtRVA(entry_function_rva, function_rva + instrument_size)
 

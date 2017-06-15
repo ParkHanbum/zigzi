@@ -28,12 +28,14 @@ class Disassembler(object):
 
     def __init__(self, code):
         self.code = code
+        self.dataChunkList = []
         self.instructionsMap = {}
         self.instructionsList = []
+        self.instrumentMap = {}
         self._codeNeedHandled = True
         self._instructionsListNeedHandled = True
         self._instructionsMapNeedHandled = True
-        self.disassemble()
+        self.writeLog = open('c:\\work\\writelog.txt', 'w')
 
     def setCode(self, code):
         self.code = code
@@ -141,19 +143,21 @@ class Disassembler(object):
         self.disassembleMapHandled()
 
     def instrument(self, offset, instrumented_instruction):
+        self.writeLog.write('[0] [0x{:05x}]\t{}\n'.format(offset, instrumented_instruction))
         self.code[offset:offset] = instrumented_instruction
         self.codeNeedHandled()
 
     def setInstructionAtOffset(self, offset, offset_end, instruction):
-        self.code[offset:offset_end] = instruction
-        self.codeNeedHandled()
-
-    def setDataAtOffset(self, offset, offset_end, instruction):
+        self.writeLog.write('[1] [0x{:05x}]\t{}\n'.format(offset, instruction))
         self.code[offset:offset_end] = instruction
         self.codeNeedHandled()
 
     def setDataAtOffsetWithFormat(self, offset, offset_end, data):
+        self.writeLog.write('[3] [0x{:05x}]\t{}\n'.format(offset, data))
         size = offset_end - offset
         fmt = self.getFormatFromSize(size)
         self.code[offset:offset_end] = struct.pack(fmt, data)
         self.codeNeedHandled()
+
+    def setDataChunkList(self, chunkList):
+        self.dataChunkList = chunkList
