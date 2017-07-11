@@ -13,6 +13,7 @@ import binascii
 import operator
 import distorm3
 import os
+from capstone import *
 
 # OPERAND TYPES
 _OPERAND_NONE = ""
@@ -36,6 +37,11 @@ class Disassembler(object):
         self._instructionsListNeedHandled = True
         self._instructionsMapNeedHandled = True
         self.writeLog = open(os.path.join(os.getcwd(), "writelog.txt"), 'w')
+
+        # initiation disassembler
+        self.disassembler = Cs(CS_ARCH_X86, CS_MODE_32)
+        self.disassembler.skipdata = True
+        self.disassembler.detail = True
 
     def setCode(self, code):
         self.code = code
@@ -132,13 +138,9 @@ class Disassembler(object):
             return 0
         self.instructionsMap.clear()
         del self.instructionsList[:]
-        instructionsList = distorm3.Decompose(
-            0x0,
-            binascii.hexlify(self.code).decode('hex'),
-            distorm3.Decode32Bits,
-            distorm3.DF_NONE)
-        for inst in instructionsList:
-            self.instructionsMap[inst.address] = inst
+        instructions = self.disassembler.disasm(binascii.hexlify(self.code).decode('hex'), 0x0)
+        for instruction in instructions:
+            self.instructionsMap[instruction.address] = instruction
         self.codeHandled()
         self.disassembleMapHandled()
 
@@ -148,16 +150,36 @@ class Disassembler(object):
         self.codeNeedHandled()
 
     def setInstructionAtOffset(self, offset, offset_end, instruction):
-        self.writeLog.write('[1] [0x{:05x}]\t{}\n'.format(offset, instruction))
+        self.writeLog.write('[1] [0x{:05x}]\t{} \t{} \n'.format(offset, self.code[offset:offset_end], instruction))
         self.code[offset:offset_end] = instruction
         self.codeNeedHandled()
 
     def setDataAtOffsetWithFormat(self, offset, offset_end, data):
-        self.writeLog.write('[3] [0x{:05x}]\t{}\n'.format(offset, data))
         size = offset_end - offset
         fmt = self.getFormatFromSize(size)
+        self.writeLog.write('[2] [0x{:05x}]\t{} \t{} \n'.format(offset,
+                                                                struct.unpack(fmt, self.code[offset:offset_end]),
+                                                                data))
         self.code[offset:offset_end] = struct.pack(fmt, data)
         self.codeNeedHandled()
 
     def setDataChunkList(self, chunkList):
         self.dataChunkList = chunkList
+
+    def isIndirectBranch(self, instruction):
+        if hasattr(instruction, "groups"):
+            for group in instruction.groups:
+                if group == CS_GRP_INDIRECT_BRANCH:
+                    return True
+        return False
+
+    def isDirectBranch(self, instruction):
+        if hasattr(instruction, "groups"):
+            for group in instruction.groups:
+                if group == CS_GRP_BRANCH:
+                    return True
+        return False
+
+    def finish(self):
+        self.writeLog.flush()
+        self.writeLog.close()

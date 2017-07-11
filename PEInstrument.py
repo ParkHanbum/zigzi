@@ -16,26 +16,23 @@ from Disassembler import *
 
 
 class PEInstrument(object):
-    _INT_SIZE_ = 4
-    _INSTRUMENT_BEFORE = 1
-    _INSTRUMENT_AFTER = 2
 
     def __init__(self, filename):
         self.peutil = PEUtil(filename)
-        self.entry_point_va = self.peutil.getEntryPointVA()
+        self.entryPointVA = self.peutil.getEntryPointVA()
         self.ks = Ks(KS_ARCH_X86, KS_MODE_32)
 
-        execute_section = self.peutil.getExecutableSection()
-        execute_section_data = self.peutil.getSectionRawData(execute_section)
-        self.Disassembler = Disassembler(execute_section_data)
+        executeSection = self.peutil.getExecutableSection()
+        executeSectionData = self.peutil.getSectionRawData(executeSection)
+        self.Disassembler = Disassembler(executeSectionData)
 
         # save histroy of instrument for relocation
         self.instrumentHistoryMap = {}
         self.instrumentMap = {}
         self.overflowedInstrument = False
         self.overflowedInstrumentMap = {}
-
-        self.instrument_log_file = open(os.path.join(os.getcwd(), 'instrument.log'), 'w')
+        self.log = None
+        self.count4log = 1
 
     def writefile(self, filename):
         """
@@ -45,13 +42,11 @@ class PEInstrument(object):
         :return:
             None
         """
+        self.Disassembler.finish()
         cumulative = 0
-        sorted_instrument_map = sorted(self.instrumentHistoryMap.items(),
-                                       key=operator.itemgetter(0))
-        log = open(os.path.join(os.getcwd(), "instrument.txt"), 'w')
-        for address, size in sorted_instrument_map:
+        sortedInstrumentMap = sorted(self.instrumentHistoryMap.items(), key=operator.itemgetter(0))
+        for address, size in sortedInstrumentMap:
             cumulative += size
-            log.write("[0x{:x}]\t{:x}\t{:d}\n".format(address, size, cumulative))
         self.peutil.setInstrumentor(self)
         self.adjustFileLayout()
         self.peutil.write(filename)
@@ -67,56 +62,24 @@ class PEInstrument(object):
             list: tuple that contain instruction address, instruction
         """
         relocation_map = self.peutil.getRelocationMap()
-        sorted_relocation_map = sorted(relocation_map.items(),
-                                       key=operator.itemgetter(0))
+        sortedRelocationMap = sorted(relocation_map.items(), key=operator.itemgetter(0))
         instructions = self.Disassembler.getDisassembleMap()
         relocationList = []
         if len(self.instrumentHistoryMap) > 0:
-            for index, (address, el) in enumerate(sorted_relocation_map):
+            for index, (address, el) in enumerate(sortedRelocationMap):
                 increasedSize = self.getInstrumentSizeWithVector(address - 0x1000)
                 relocationList.append(address - 0x1000 + increasedSize)
         else:
-            for index, (address, el) in enumerate(sorted_relocation_map):
+            for index, (address, el) in enumerate(sortedRelocationMap):
                 relocationList.append(address - 0x1000)
 
         for address in relocationList:
             for size in xrange(4):
-                relocation_address = address + size
-                if relocation_address in instructions:
-                    print "Found : [RELOCA] 0x{:x}\t0x{:x}\t[INS] {}".format(address, relocation_address,
-                                                                            instructions[relocation_address])
-                    del instructions[relocation_address]
-        """
-        for address, el in sorted_relocation_map:
-            for size in xrange(4):
-                relocation_address = address - 0x1000 + size
-                if relocation_address in instructions:
-                    print "Found : [RELOCA] 0x{:x} 0x{:x}\t[INS] {}".format(address, relocation_address, instructions[relocation_address])
-                    del instructions[relocation_address]
-        """
-
-        sorted_instructions = sorted(instructions.items(),
-                                     key=operator.itemgetter(0))
-        temp = open(os.path.join(os.getcwd(), "instructions.txt"), 'a')
-        for address, instruction in sorted_instructions:
-            temp.write("[0x{:x}]\t{}\n".format(address, instruction))
+                relocationAddress = address + size
+                if relocationAddress in instructions:
+                    del instructions[relocationAddress]
+        sorted_instructions = sorted(instructions.items(), key=operator.itemgetter(0))
         return sorted_instructions
-
-    def instrumentInstructions(self, command, position=None):
-        """instrument instruction
-
-        :param command: A user-defined function that returns an instrument instruction.
-        :param position: The position to be instrumented by the command.
-        :return:
-            None
-        """
-        instrumentTotalAmount = 0
-        instructions = self.getInstructions()
-        for address, inst in instructions:
-            result = self.instrument(command, inst, instrumentTotalAmount)
-            instrumentTotalAmount += result
-        print "INSTRUMENT TOTAL AMOUNT {:d}".format(instrumentTotalAmount)
-        self.adjustInstrumentedLayout()
 
     def instrumentRedirectControlflowInstruction(self, command, position=None):
         """instrument instruction when reached instruction that has control flow as redirect.
@@ -126,25 +89,20 @@ class PEInstrument(object):
         :return:
             None
         """
-        instructionTypes = ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH']
-        # instruction_types = ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH', 'FC_RET']
+
+        log = open('c:\\work\\' + str(self.count4log) + '_instrument.log', 'w')
+        self.count4log += 1
         instrumentTotalAmount = 0
         instructions = self.getInstructions()
-        log = open(os.path.join(os.getcwd(), "before_instrument_disassemble.txt"), 'w')
         for address, inst in instructions:
-            log.write("[0x{:x}]\t{}".format(address, inst))
-            cf = inst.flowControl
-            if cf in instructionTypes:
-                if self.isRedirect(inst):
+            try:
+                if self.Disassembler.isIndirectBranch(inst):
+                    log.write('[0x{:x}]\t[0x{:x}]\t{:s}\t{:s}\n'.format(inst.address - instrumentTotalAmount,
+                                                                        inst.address, inst.mnemonic, inst.op_str))
                     result = self.instrument(command, inst, instrumentTotalAmount)
                     instrumentTotalAmount += result
-                    log.write("\n\t=>\t[0x{:x}]\t{}".format(address + instrumentTotalAmount, inst))
-            log.write("\n")
-        listForLog = self.Disassembler.getDisassembleList()
-        log.write("=============================================================================\n")
-        for address, instr in listForLog:
-            log.write("[0x{:x}]\t{}\n".format(instr.address, instr))
-        print "INSTRUMENT TOTAL AMOUNT {:d}".format(instrumentTotalAmount)
+            except:
+                pass
         self.adjustInstrumentedLayout()
 
     def instrument(self, command, instruction, total_count=0):
@@ -169,44 +127,43 @@ class PEInstrument(object):
             self.Disassembler.instrument(offset, instrument_inst)
             self.instrumentMap[offset] = len(instrument_inst)
             self.instrumentHistoryMap[offset] = len(instrument_inst)
-            self.instrument_log_file.write("[0x{:x}]\t{}\n".format(offset, instruction))
         return instrument_size
 
-    def getInstrumentedSize(self, inst):
+    def getInstrumentedSize(self, instruction):
         """
         Calculate the instrumented size from the current address to the branch target.
 
-        :param inst: branch instruction that has relatively operand value
+        :param instruction: branch instruction that has relatively operand value
         :return:
             int : size of instrumented size.
         """
-        inst_address = inst.address
-        inst_destiny = inst.operands[0].value
-        block_instrumented_size = 0
-        if inst_address <= inst_destiny:
-            sorted_instrument_map = sorted(self.instrumentMap.items(),
-                                           key=operator.itemgetter(0))
-            for instrument_address, instrument_size in sorted_instrument_map:
-                if instrument_address > inst_destiny:
+        instAddress = instruction.address
+        instDestiny = instruction.operands[0].imm
+        blockInstrumentSize = 0
+        if instAddress <= instDestiny:
+            sortedInstrumentMap = sorted(self.instrumentMap.items(),
+                                         key=operator.itemgetter(0))
+            for instrumentAddress, instrumentSize in sortedInstrumentMap:
+                if instrumentAddress > instDestiny:
                     break
-                if inst_address < instrument_address <= inst_destiny:
-                    instrumented_size = instrument_size
-                    block_instrumented_size += instrumented_size
-                    inst_destiny += instrumented_size
+                if instAddress < instrumentAddress <= instDestiny:
+                    instrumentedSize = instrumentSize
+                    blockInstrumentSize += instrumentedSize
+                    instDestiny += instrumentedSize
         else:
-            sorted_instrument_map = sorted(self.instrumentMap.items(),
-                                           key=operator.itemgetter(0),
-                                           reverse=True)
-            for instrument_address, instrument_size in sorted_instrument_map:
-                # inst_destiny can be instrumented instruction.
-                # cause subtract instrument_size from inst_destiny
-                if inst_destiny - instrument_size <= instrument_address < inst_address:
-                    if instrument_address < inst_destiny - instrument_size:
+            sortedInstrumentMap = sorted(self.instrumentMap.items(),
+                                         key=operator.itemgetter(0),
+                                         reverse=True)
+            for instrumentAddress, instrumentSize in sortedInstrumentMap:
+                # instDestiny can be instrumented instruction.
+                # cause subtract instrumentSize from instDestiny
+                if instDestiny - instrumentSize <= instrumentAddress < instAddress:
+                    if instrumentAddress < instDestiny - instrumentSize:
                         break
-                    instrumented_size = instrument_size
-                    block_instrumented_size += instrumented_size
-                    inst_destiny -= instrumented_size
-        return block_instrumented_size
+                    instrumentedSize = instrumentSize
+                    blockInstrumentSize += instrumentedSize
+                    instDestiny -= instrumentedSize
+        return blockInstrumentSize
 
     def adjustFileLayout(self):
         """
@@ -216,47 +173,35 @@ class PEInstrument(object):
         """
         self.adjustEntryPoint()
         if self.peutil.isRelocable():
-            print "[=========== RELOCATION ADJUST =============]"
             self.adjustRelocation()
         self.adjustExecutableSection()
         self.peutil.adjustImport(self.getInstrumentSize())
 
     def adjustEntryPoint(self):
         entry_va = self.peutil.getEntryPointVA()
-        instrument_size = self.getInstrumentSizeWithVector(entry_va - 0x1000)
-        # instrument_size = self.get_instrument_size_until(entry_va)
-        self.peutil.setEntryPoint(entry_va + instrument_size)
-
-    def getInstrumentSizeUntil(self, va):
-        sorted_instruction_map = sorted(self.instrumentHistoryMap.items(),
-                                        key=operator.itemgetter(0))
-        instrumented_size = 0
-        for address, size in sorted_instruction_map:
-            if address < va:
-                instrumented_size += size
-            else:
-                break
-        return instrumented_size
+        instrumentSize = self.getInstrumentSizeWithVector(entry_va - 0x1000)
+        # instrumentSize = self.get_instrument_size_until(entry_va)
+        self.peutil.setEntryPoint(entry_va + instrumentSize)
 
     def getInstrumentSizeWithVector(self, va):
-        sorted_instruction_map = sorted(self.instrumentHistoryMap.items(),
-                                        key=operator.itemgetter(0))
-        instrumented_size = 0
-        for address, size in sorted_instruction_map:
+        sortedInstructionMap = sorted(self.instrumentHistoryMap.items(),
+                                      key=operator.itemgetter(0))
+        instrumentedSize = 0
+        for address, size in sortedInstructionMap:
             if address < va:
-                instrumented_size += size
+                instrumentedSize += size
                 va += size
             else:
                 break
-        return instrumented_size
+        return instrumentedSize
 
     def getInstrumentSize(self):
-        sorted_instruction_map = sorted(self.instrumentHistoryMap.items(),
-                                        key=operator.itemgetter(0))
-        instrumented_size = 0
-        for address, size in sorted_instruction_map:
-            instrumented_size += size
-        return instrumented_size
+        sortedInstructionMap = sorted(self.instrumentHistoryMap.items(),
+                                      key=operator.itemgetter(0))
+        instrumentedSize = 0
+        for address, size in sortedInstructionMap:
+            instrumentedSize += size
+        return instrumentedSize
 
     def adjustExecutableSection(self):
         execute_data = self.Disassembler.getCode()
@@ -269,134 +214,218 @@ class PEInstrument(object):
         the instrumenting.
         :return:
         """
-
-        log = open(os.path.join(os.getcwd(), 'after_instrument_disassemble.log'), 'a')
-        log.write("===================================================================================\n")
-        # instructionsList = self.Disassembler.getDisassembleList()
-        instructionsList = self.getInstructions()
+        # instructions = self.Disassembler.getDisassembleList()
+        instructions = self.getInstructions()
         if not self.peutil.isRelocable():
-            for inst_address, inst in instructionsList:
-                if inst.flowControl in ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH']:
-                    self.adjustRelativeBranches(inst)
-                else:
-                    # Temporary, adjust reference of text-section.
-                    self.adjustReferences(inst)
+            print "Not Support PE without relocation, yet."
+            exit()
         else:
-            for inst_address, inst in instructionsList:
-                log.write("[0x{:x}]\t{}".format(inst_address, inst))
-                if inst.flowControl in ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH']:
-                    adjustedValue = self.adjustRelativeBranches(inst)
-                    log.write("\n\t=>\t[0x{:x}]".format(adjustedValue))
-                log.write('\n')
+            self.log = open('c:\\work\\' + str(self.count4log) + '_adjustDirectBranches.log', 'w')
+            self.count4log += 1
+            for instAddress, instruction in instructions:
+                if self.Disassembler.isDirectBranch(instruction):
+                    adjustedValue = self.adjustDirectBranches(instruction)
+            self.log.flush()
+            self.log.close()
         if self.overflowedInstrument:
-            overflowed_inst_handled = self.handleOverflowInstrument()
-            if overflowed_inst_handled:
+            overflowedInstHandled = self.handleOverflowInstrument()
+            if overflowedInstHandled:
                 self.adjustInstrumentedLayout()
         elif not self.instrumentHistoryMap:
             self.instrumentHistoryMap = self.instrumentMap
 
-    def adjustRelativeBranches(self, inst):
+    def adjustDirectBranches(self, instruction):
         """
         adjust instruction's operand value.
         Because the instructions calculate the address to branch relatively from the current position,
         it is necessary to apply the offset value changed by the instrument.
 
-        :param inst: branch instruction that has relatively operand value
+        :param instruction: branch instruction that has relatively operand value
         :return:
         """
-        adjusted_operand_value = 0
-        if not hasattr(self, 'adjust_log'):
-            self.adjust_log = open(os.path.join(os.getcwd(), 'adjust.log'), 'w')
+        adjustedOperandValue = 0
+        instrumentedSizeUntil = self.getInstrumentedSize(instruction)
+        # adjust operand value
+        if instrumentedSizeUntil > 0:
+            operandSize = instruction.operands[0].size
+            instructionSize = instruction.size
+            if instructionSize == 2:
+                operandStart = instruction.address + 1
+                operandEnd = instruction.address + 2
+            elif instructionSize == 6:
+                operandStart = instruction.address + 2
+                operandEnd = instruction.address + 6
+            else:
+                operandStart = instruction.address + instructionSize - operandSize
+                operandEnd = instruction.address + instructionSize
 
-        log = []
-        if not self.isRedirect(inst):
-            total_instrumented_size = self.getInstrumentedSize(inst)
-            # adjust operand value
-            if total_instrumented_size > 0:
-                log.append("[0x{:x}] {:s}\n".format(inst.address, inst))
-                operand_size = inst.operands[0].size / 8
-                instruction_size = inst.size - operand_size
-                operand_start = inst.address + instruction_size
-                operand_end = inst.address + inst.size
-                operand_value = self.Disassembler.getDataFromOffsetWithFormat(operand_start, operand_end)
-                log.append("\torigin operand value : {:x}\n".format(operand_value))
-                if operand_value > 0:
-                    adjusted_operand_value = \
-                        operand_value + total_instrumented_size
+            try:
+                operandValue = self.Disassembler.getDataFromOffsetWithFormat(operandStart, operandEnd)
+            except:
+                print "[except]====================================================="
+                print "[0x%08x]\t%s 0x%x\t\tINS:%d\tOPS:%d\tOPSTART:%x\tOPEND:%x\t%x" % (instruction.address,
+                                                                                         instruction.mnemonic,
+                                                                                         instruction.operands[0].imm,
+                                                                                         instructionSize, operandSize,
+                                                                                         operandStart, operandEnd,
+                                                                                         operandValue)
+                exit()
+            if operandValue > 0:
+                adjustedOperandValue = operandValue + instrumentedSizeUntil
+            else:
+                adjustedOperandValue = operandValue - instrumentedSizeUntil
+            try:
+                self.Disassembler.setDataAtOffsetWithFormat(operandStart, operandEnd, adjustedOperandValue)
+                self.log.write("[0x{:04x}]\t{:s}\t{:s}\t{:x}\t{:x}\n".format(instruction.address, instruction.mnemonic,
+                                                                             instruction.op_str, operandValue,
+                                                                             adjustedOperandValue))
+            except:
+                self.overflowedInstrument = True
+                self.overflowedInstrumentMap[instruction.address] = \
+                    (instruction, (operandValue, adjustedOperandValue, instrumentedSizeUntil))
+                self.log.write("\t[OVERFLOWED] [0x{:04x}]\t{:s}\t{:s}\t{:x}\t{:x}\n".format(instruction.address,
+                                                                                            instruction.mnemonic,
+                                                                                            instruction.op_str,
+                                                                                            operandValue,
+                                                                                            adjustedOperandValue))
+        return adjustedOperandValue
+
+    def handleOverflowInstrument(self):
+        """
+        extend the size of the operand if exceed the range of operand values while instrument.
+        :return:
+            bool :
+        """
+        log = open('c:\\work\\' + str(self.count4log) + '_handleOverflowInstrument.log', 'w')
+        self.count4log += 1
+        totalInstrumentSize = 0
+        # self.instrument_map.clear()
+        handledOverflowedMap = {}
+        ks = Ks(KS_ARCH_X86, KS_MODE_32)
+        sortedInstrumentMap = sorted(self.overflowedInstrumentMap.items(),
+                                     key=operator.itemgetter(0))
+        for index, (instAddress, (instruction, (operandValue, adjustedOperandValue, instrumentedSizeUntil))) \
+                in enumerate(sortedInstrumentMap):
+            instAddress += totalInstrumentSize
+            print "[{}] overflowed instrument instruction : [0x{:x}] {:s}  {} ========[{}]==========> {}" \
+                .format(index, instAddress, instruction.mnemonic, operandValue,
+                        instrumentedSizeUntil, adjustedOperandValue)
+
+            log.write("[0x{:x}] {:s} {}\t {} ========[{}]==========> {}\n".format(instruction.address,
+                                                                                  instruction.mnemonic,
+                                                                                  instruction.op_str,
+                                                                                  operandValue,
+                                                                                  instrumentedSizeUntil,
+                                                                                  adjustedOperandValue))
+            """
+            The formula for determining the operand value of a branch instruction in x86:
+            [Destination.Address - Instruction.Address - Instruction.size]
+
+            in this case, the operand value overflowed while we adjust direct branches operands.
+            that mean, 1 byte of operand size is too small for adjusted operand value.
+            cause we expand operand size to 4byte.
+
+            instruction size increase to 5byte or 6byte.
+            according in formula of determining operand value, The keystone adjusts the operand value when it compiled.
+
+            the keystone is based on the address at which the instruction ends,
+
+            like this,
+            ks.asm('jmp 140') = [233, 135, 0, 0, 0]
+
+            but since the value we pass is based on the start address of the instruction,
+            it corrects the value of operand in the case of a postive branch.
+
+            In the case of a negative branch,
+            the base address is the starting address of the instruction, so do not change it.
+            """
+
+            # adding 2 is to change the base of operand value to the start address of the instruction.
+            code = "{:s} {}".format(instruction.mnemonic, adjustedOperandValue + 2)
+            log.write("\t"+code+"\n")
+            hexacode = binascii.hexlify(code).decode('hex')
+            try:
+                # Initialize engine in X86-32bit mode
+                encoding, count = ks.asm(hexacode)
+                instrumented_size = len(encoding)
+                if instrumented_size == 5:
+                    if adjustedOperandValue > 0:
+                        encoding[1] += 4
+                    else:
+                        encoding[1] += 0
+                elif instrumented_size == 6:
+                    if adjustedOperandValue > 0:
+                        encoding[1] += 4
+                    else:
+                        encoding[1] += 0
                 else:
-                    adjusted_operand_value = \
-                        operand_value - total_instrumented_size
-                log.append("\tadjust operand value : {:x}\n"
-                           .format(adjusted_operand_value))
-                try:
-                    self.Disassembler.setDataAtOffsetWithFormat(operand_start, operand_end, adjusted_operand_value)
-                except:
-                    self.overflowedInstrument = True
-                    self.overflowedInstrumentMap[inst.address] = (inst, adjusted_operand_value)
-                    log.append("operand value size overflowed {:x}\n".format(operand_value))
-        self.adjust_log.write(''.join(log))
-        return adjusted_operand_value
+                    print "ERROR"
 
-    def adjustReferences(self, inst):
-        """
-        when PE file has no relocation section, we can not make perfect adjustments.
-        need some guess of type for static value in code.
-        :param inst: instruction to adjust.
+                # patch
+                self.Disassembler.setInstructionAtOffset(instAddress, instAddress + instruction.size, encoding)
+                # save increased opcode, operand size for adjust again
+                increasedSize = instrumented_size - instruction.size
+                handledOverflowedMap[instAddress] = increasedSize
+                totalInstrumentSize += increasedSize
+                log.write("\t\t{} : {:d}\n".format(encoding, increasedSize))
+            except KsError as e:
+                print("ERROR: %s" % e)
+
+        if not self.instrumentHistoryMap:
+            self.saveInstrumentHistory(self.instrumentMap, handledOverflowedMap)
+        else:
+            self.saveInstrumentHistory(self.instrumentHistoryMap, handledOverflowedMap)
+        self.instrumentMap = handledOverflowedMap
+        self.overflowedInstrument = False
+        self.overflowedInstrumentMap.clear()
+
+        log.flush()
+        log.close()
+        return True
+
+    def mergeAdjustMapWithPrev(self, prevAdjustMap, adjustMap):
+        """Merging previous adjust map with later adjust map
+
+        :param prevAdjustMap: dict: previous adjust map.
+        :param adjustMap: dict: later adjust map.
         :return:
-            None
+            dict : adjusted instrumented map.
         """
-        operand_size = len(inst.operands)
-        if operand_size > 0:
-            target_operand_index = 0
-            inst_size = 0
-            for index in range(operand_size):
-                if 0x401000 < inst.operands[index].value < 0x409110:
-                    print "[{:x}]\t{:s}".format(inst.address, inst)
-                    for i in range(index):
-                        operand = inst.operands[i]
-                        if operand.type == 'AbsoluteMemoryAddress':
-                            # TODO : AbsoluteMemory
-                            target_operand_index = 0
-                        elif operand.type == 'Register':
-                            # TODO : AbsoluteMemory
-                            target_operand_index = 0
-                        elif operand.type == 'AbsoluteMemory':
-                            # TODO : AbsoluteMemory
-                            if operand.base == None:
-                                target_operand_index += 0
-                            # dispSize / 8
-                            target_operand_index += (operand.dispSize / 8)
-                        # ex) MOV [EBX-0x30], 0x401032
-                        elif operand.type == 'AbsoluteMemoryAddress':
-                            # if base is None then index increase one cause that mean register
-                            if operand.base == None:
-                                target_operand_index += 0
-                            # dispSize / 8
-                            target_operand_index += (operand.dispSize / 8)
-                        elif operand.type == 'FarMemory':
-                            # TODO : FarMemory
-                            target_operand_index = 0
-                        inst_size = inst.size - target_operand_index - (inst.operands[index].size / 8)
-                        print "0x{:x}".format(
-                            self.Disassembler.getDataFromOffsetWithFormat(
-                                inst.address + target_operand_index + inst_size,
-                                inst.address + inst.size)
-                        )
+        adjustedMap = {}
+        sortedPrevAdjustMap = sorted(prevAdjustMap.items(),
+                                     key=operator.itemgetter(0))
+        sortedAdjustMap = sorted(adjustMap.items(),
+                                 key=operator.itemgetter(0))
+
+        for instrumentedAddress, instrumentedSize in sortedPrevAdjustMap:
+            adjustInstrumentAddress = instrumentedAddress
+            for overflowedAddress, increasedSize in sortedAdjustMap:
+                if overflowedAddress < instrumentedAddress:
+                    adjustInstrumentAddress += increasedSize
+            adjustedMap[adjustInstrumentAddress] = instrumentedSize
+
+        for overflowedAddress, increasedSize in sortedAdjustMap:
+            if increasedSize > 0:
+                adjustedMap[overflowedAddress] = increasedSize
+        return adjustedMap
+
+    def saveInstrumentHistory(self, instrumented_map, handledOverflowedMap):
+        adjusted_map = self.mergeAdjustMapWithPrev(instrumented_map, handledOverflowedMap)
+        # adjusted_map.update(handled_overflowed_map)
+        self.instrumentHistoryMap = adjusted_map
 
     def adjustRelocation(self):
-        structures_relocation_block = {}
-        structures_relocation_entries = {}
-        log = open(os.path.join(os.getcwd(), 'relocation_before.txt'), 'w')
-        overflow_log = open(os.path.join(os.getcwd(), 'relocation_overflowed.txt'), 'w')
-        block_va = -1
+        structuresRelocationBlock = {}
+        structuresRelocationEntries = {}
+        blockVA = -1
         for entry in self.peutil.PE.__structures__:
             if entry.name.find('IMAGE_BASE_RELOCATION_ENTRY') != -1:
-                if block_va > 0:
-                    structures_relocation_entries[block_va].append(entry)
+                if blockVA > 0:
+                    structuresRelocationEntries[blockVA].append(entry)
             elif entry.name.find('IMAGE_BASE_RELOCATION') != -1:
-                block_va = entry.VirtualAddress
-                structures_relocation_block[block_va] = entry
-                structures_relocation_entries[block_va] = []
+                blockVA = entry.VirtualAddress
+                structuresRelocationBlock[blockVA] = entry
+                structuresRelocationEntries[blockVA] = []
             elif entry.name.find('DIRECTORY_ENTRY_BASERELOC') != -1:
                 "DIRECTORY"
 
@@ -412,68 +441,65 @@ class PEInstrument(object):
         it can cause exception what address of next block is not exist.
         next block address is not sequential increase
         """
-        sorted_relocation_block = sorted(structures_relocation_block.items(), key=operator.itemgetter(0))
+        sortedRelocationBlock = sorted(structuresRelocationBlock.items(), key=operator.itemgetter(0))
         sections = self.peutil.getSectionHeaders()
         section_start = sections[1].VirtualAddress
-        structures_relocation_block.clear()
-        for index, (block_va, block) in enumerate(sorted_relocation_block):
+        structuresRelocationBlock.clear()
+        for index, (blockVA, block) in enumerate(sortedRelocationBlock):
             # first, adjust other block besides text section
             # The cause, relocation factor can be added to the next block.
-            if block_va >= section_start:
+            if blockVA >= section_start:
                 # 0x1000 mean increased size of section va.
                 self.peutil.PE.__structures__[self.peutil.PE.__structures__.index(block)].VirtualAddress += 0x1000
 
-        block_va = -1
+        blockVA = -1
         for entry in self.peutil.PE.__structures__:
             if entry.name.find('IMAGE_BASE_RELOCATION_ENTRY') != -1:
-                if block_va > 0:
-                    structures_relocation_entries[block_va].append(entry)
+                if blockVA > 0:
+                    structuresRelocationEntries[blockVA].append(entry)
             elif entry.name.find('IMAGE_BASE_RELOCATION') != -1:
-                block_va = entry.VirtualAddress
-                structures_relocation_block[block_va] = entry
-                structures_relocation_entries[block_va] = []
+                blockVA = entry.VirtualAddress
+                structuresRelocationBlock[blockVA] = entry
+                structuresRelocationEntries[blockVA] = []
             elif entry.name.find('DIRECTORY_ENTRY_BASERELOC') != -1:
                 "DIRECTORY"
 
-        sorted_relocation_block = sorted(structures_relocation_block.items(), key=operator.itemgetter(0))
-        for index, (block_va, block) in enumerate(sorted_relocation_block):
-            log.write("{}\n".format(block))
-            if block_va < section_start:
-                for entry in structures_relocation_entries[block_va]:
-                    log.write("{}\n".format(entry))
+        sortedRelocationBlock = sorted(structuresRelocationBlock.items(), key=operator.itemgetter(0))
+        for index, (blockVA, block) in enumerate(sortedRelocationBlock):
+            if blockVA < section_start:
+                for entry in structuresRelocationEntries[blockVA]:
                     if entry.Data == 0:
                         continue
                     entry_rva = entry.Data & 0x0fff
                     entry_type = entry.Data & 0xf000
                     # 0x1000 mean virtual address of first section that text section.
-                    entry_va = block_va + entry_rva
+                    entry_va = blockVA + entry_rva
                     instrumented_size = self.getInstrumentSizeWithVector(entry_va - 0x1000)
                     entry_rva += instrumented_size
 
                     # move entry to appropriate block
                     if entry_rva >= 0x1000:
-                        overflow_log.write("[0x{:x}]\t0x{:x}\n".format(block_va, entry_rva))
                         self.peutil.PE.__structures__.remove(entry)
                         self.peutil.PE.__structures__[self.peutil.PE.__structures__.index(block)].SizeOfBlock -= 2
-                        appropriate_block_va = (entry_rva & 0xf000) + block_va
+                        appropriateBlockVA = (entry_rva & 0xf000) + blockVA
                         entry.Data = (entry_rva & 0xfff) + entry_type
 
                         # if appropriate block address is exist.
-                        if appropriate_block_va in structures_relocation_block:
-                            appropriate_block_index = \
-                                self.peutil.PE.__structures__.index(structures_relocation_block[appropriate_block_va])
+                        if appropriateBlockVA in structuresRelocationBlock:
+                            appropriateBlockIndex = \
+                                self.peutil.PE.__structures__.index(structuresRelocationBlock[appropriateBlockVA])
                         else:
-                            # create new relocation block with appropriate_block_va
-                            next_block_va, next_block = sorted_relocation_block[index+1]
-                            next_block_index = self.peutil.PE.__structures__.index(next_block)
-                            new_block = copy.deepcopy(next_block)
-                            new_block.SizeOfBlock = 8
-                            new_block.VirtualAddress = appropriate_block_va
-                            appropriate_block_index = next_block_index-1
-                            structures_relocation_block[appropriate_block_va] = new_block
-                            self.peutil.PE.__structures__.insert(appropriate_block_index, new_block)
-                        self.peutil.PE.__structures__[appropriate_block_index].SizeOfBlock += 2
-                        self.peutil.PE.__structures__.insert(appropriate_block_index+1, entry)
+                            # create new relocation block with appropriateBlockVA
+                            nextBlockVA, nextBlock = sortedRelocationBlock[index+1]
+                            nextBlockIndex = self.peutil.PE.__structures__.index(nextBlock)
+                            newBlock = copy.deepcopy(nextBlock)
+                            newBlock.SizeOfBlock = 8
+                            newBlock.VirtualAddress = appropriateBlockVA
+                            appropriateBlockIndex = nextBlockIndex-1
+                            structuresRelocationBlock[appropriateBlockVA] = newBlock
+                            self.peutil.PE.__structures__.insert(appropriateBlockIndex, newBlock)
+                        self.peutil.PE.__structures__[appropriateBlockIndex].SizeOfBlock += 2
+                        self.peutil.PE.__structures__.insert(appropriateBlockIndex+1, entry)
                     else:
                         entry.Data = entry_rva + entry_type
 
@@ -481,110 +507,15 @@ class PEInstrument(object):
         structures has owned offset.
         so, if modify position or order of structures element then must fix offset of structures element.
         """
-        log.close()
-        log = open(os.path.join(os.getcwd(), 'relocation_after.txt'), 'w')
         file_offset = 0
         for entry in self.peutil.PE.__structures__:
             if entry.name.find('IMAGE_BASE_RELOCATION_ENTRY') != -1:
                 entry.set_file_offset(file_offset)
                 file_offset += 2
-                log.write("{}\tfileoffset:[0x{}]\n".format(entry, file_offset))
             elif entry.name.find('IMAGE_BASE_RELOCATION') != -1:
                 if file_offset == 0:
                     file_offset = entry.get_file_offset()
                 entry.set_file_offset(file_offset)
                 file_offset += 8
-                log.write("{}\tfileoffset:[0x{}]\n".format(entry, file_offset))
             elif entry.name.find('DIRECTORY_ENTRY_BASERELOC') != -1:
-                log.write("{}\n".format(entry))
-
-    def handleOverflowInstrument(self):
-        """
-        extend the size of the operand if exceed the range of operand values while instrument.
-        :return:
-            bool :
-        """
-        total_instrument_size = 0
-        # self.instrument_map.clear()
-        handled_overflowed_map = {}
-        ks = Ks(KS_ARCH_X86, KS_MODE_32)
-        sorted_instrument_map = sorted(self.overflowedInstrumentMap.items(),
-                                       key=operator.itemgetter(0))
-        for index, (inst_address, (inst, adjusted_operand_value)) in enumerate(sorted_instrument_map):
-            inst_address += total_instrument_size
-            print "[{}] overflowed instrument instruction : [0x{:x}] {:s}  {:x} => {}" \
-                .format(index, inst_address, inst, inst.operands[0].value, adjusted_operand_value)
-            # TODO : fix constant 6 to increased opcode, operand size
-            code = "{:s} {}".format(inst.mnemonic, adjusted_operand_value + 6)
-            hexacode = binascii.hexlify(code).decode('hex')
-            try:
-                # Initialize engine in X86-32bit mode
-                encoding, count = ks.asm(hexacode)
-                print "{:s}".format(encoding)
-                # patch
-                self.Disassembler.setInstructionAtOffset(inst_address, inst_address + inst.size, encoding)
-                instrumented_size = len(encoding)
-                # save increased opcode, operand size for adjust again
-                increased_size = instrumented_size - inst.size
-                handled_overflowed_map[inst_address] = increased_size
-                total_instrument_size += increased_size
-            except KsError as e:
-                print("ERROR: %s" % e)
-
-        if not self.instrumentHistoryMap:
-            self.saveInstrumentHistory(self.instrumentMap, handled_overflowed_map)
-        else:
-            self.saveInstrumentHistory(self.instrumentHistoryMap, handled_overflowed_map)
-        self.instrumentMap = handled_overflowed_map
-        self.overflowedInstrument = False
-        self.overflowedInstrumentMap.clear()
-        return True
-
-    def mergeAdjustMapWithPrev(self, prevAdjustMap, adjustMap):
-        """Merging previous adjust map with later adjust map
-
-        :param prevAdjustMap: dict: previous adjust map.
-        :param adjustMap: dict: later adjust map.
-        :return:
-            dict : adjusted instrumented map.
-        """
-        adjusted_map = {}
-        sortedPrevAdjustMap = sorted(prevAdjustMap.items(),
-                                     key=operator.itemgetter(0))
-        sortedAdjustMap = sorted(adjustMap.items(),
-                                 key=operator.itemgetter(0))
-
-        for instrumented_address, instrumented_size in sortedPrevAdjustMap:
-            adjust_instrument_address = instrumented_address
-            for overflowed_address, increased_size in sortedAdjustMap:
-                if overflowed_address < instrumented_address:
-                    adjust_instrument_address += increased_size
-            adjusted_map[adjust_instrument_address] = instrumented_size
-
-        for overflowed_address, increased_size in sortedAdjustMap:
-            if increased_size > 0:
-                adjusted_map[overflowed_address] = increased_size
-        return adjusted_map
-
-    def saveInstrumentHistory(self, instrumented_map, handled_overflowed_map):
-        adjusted_map = self.mergeAdjustMapWithPrev(instrumented_map, handled_overflowed_map)
-        # adjusted_map.update(handled_overflowed_map)
-        self.instrumentHistoryMap = adjusted_map
-
-    def isRedirect(self, inst):
-        """
-        Returns true or false if the branch type of the instruction is redirect.
-        :param inst: instruction
-        :return:
-            bool : True or False
-        """
-        instruction_types = ['FC_CALL', 'FC_UNC_BRANCH', 'FC_CND_BRANCH']
-        cf = inst.flowControl
-        if cf in instruction_types:
-            operands = inst.operands
-            if len(operands) > 0:
-                operand = operands[0]
-                if operand.type == 'AbsoluteMemoryAddress' or operand.type == 'Register' \
-                        or operand.type == 'AbsoluteMemory':
-                    return True
-        return False
+                'DIRECTORY_ENTRY_BASERELOC'

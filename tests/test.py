@@ -1,6 +1,8 @@
+from Disassembler import *
 from PEInstrument import *
 from keystone import *
 from PEUtil import *
+from capstone.x86 import *
 import os
 import unittest
 
@@ -27,12 +29,14 @@ class Tests(unittest.TestCase):
         super(Tests, self).__init__(*args, **kwargs)
         self.codeLog = open(os.path.join(os.getcwd(), "tests", "codelog.txt"), 'w')
         self.relocLog = open(os.path.join(os.getcwd(), "tests", "reloclog.txt"), 'w')
-        self.src_filename = os.path.join(os.getcwd(), "tests", "sample.exe")
-        self.dst_filename = os.path.join(os.getcwd(), "tests", "sample_test.exe")
-        src_pei = PEInstrument(self.src_filename)
-        src_pei.instrumentRedirectControlflowInstruction(instrument)
-        src_pei.writefile(self.dst_filename)
-        self.instrumented_map = src_pei.getInstrumentedMap()
+        #self.src_filename = os.path.join(os.getcwd(), "tests", "sample.exe")
+        #self.dst_filename = os.path.join(os.getcwd(), "tests", "sample_test.exe")
+        self.src_filename = 'c:\\work\\firefox.exe'
+        self.dst_filename = 'c:\\work\\firefox_test.exe'
+        srcPEI = PEInstrument(self.src_filename)
+        srcPEI.instrumentRedirectControlflowInstruction(instrument)
+        srcPEI.writefile(self.dst_filename)
+        self.instrumentedMap = srcPEI.getInstrumentedMap()
 
     def __del__(self):
         try:
@@ -73,8 +77,8 @@ class Tests(unittest.TestCase):
 
             self.relocLog.write(
                 "[{:04x}]\t[0x{:x}][0x{:x}][{}]\t[0x{:x}][0x{:x}][{}]\n".format(index,
-                                                            srcRelocAddress, srcData, srcReloc,
-                                                            dstRelocAddress, dstData, dstReloc))
+                                                                                srcRelocAddress, srcData, srcReloc,
+                                                                                dstRelocAddress, dstData, dstReloc))
 
             if srcExecuteStart < srcData < srcExecuteEnd and \
                                     dstExecuteStart < dstData < dstExecuteEnd:
@@ -96,106 +100,195 @@ class Tests(unittest.TestCase):
     def test_codes(self):
         self.src_pei = PEInstrument(self.src_filename)
         self.dst_pei = PEInstrument(self.dst_filename)
-        src_pei = self.src_pei
-        dst_pei = self.dst_pei
-        src_disassemble = src_pei.getInstructions()
-        dst_disassemble = dst_pei.getInstructions()
-        execute_start, execute_end = src_pei.peutil.getExecutableVirtualAddressRange()
-        src_size = execute_end - execute_start
-        execute_start, execute_end = dst_pei.peutil.getExecutableVirtualAddressRange()
-        dst_size = execute_end - execute_start
+        srcPEI = self.src_pei
+        dstPEI = self.dst_pei
+        srcDisassemble = srcPEI.getInstructions()
+        dstDisassemble = dstPEI.getInstructions()
+        executeStart, executeEnd = srcPEI.peutil.getExecutableVirtualAddressRange()
+        srcSize = executeEnd - executeStart
+        executeStart, executeEnd = dstPEI.peutil.getExecutableVirtualAddressRange()
+        dstSize = executeEnd - executeStart
 
-        dst_index = 0
-        src_index = 0
-        for index in xrange(len(dst_disassemble)):
+        dstIndex = 0
+        srcIndex = 0
+        for index in xrange(len(dstDisassemble)):
             try:
-                dst_dis_address, dst_dis = dst_disassemble[dst_index]
-                src_dis_address, src_dis = src_disassemble[src_index]
-                if dst_dis_address >= dst_size or src_dis_address >= src_size:
+                dstInstAddress, dstInst = dstDisassemble[dstIndex]
+                srcInstAddress, srcInst = srcDisassemble[srcIndex]
+                if dstInstAddress >= dstSize or srcInstAddress >= srcSize:
                     break
             except:
                 self.fail("Something wrong when disassemble codes")
 
-            self.codeLog.write("[{:03x}]\t{}\t[{:03x}]\t{}\n".format(src_dis_address, src_dis, dst_dis_address, dst_dis))
-            dst_el = str(dst_dis)
-            src_el = str(src_dis)
-            if dst_el == 'MOV EAX, EAX' and src_el != 'MOV EAX, EAX':
-                # print "0x{:x}".format(dst_dis.address)
-                dst_index += 1
-                continue
-            if dst_el != src_el:
-                if dst_dis.mnemonic == src_dis.mnemonic and len(dst_dis.operands) == len(src_dis.operands):
-                    if not(self.checkCompareInstruction(dst_dis, src_dis)):
-                        print "{}\t{}".format(src_dis, dst_dis)
-                        # self.assertTrue(self.checkCompareInstruction(dst_dis, src_dis), msg="NO!!!!")
+            self.codeLog.write("[{:03x}]\t{}\t[{:03x}]\t{}\n".format(srcInstAddress, srcInst, dstInstAddress, dstInst))
+            dst_el = ("%s\t%s" % (dstInst.mnemonic, dstInst.op_str))
+            src_el = ("%s\t%s" % (srcInst.mnemonic, srcInst.op_str))
+            if (dstInst.mnemonic == 'mov' and dstInst.op_str == 'eax, eax'):
+                if (srcInst.mnemonic == 'mov' and srcInst.op_str == 'eax, eax'):
+                    dstIndex += 1
+                    srcIndex += 1
+                    continue
                 else:
-                    self.codeLog.write("=======================================================")
-                    assert False, "ERROR\t[0x{:x}]{}\t[0x{:x}]{}".format(dst_dis.address, dst_el,
-                                                                         src_dis.address, src_el)
-            dst_index += 1
-            src_index += 1
+                    dstIndex += 1
+                    continue
 
-    def checkDirectJmp(self, dst_dis, src_dis):
+            if dst_el != src_el:
+                if dstInst.mnemonic == srcInst.mnemonic and len(dstInst.operands) == len(srcInst.operands):
+                    findMatch = False
+                    if not(self.checkCompareInstruction(dstInst, srcInst)):
+                        findMatch = False
+                        for dstSearchDepth in xrange(6):
+                            if findMatch:
+                                break
+                            for srcSearchDepth in xrange(6):
+                                dstSearchAddr, dstDisSearch = dstDisassemble[dstIndex + dstSearchDepth]
+                                srcSearchAddr, srcDisSearch = srcDisassemble[srcIndex + srcSearchDepth]
+
+                                if self.checkCompareInstruction(dstDisSearch, srcDisSearch):
+                                    print "[SAME MNEMONIC]===================================="
+                                    for searchDepth in xrange(dstSearchDepth+1):
+                                        addr, dstDisSearch = dstDisassemble[dstIndex + searchDepth]
+                                        print "\t[DST][0x{:x}] {:s} {:s}".format(dstDisSearch.address,
+                                                                                 dstDisSearch.mnemonic,
+                                                                                 dstDisSearch.op_str)
+                                    for searchDepth in xrange(srcSearchDepth+1):
+                                        addr, srcDisSearch = srcDisassemble[srcIndex + searchDepth]
+                                        print "\t[SRC][0x{:x}] {:s} {:s}".format(srcDisSearch.address,
+                                                                                 srcDisSearch.mnemonic,
+                                                                                 srcDisSearch.op_str)
+                                    dstIndex += dstSearchDepth
+                                    srcIndex += srcSearchDepth
+                                    findMatch = True
+
+                        if findMatch == False:
+                            print "FAIL ============================================================"
+                            print "[SAME]\t[0x{:x}]{:s}{:s}\t[0x{:x}]{:s}{:s}".format(dstInst.address,
+                                                                                      dstInst.mnemonic,
+                                                                                      dstInst.op_str,
+                                                                                      srcInst.address,
+                                                                                      srcInst.mnemonic,
+                                                                                      srcInst.op_str)
+                            # assert False
+
+                        """
+                        print "[TESTCODE]\t[0x{:x}]{:s}{:s}\t[0x{:x}]{:s}{:s}".format(dstInst.address,
+                                                                                      dstInst.mnemonic, dstInst.op_str,
+                                                                                      src_dis.address,
+                                                                                      src_dis.mnemonic, src_dis.op_str)
+                        assert False
+                        """
+                else:
+                    findMatch = False
+                    for dstSearchDepth in xrange(6):
+                        if findMatch:
+                            break
+                        for srcSearchDepth in xrange(6):
+                            dstSearchAddr, dstDisSearch = dstDisassemble[dstIndex + dstSearchDepth]
+                            srcSearchAddr, srcDisSearch = srcDisassemble[srcIndex + srcSearchDepth]
+
+                            if self.checkCompareInstruction(dstDisSearch, srcDisSearch):
+                                print "[DIFF MNEMONIC] ====================================="
+                                for searchDepth in xrange(dstSearchDepth +1):
+                                    addr, dstDisSearch = dstDisassemble[dstIndex + searchDepth]
+                                    print "\t[DST][0x{:x}] {:s} {:s}".format(dstDisSearch.address,
+                                                                             dstDisSearch.mnemonic,
+                                                                             dstDisSearch.op_str)
+                                for searchDepth in xrange(srcSearchDepth +1):
+                                    addr, srcDisSearch = srcDisassemble[srcIndex + searchDepth]
+                                    print "\t[SRC][0x{:x}] {:s} {:s}".format(srcDisSearch.address,
+                                                                             srcDisSearch.mnemonic,
+                                                                             srcDisSearch.op_str)
+                                dstIndex += dstSearchDepth
+                                srcIndex += srcSearchDepth
+                                findMatch = True
+
+                    if findMatch == False:
+                        print "FAIL ============================================================"
+                        print "[NONS]\t[0x{:x}]{:s}{:s}\t[0x{:x}]{:s}{:s}".format(dstInst.address,
+                                                                                  dstInst.mnemonic,
+                                                                                  dstInst.op_str,
+                                                                                  srcInst.address,
+                                                                                  srcInst.mnemonic,
+                                                                                  srcInst.op_str)
+            dstIndex += 1
+            srcIndex += 1
+
+    def checkDirectJmp(self, dstInst, srcInst):
         result = False
-        src_jmp_target = src_dis.operands[0].value
-        dst_jmp_target = dst_dis.operands[0].value
-        if dst_jmp_target - src_jmp_target == self.getInstrumentedSizeUntil(dst_jmp_target):
+        srcJmpTarget = srcInst.operands[0].imm
+        dstJmpTarget = dstInst.operands[0].imm
+        if dstJmpTarget - srcJmpTarget == self.getInstrumentedSizeUntil(dstJmpTarget):
             result = True
         return result
 
-    def checkRedirectJmp(self, dst_dis, src_dis):
-        result = False
-        dst_operand = dst_dis.operands[0]
-        src_operand = src_dis.operands[0]
+    def checkIndirectJmp(self, dstInst, srcInst):
+        return self.checkCompareOperands(dstInst.operands, srcInst.operands)
 
-        if (dst_operand.value + dst_operand.disp) - (src_operand.value + src_operand.disp) == self._Adjust_Size_:
+    def checkCompareOperands(self, dstOperands, srcOperands):
+        result = False
+        if len(dstOperands) == len(srcOperands):
+            for index in xrange(len(dstOperands)):
+                dst_operand = dstOperands[index]
+                src_operand = srcOperands[index]
+                if dst_operand.type == X86_OP_REG and src_operand.type == X86_OP_REG:
+                    if dst_operand.reg == src_operand.reg:
+                        result = True
+                elif dst_operand.type == X86_OP_IMM and src_operand.type == X86_OP_IMM:
+                    if dst_operand.imm == src_operand.imm \
+                            or ((dst_operand.imm - src_operand.imm) == self._Adjust_Size_):
+                        result = True
+                    elif dst_operand.imm - src_operand.imm == self.getInstrumentedSizeUntil(dst_operand.imm - 0x401000):
+                        result = True
+                    else:
+                        result = False
+                elif dst_operand.type == X86_OP_MEM and src_operand.type == X86_OP_MEM:
+                    if dst_operand.mem.segment != 0:
+                        if dst_operand.mem.segment != src_operand.mem.segment:
+                            return False
+                    if dst_operand.mem.base != 0:
+                        if dst_operand.mem.base != src_operand.mem.base:
+                            return False
+                    if dst_operand.mem.index != 0:
+                        if dst_operand.mem.index != src_operand.mem.index:
+                            return False
+                    if dst_operand.mem.scale != 1:
+                        if not (dst_operand.mem.scale == src_operand.mem.scale):
+                            return False
+                    if dst_operand.mem.disp != 0:
+                        if not (dst_operand.mem.disp == src_operand.mem.disp):
+                            if not (dst_operand.mem.disp - src_operand.mem.disp == self._Adjust_Size_):
+                                return False
+                    result = True
+                else:
+                    result = False
+        return result
+
+    def checkCompareInstruction(self, dstInst, srcInst):
+        result = False
+        if dstInst.mnemonic == srcInst.mnemonic and dstInst.op_str == srcInst.op_str:
             result = True
-        elif (dst_operand.value + dst_operand.disp) - (src_operand.value + src_operand.disp) \
-                == self.getInstrumentedSizeUntil(dst_operand.value + dst_operand.disp - 0x401000):
-            result = True
+        elif dstInst.groups == srcInst.groups:
+            if self.dst_pei.Disassembler.isDirectBranch(dstInst):
+                result = self.checkDirectJmp(dstInst, srcInst)
+            elif self.dst_pei.Disassembler.isIndirectBranch(dstInst):
+                result = self.checkIndirectJmp(dstInst, srcInst)
+            else:
+                result = self.checkCompareOperands(dstInst.operands, srcInst.operands)
         else:
             result = False
         return result
 
-    def checkCompareInstruction(self, dst_dis, src_dis):
-        result = False
-        if str(dst_dis) == str(src_dis):
-            result = True
-        elif dst_dis.flowControl == src_dis.flowControl \
-                and (dst_dis.flowControl in self._Branch_Instruction_Types_):
-            if self.dst_pei.isRedirect(dst_dis):
-                result = self.checkRedirectJmp(dst_dis, src_dis)
-            else:
-                result = self.checkDirectJmp(dst_dis, src_dis)
-        else:
-            for index in xrange(len(dst_dis.operands)):
-                dst_operand = dst_dis.operands[index]
-                src_operand = src_dis.operands[index]
-                dst_str = "{}".format(dst_operand)
-                src_str = "{}".format(src_operand)
-                if dst_str == src_str:
-                    continue
-                else:
-                    if (dst_operand.value + dst_operand.disp) - (src_operand.value + src_operand.disp) == self._Adjust_Size_:
-                        result = True
-                    elif (dst_operand.value + dst_operand.disp) - (src_operand.value + src_operand.disp) \
-                            == self.getInstrumentedSizeUntil(dst_operand.value + dst_operand.disp - 0x401000):
-                        result = True
-                    else:
-                        result = False
-        return result
-
     def getInstrumentedSizeUntil(self, va):
         if not hasattr(self, 'sorted_instrumented_map'):
-            self.sorted_instrumented_map = sorted(self.instrumented_map.items(),
-                                                  key=operator.itemgetter(0))
-        instrumented_size = 0
-        for address, size in self.sorted_instrumented_map:
+            self.sortedInstrumentedMap = sorted(self.instrumentedMap.items(),
+                                                key=operator.itemgetter(0))
+        instrumentedSize = 0
+        for address, size in self.sortedInstrumentedMap:
             if address < va:
-                instrumented_size += size
+                instrumentedSize += size
             else:
                 break
-        return instrumented_size
+        return instrumentedSize
 
 if __name__ == '__main__':
     unittest.main()

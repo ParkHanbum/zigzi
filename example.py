@@ -6,9 +6,6 @@ from keystone import *
 
 
 def instrumentExample(instruction):
-    instruction_types = ['FC_CALL', 'FC_UND_BRANCH', 'FC_CND_BRANCH']
-    operand = instruction.operands[0]
-    # code = "PUSH eax;PUSH {:s};POP eax;POP eax".format(operand)
     code = "MOV EAX, EAX"
     hexacode = binascii.hexlify(code).decode('hex')
     try:
@@ -22,10 +19,19 @@ def instrumentExample(instruction):
 
 if __name__ == '__main__':
     """
-    filename = "C:\\work\\sample.exe"
+    filename = "c:\\work\\firefox.exe"
     pei = PEInstrument(filename)
-    pei.instrumentRedirectControlflowInstruction(test)
-    pei.writefile('c:\\work\\sample_test.exe')
+    log_file = open('c:\\work\\origin_dis.log', 'w')
+    instructions = pei.getInstructions()
+    for address, inst in instructions:
+        log_file.write("[0x%x] %s\t%s\n" %(inst.address, inst.mnemonic, inst.op_str))
+
+    filename = "c:\\work\\firefox_test.exe"
+    pei = PEInstrument(filename)
+    log_file = open('c:\\work\\instrumented_dis.log', 'w')
+    instructions = pei.getInstructions()
+    for address, inst in instructions:
+        log_file.write("[0x%x] %s\t%s\n" % (inst.address, inst.mnemonic, inst.op_str))
     """
 
     filename = "c:\\work\\firefox.exe"
