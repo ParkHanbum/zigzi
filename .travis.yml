@@ -30,6 +30,7 @@ before_install:
     - pushd bindings/python
     - sudo python setup.py install
     - popd
+    - popd
 install:
     - pip install -r requirements.txt
 compiler: gcc
