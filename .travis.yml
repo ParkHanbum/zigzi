@@ -27,7 +27,7 @@ before_install:
     - pushd capstone-master
     - ./make.sh
     - sudo make install
-    - pushd binding/python
+    - pushd bindings/python
     - sudo python setup.py install
     - popd
 install:
