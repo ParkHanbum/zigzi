@@ -190,6 +190,12 @@ class PEUtil(object):
         return False
 
     def adjustFileLayout(self):
+
+        self.adjustEntryPoint()
+        self.adjustExecutableSection()
+        self.adjustImport()
+        self.adjustRelocationDirectories()
+
         self.adjustSection()
         self.adjustOptionalHeader()
         self.adjustDataDirectories()
@@ -379,7 +385,7 @@ class PEUtil(object):
             ilt.Ordinal += increase_size
 
     # def adjustImport(self, directory, rva, size, increase_size):
-    def adjustImport(self, instrument_size):
+    def adjustImport(self):
         for importindex in xrange(len(self.PE.DIRECTORY_ENTRY_IMPORT)):
             self.PE.DIRECTORY_ENTRY_IMPORT[importindex].struct.Characteristics += 0x1000
             self.PE.DIRECTORY_ENTRY_IMPORT[importindex].struct.FirstThunk += 0x1000
@@ -458,3 +464,122 @@ class PEUtil(object):
             return True
 
         return False
+
+    def adjustEntryPoint(self):
+        entry_va = self.getEntryPointVA()
+        instrumentSize = \
+            self.getInstrumentor().getInstrumentSizeWithVector(entry_va - 0x1000)
+        # instrumentSize = self.get_instrument_size_until(entry_va)
+        self.setEntryPoint(entry_va + instrumentSize)
+
+
+    def adjustExecutableSection(self):
+        execute_data = self.getInstrumentor().getCode()
+        self.appendDataToExecution(execute_data)
+
+
+    def adjustRelocationDirectories(self):
+        structuresRelocationBlock = {}
+        structuresRelocationEntries = {}
+        blockVA = -1
+        for entry in self.PE.__structures__:
+            if entry.name.find('IMAGE_BASE_RELOCATION_ENTRY') != -1:
+                if blockVA > 0:
+                    structuresRelocationEntries[blockVA].append(entry)
+            elif entry.name.find('IMAGE_BASE_RELOCATION') != -1:
+                blockVA = entry.VirtualAddress
+                structuresRelocationBlock[blockVA] = entry
+                structuresRelocationEntries[blockVA] = []
+            elif entry.name.find('DIRECTORY_ENTRY_BASERELOC') != -1:
+                "DIRECTORY"
+
+        """
+        TODO:
+        #1
+        If the virtual address of the relocation block exceeds the range of the text section,
+        the virtual address of the relocation block is increased by the amount of movement of the section.
+        If there is an entry that has moved to the next block due to the size instrumented
+        in the previous relocation block, it must be processed.
+
+        #2
+        it can cause exception what address of next block is not exist.
+        next block address is not sequential increase
+        """
+        sortedRelocationBlock = sorted(structuresRelocationBlock.items(), key=operator.itemgetter(0))
+        sections = self.getSectionHeaders()
+        section_start = sections[1].VirtualAddress
+        structuresRelocationBlock.clear()
+        for index, (blockVA, block) in enumerate(sortedRelocationBlock):
+            # first, adjust other block besides text section
+            # The cause, relocation factor can be added to the next block.
+            if blockVA >= section_start:
+                # 0x1000 mean increased size of section va.
+                self.PE.__structures__[self.PE.__structures__.index(block)].VirtualAddress += 0x1000
+
+        blockVA = -1
+        for entry in self.PE.__structures__:
+            if entry.name.find('IMAGE_BASE_RELOCATION_ENTRY') != -1:
+                if blockVA > 0:
+                    structuresRelocationEntries[blockVA].append(entry)
+            elif entry.name.find('IMAGE_BASE_RELOCATION') != -1:
+                blockVA = entry.VirtualAddress
+                structuresRelocationBlock[blockVA] = entry
+                structuresRelocationEntries[blockVA] = []
+            elif entry.name.find('DIRECTORY_ENTRY_BASERELOC') != -1:
+                "DIRECTORY"
+
+        sortedRelocationBlock = sorted(structuresRelocationBlock.items(), key=operator.itemgetter(0))
+        for index, (blockVA, block) in enumerate(sortedRelocationBlock):
+            if blockVA < section_start:
+                for entry in structuresRelocationEntries[blockVA]:
+                    if entry.Data == 0:
+                        continue
+                    entry_rva = entry.Data & 0x0fff
+                    entry_type = entry.Data & 0xf000
+                    # 0x1000 mean virtual address of first section that text section.
+                    entry_va = blockVA + entry_rva
+                    instrumented_size = self.getInstrumentor().getInstrumentSizeWithVector(entry_va - 0x1000)
+                    entry_rva += instrumented_size
+
+                    # move entry to appropriate block
+                    if entry_rva >= 0x1000:
+                        self.PE.__structures__.remove(entry)
+                        self.PE.__structures__[self.PE.__structures__.index(block)].SizeOfBlock -= 2
+                        appropriateBlockVA = (entry_rva & 0xf000) + blockVA
+                        entry.Data = (entry_rva & 0xfff) + entry_type
+
+                        # if appropriate block address is exist.
+                        if appropriateBlockVA in structuresRelocationBlock:
+                            appropriateBlockIndex = \
+                                self.PE.__structures__.index(structuresRelocationBlock[appropriateBlockVA])
+                        else:
+                            # create new relocation block with appropriateBlockVA
+                            nextBlockVA, nextBlock = sortedRelocationBlock[index+1]
+                            nextBlockIndex = self.PE.__structures__.index(nextBlock)
+                            newBlock = copy.deepcopy(nextBlock)
+                            newBlock.SizeOfBlock = 8
+                            newBlock.VirtualAddress = appropriateBlockVA
+                            appropriateBlockIndex = nextBlockIndex-1
+                            structuresRelocationBlock[appropriateBlockVA] = newBlock
+                            self.PE.__structures__.insert(appropriateBlockIndex, newBlock)
+                        self.PE.__structures__[appropriateBlockIndex].SizeOfBlock += 2
+                        self.PE.__structures__.insert(appropriateBlockIndex+1, entry)
+                    else:
+                        entry.Data = entry_rva + entry_type
+
+        """
+        structures has owned offset.
+        so, if modify position or order of structures element then must fix offset of structures element.
+        """
+        file_offset = 0
+        for entry in self.PE.__structures__:
+            if entry.name.find('IMAGE_BASE_RELOCATION_ENTRY') != -1:
+                entry.set_file_offset(file_offset)
+                file_offset += 2
+            elif entry.name.find('IMAGE_BASE_RELOCATION') != -1:
+                if file_offset == 0:
+                    file_offset = entry.get_file_offset()
+                entry.set_file_offset(file_offset)
+                file_offset += 8
+            elif entry.name.find('DIRECTORY_ENTRY_BASERELOC') != -1:
+                'DIRECTORY_ENTRY_BASERELOC'
