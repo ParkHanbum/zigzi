@@ -28,7 +28,7 @@ before_install:
     - ./make.sh
     - sudo make install
     - pushd bindings/python
-    - sudo python setup.py install
+    - python setup.py install
     - popd
     - popd
 install:
@@ -39,6 +39,11 @@ python:
     - "2.7"
 script:
     - python -m tests/test
+    - popd
+    - sphinx-apidoc -F -o . zigzi/
+    - cp zigzi/doc/conf.py .
+    - make html
+
 cache:
   - pip
   - $HOME/keystone-master

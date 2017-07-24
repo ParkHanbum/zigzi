@@ -1,3 +1,4 @@
 pydotplus
 keystone-engine
 pefile
+sphinx
