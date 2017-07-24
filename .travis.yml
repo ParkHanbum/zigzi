@@ -22,9 +22,8 @@ before_install:
     - sudo make install
     - sudo ldconfig
     - popd
-    - wget https://github.com/ParkHanbum/capstone/archive/master.zip -O capstone-master.zip
-    - unzip capstone-master.zip
-    - pushd capstone-master
+    - git clone https://github.com/ParkHanbum/capstone.git -b next
+    - pushd capstone
     - ./make.sh
     - sudo make install
     - pushd bindings/python
@@ -40,16 +39,15 @@ python:
 script:
     - python -m tests/test
 after_success:
-    - cd ..
-    - sphinx-apidoc -F -o . zigzi/
-    - cp zigzi/doc/conf.py .
+    - sphinx-apidoc -F -o doc .
+    - cd doc
     - make html
 cache:
   - pip
   - $HOME/keystone-master
 
 deploy:
-    provider: _build/html
+    provider: doc/_build/html
     skip_cleanup: true
     github_token: $GITHUB_TOKEN # Set in travis-ci.org dashboard
     on:
