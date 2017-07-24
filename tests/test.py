@@ -29,14 +29,14 @@ class Tests(unittest.TestCase):
         super(Tests, self).__init__(*args, **kwargs)
         self.codeLog = open(os.path.join(os.getcwd(), "tests", "codelog.txt"), 'w')
         self.relocLog = open(os.path.join(os.getcwd(), "tests", "reloclog.txt"), 'w')
-        #self.src_filename = os.path.join(os.getcwd(), "tests", "sample.exe")
-        #self.dst_filename = os.path.join(os.getcwd(), "tests", "sample_test.exe")
         self.src_filename = 'c:\\work\\firefox.exe'
         self.dst_filename = 'c:\\work\\firefox_test.exe'
+        # self.src_filename = os.path.join(os.getcwd(), "tests", "sample.exe")
+        # self.dst_filename = os.path.join(os.getcwd(), "tests", "sample_test.exe")
         srcPEI = PEInstrument(self.src_filename)
-        srcPEI.instrumentRedirectControlflowInstruction(instrument)
+        srcPEI.instrument_at_indirect_instruction(instrument)
         srcPEI.writefile(self.dst_filename)
-        self.instrumentedMap = srcPEI.getInstrumentedMap()
+        self.instrumentedMap = srcPEI.get_instrumented_pos()
 
     def __del__(self):
         try:
@@ -50,11 +50,11 @@ class Tests(unittest.TestCase):
         dstPei = PEInstrument(self.dst_filename)
         srcUtil = srcPei.peutil
         dstUtil = dstPei.peutil
-        srcRelocationMap = srcUtil.getRelocationMap()
-        dstRelocationMap = dstUtil.getRelocationMap()
+        srcRelocationMap = srcUtil.get_relocation()
+        dstRelocationMap = dstUtil.get_relocation()
 
-        srcExecuteStart, srcExecuteEnd = srcUtil.getExecutableVirtualAddressRange()
-        dstExecuteStart, dstExecuteEnd = dstUtil.getExecutableVirtualAddressRange()
+        srcExecuteStart, srcExecuteEnd = srcUtil.get_text_section_virtual_address_range()
+        dstExecuteStart, dstExecuteEnd = dstUtil.get_text_section_virtual_address_range()
         srcExecuteStart += self._Image_Base_
         srcExecuteEnd += self._Image_Base_
         dstExecuteStart += self._Image_Base_
@@ -102,11 +102,11 @@ class Tests(unittest.TestCase):
         self.dst_pei = PEInstrument(self.dst_filename)
         srcPEI = self.src_pei
         dstPEI = self.dst_pei
-        srcDisassemble = srcPEI.getInstructions()
-        dstDisassemble = dstPEI.getInstructions()
-        executeStart, executeEnd = srcPEI.peutil.getExecutableVirtualAddressRange()
+        srcDisassemble = srcPEI.get_instructions()
+        dstDisassemble = dstPEI.get_instructions()
+        executeStart, executeEnd = srcPEI.peutil.get_text_section_virtual_address_range()
         srcSize = executeEnd - executeStart
-        executeStart, executeEnd = dstPEI.peutil.getExecutableVirtualAddressRange()
+        executeStart, executeEnd = dstPEI.peutil.get_text_section_virtual_address_range()
         dstSize = executeEnd - executeStart
 
         dstIndex = 0
@@ -268,9 +268,9 @@ class Tests(unittest.TestCase):
         if dstInst.mnemonic == srcInst.mnemonic and dstInst.op_str == srcInst.op_str:
             result = True
         elif dstInst.groups == srcInst.groups:
-            if self.dst_pei.Disassembler.isDirectBranch(dstInst):
+            if self.dst_pei.Disassembler.is_direct_branch(dstInst):
                 result = self.checkDirectJmp(dstInst, srcInst)
-            elif self.dst_pei.Disassembler.isIndirectBranch(dstInst):
+            elif self.dst_pei.Disassembler.is_indirect_branch(dstInst):
                 result = self.checkIndirectJmp(dstInst, srcInst)
             else:
                 result = self.checkCompareOperands(dstInst.operands, srcInst.operands)

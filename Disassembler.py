@@ -1,7 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-"""
-DIsassembler for disassemble base on disassembler engine distorm3
+"""Disassembler engine for disassemble and instrumentation base on Capstone
+disassemble engine.
+
 """
 
 __author__ = 'ParkHanbum'
@@ -11,18 +12,8 @@ __contact__ = 'kese111@gmail.com'
 import struct
 import binascii
 import operator
-import distorm3
 import os
 from capstone import *
-
-# OPERAND TYPES
-_OPERAND_NONE = ""
-_OPERAND_IMMEDIATE = "Immediate"
-_OPERAND_REGISTER = "Register"
-# the operand is a memory address
-_OPERAND_ABSOLUTE_ADDRESS = "AbsoluteMemoryAddress"  # The address calculated is absolute
-_OPERAND_MEMORY = "AbsoluteMemory"  # The address calculated uses registers expression
-_OPERAND_FAR_MEMORY = "FarMemory"  # like absolute but with selector/segment specified too
 
 
 class Disassembler(object):
@@ -43,62 +34,62 @@ class Disassembler(object):
         self.disassembler.skipdata = True
         self.disassembler.detail = True
 
-    def setCode(self, code):
+    def set_code(self, code):
         self.code = code
         self.disassemble()
 
-    def getCode(self):
+    def get_code(self):
         return self.code
 
-    def getCodeSize(self):
+    def get_code_size(self):
         return len(self.code)
 
-    def isCodeNeedHandled(self):
+    def is_need_handle_code(self):
         return self._codeNeedHandled
 
-    def codeHandled(self):
+    def need_handle_code(self):
         self._codeNeedHandled = False
 
-    def codeNeedHandled(self):
+    def code_handle(self):
         self._codeNeedHandled = True
-        self.disassembleMapNeedHandled()
+        self.disassemble_dict_handle()
 
-    def isDisassembleMapNeedHandled(self):
+    def is_need_handle_disassemble_dict(self):
         return self._instructionsMapNeedHandled
 
-    def disassembleMapHandled(self):
+    def need_handled_disassemble_dict(self):
         self._instructionsMapNeedHandled = False
 
-    def disassembleMapNeedHandled(self):
+    def disassemble_dict_handle(self):
         self._instructionsMapNeedHandled = True
-        self.disassembleListNeedHandled()
+        self.disassemble_list_handle()
 
-    def isDisassembleListNeedHandled(self):
+    def is_need_handle_disassemble_list(self):
         return self._instructionsListNeedHandled
 
-    def disassembleListHandled(self):
+    def need_handle_disassemble_list(self):
         self._instructionsListNeedHandled = False
 
-    def disassembleListNeedHandled(self):
+    def disassemble_list_handle(self):
         self._instructionsListNeedHandled = True
 
-    def getDisassembleMap(self):
-        if self.isCodeNeedHandled():
+    def get_disassemble_dict(self):
+        if self.is_need_handle_code():
             self.disassemble()
         return self.instructionsMap
 
-    def getDisassembleList(self):
-        if self.isDisassembleListNeedHandled():
-            disassembleMap = self.getDisassembleMap()
+    def get_disassemble_list(self):
+        if self.is_need_handle_disassemble_list():
+            disassembleMap = self.get_disassemble_dict()
             sorted_instructions = sorted(disassembleMap.items(),
                                          key=operator.itemgetter(0))
             self.instructionsList = sorted_instructions
         return self.instructionsList
 
-    def getDwordFromOffset(self, offset, offset_end):
-        return self.getDataFromOffsetWithFormat(offset, offset_end)
+    def get_dword_from_offset(self, offset, offset_end):
+        return self.get_data_from_offset_with_format(offset, offset_end)
 
-    def getFormatFromSize(self, size):
+    def get_format_from_size(self, size):
         if size == 8:
             fmt = 'l'
         elif size == 4:
@@ -112,7 +103,7 @@ class Disassembler(object):
             exit()
         return fmt
 
-    def getFormatFromSizeLE(self, size):
+    def get_format_from_size_little_endian(self, size):
         if size == 8:
             fmt = '<l'
         elif size == 4:
@@ -126,11 +117,12 @@ class Disassembler(object):
             exit()
         return fmt
 
-    def getDataFromOffsetWithFormat(self, offset, offset_end):
+    def get_data_from_offset_with_format(self, offset, offset_end):
         size = offset_end - offset
-        return struct.unpack(self.getFormatFromSize(size), self.code[offset:offset_end])[0]
+        return struct.unpack(self.get_format_from_size(size),
+                             self.code[offset:offset_end])[0]
 
-    def getDataAtOffset(self, offset, offset_end):
+    def get_data_at_offset(self, offset, offset_end):
         return self.code[offset:offset_end]
 
     def disassemble(self):
@@ -138,42 +130,62 @@ class Disassembler(object):
             return 0
         self.instructionsMap.clear()
         del self.instructionsList[:]
-        instructions = self.disassembler.disasm(binascii.hexlify(self.code).decode('hex'), 0x0)
+        instructions = \
+            self.disassembler.disasm(binascii.hexlify(self.code).decode('hex'),
+                                     0x0)
         for instruction in instructions:
             self.instructionsMap[instruction.address] = instruction
-        self.codeHandled()
-        self.disassembleMapHandled()
+        self.need_handle_code()
+        self.need_handled_disassemble_dict()
 
     def instrument(self, offset, instrumented_instruction):
-        self.writeLog.write('[0] [0x{:05x}]\t{}\n'.format(offset, instrumented_instruction))
+        self.writeLog.write(
+            '[0] [0x{:05x}]\t{}\n'.format(offset, instrumented_instruction))
         self.code[offset:offset] = instrumented_instruction
-        self.codeNeedHandled()
+        self.code_handle()
 
-    def setInstructionAtOffset(self, offset, offset_end, instruction):
-        self.writeLog.write('[1] [0x{:05x}]\t{} \t{} \n'.format(offset, self.code[offset:offset_end], instruction))
+    def set_instruction_at_offset(self, offset, offset_end, instruction):
+        self.writeLog.write(
+            '[1] [0x{:05x}]\t{} \t{} \n'.format(offset,
+                                                self.code[offset:offset_end],
+                                                instruction))
         self.code[offset:offset_end] = instruction
-        self.codeNeedHandled()
+        self.code_handle()
 
-    def setDataAtOffsetWithFormat(self, offset, offset_end, data):
+    def set_data_at_offset_with_format(self, offset, offset_end, data):
         size = offset_end - offset
-        fmt = self.getFormatFromSize(size)
+        fmt = self.get_format_from_size(size)
+        unpack_data = struct.unpack(fmt, self.code[offset:offset_end])
         self.writeLog.write('[2] [0x{:05x}]\t{} \t{} \n'.format(offset,
-                                                                struct.unpack(fmt, self.code[offset:offset_end]),
+                                                                unpack_data,
                                                                 data))
         self.code[offset:offset_end] = struct.pack(fmt, data)
-        self.codeNeedHandled()
+        self.code_handle()
 
-    def setDataChunkList(self, chunkList):
-        self.dataChunkList = chunkList
+    def is_indirect_branch(self, instruction):
+        """
+        Check whether it is a indirect branch instruction.
 
-    def isIndirectBranch(self, instruction):
+        Args:
+            instruction(instruction): instruction for check.
+        Returns:
+            bool : True if instruction is indirect branch, False otherwise.
+        """
         if hasattr(instruction, "groups"):
             for group in instruction.groups:
                 if group == CS_GRP_INDIRECT_BRANCH:
                     return True
         return False
 
-    def isDirectBranch(self, instruction):
+    def is_direct_branch(self, instruction):
+        """
+        Check whether it is a direct branch instruction.
+
+        Args:
+            instruction(instruction): instruction for check.
+        Returns:
+            bool : True if instruction is direct branch, False otherwise.
+        """
         if hasattr(instruction, "groups"):
             for group in instruction.groups:
                 if group == CS_GRP_BRANCH:

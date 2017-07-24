@@ -5,7 +5,7 @@ from PEAnalyzeTool import *
 from keystone import *
 
 
-def instrumentExample(instruction):
+def instrument_example(instruction):
     code = "MOV EAX, EAX"
     hexacode = binascii.hexlify(code).decode('hex')
     try:
@@ -36,5 +36,5 @@ if __name__ == '__main__':
 
     filename = "c:\\work\\firefox.exe"
     pei = PEInstrument(filename)
-    pei.instrumentRedirectControlflowInstruction(instrumentExample)
+    pei.instrument_at_indirect_instruction(instrument_example)
     pei.writefile('c:\\work\\firefox_test.exe')
