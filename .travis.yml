@@ -39,18 +39,18 @@ python:
     - "2.7"
 script:
     - python -m tests/test
-    - popd
+after_success:
+    - cd ..
     - sphinx-apidoc -F -o . zigzi/
     - cp zigzi/doc/conf.py .
     - make html
-
 cache:
   - pip
   - $HOME/keystone-master
 
 deploy:
-  provider: pages
-  skip_cleanup: true
-  github_token: $GITHUB_TOKEN # Set in travis-ci.org dashboard
-  on:
-    branch: master
+    provider: _build/html
+    skip_cleanup: true
+    github_token: $GITHUB_TOKEN # Set in travis-ci.org dashboard
+    on:
+      branch: master

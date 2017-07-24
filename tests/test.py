@@ -29,10 +29,8 @@ class Tests(unittest.TestCase):
         super(Tests, self).__init__(*args, **kwargs)
         self.codeLog = open(os.path.join(os.getcwd(), "tests", "codelog.txt"), 'w')
         self.relocLog = open(os.path.join(os.getcwd(), "tests", "reloclog.txt"), 'w')
-        self.src_filename = 'c:\\work\\firefox.exe'
-        self.dst_filename = 'c:\\work\\firefox_test.exe'
-        # self.src_filename = os.path.join(os.getcwd(), "tests", "sample.exe")
-        # self.dst_filename = os.path.join(os.getcwd(), "tests", "sample_test.exe")
+        self.src_filename = os.path.join(os.getcwd(), "tests", "sample.exe")
+        self.dst_filename = os.path.join(os.getcwd(), "tests", "sample_test.exe")
         srcPEI = PEInstrument(self.src_filename)
         srcPEI.instrument_at_indirect_instruction(instrument)
         srcPEI.writefile(self.dst_filename)
