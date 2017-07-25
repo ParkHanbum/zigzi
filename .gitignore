@@ -1,5 +1,0 @@
-_templates/
-_build/
-*.rst
-Makefile
-make.bat
