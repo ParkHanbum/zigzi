@@ -36,6 +36,9 @@ compiler: gcc
 language: python
 python:
     - "2.7"
+before-script:
+    - git config --global user.email "kese111@gmail.com"
+    - git config --global user.name "ParkHanbum"
 script:
     - python -m tests/test
 after_success:
