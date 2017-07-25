@@ -35,7 +35,8 @@ sys.path.insert(0, u'../../')
 extensions = ['sphinx.ext.autodoc',
     'sphinx.ext.todo',
     'sphinx.ext.viewcode',
-    'sphinx.ext.napoleon']
+    'sphinx.ext.napoleon',
+    'sphinx.ext.githubpages']
 
 # Napoleon settings
 napoleon_google_docstring = True
