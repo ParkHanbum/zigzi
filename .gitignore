@@ -1,0 +1,7 @@
+Makefile
+zigzi.rst
+_build/doctrees
+_static/
+_templates/
+index.rst
+make.bat

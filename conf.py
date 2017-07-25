@@ -63,7 +63,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Zigzi'
+project = u'zigzi'
 copyright = u'2017, Author'
 author = u'Author'
 
@@ -159,7 +159,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, 'Zigzi.tex', u'Zigzi Documentation',
+    (master_doc, 'zigzi.tex', u'zigzi Documentation',
      u'Author', 'manual'),
 ]
 
@@ -169,7 +169,7 @@ latex_documents = [
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    (master_doc, 'zigzi', u'Zigzi Documentation',
+    (master_doc, 'zigzi', u'zigzi Documentation',
      [author], 1)
 ]
 
@@ -180,8 +180,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-    (master_doc, 'Zigzi', u'Zigzi Documentation',
-     author, 'Zigzi', 'One line description of project.',
+    (master_doc, 'zigzi', u'zigzi Documentation',
+     author, 'zigzi', 'One line description of project.',
      'Miscellaneous'),
 ]
 
