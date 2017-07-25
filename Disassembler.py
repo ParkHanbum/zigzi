@@ -27,7 +27,7 @@ class Disassembler(object):
         self._codeNeedHandled = True
         self._instructionsListNeedHandled = True
         self._instructionsMapNeedHandled = True
-        self.writeLog = open(os.path.join(os.getcwd(), "writelog.txt"), 'w')
+        self.writeLog = open(os.path.join(os.getcwd(), "write.log"), 'w')
 
         # initiation disassembler
         self.disassembler = Cs(CS_ARCH_X86, CS_MODE_32)

@@ -27,8 +27,8 @@ class Tests(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super(Tests, self).__init__(*args, **kwargs)
-        self.codeLog = open(os.path.join(os.getcwd(), "tests", "codelog.txt"), 'w')
-        self.relocLog = open(os.path.join(os.getcwd(), "tests", "reloclog.txt"), 'w')
+        self.codeLog = open(os.path.join(os.getcwd(), "tests", "codelog.log"), 'w')
+        self.relocLog = open(os.path.join(os.getcwd(), "tests", "reloclog.log"), 'w')
         self.src_filename = os.path.join(os.getcwd(), "tests", "sample.exe")
         self.dst_filename = os.path.join(os.getcwd(), "tests", "sample_test.exe")
         srcPEI = PEInstrument(self.src_filename)

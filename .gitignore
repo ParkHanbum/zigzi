@@ -1,0 +1,11 @@
+*.pyc
+*.log
+.idea/
+doc/Makefile
+doc/Zigzi.rst
+doc/_build/
+doc/_static/
+doc/_templates/
+doc/index.rst
+doc/make.bat
+tests/sample_test.exe
