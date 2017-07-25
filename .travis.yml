@@ -36,7 +36,9 @@ compiler: gcc
 language: python
 python:
     - "2.7"
-before-script:
+script:
+    - python -m tests/test
+after_success:
     - git config --global user.email "kese111@gmail.com"
     - git config --global user.name "ParkHanbum"
     - git remote rm origin
@@ -44,9 +46,6 @@ before-script:
     - git remote -v
     - git fetch
     - git checkout gh-pages
-script:
-    - python -m tests/test
-after_success:
     - sphinx-apidoc -F -o doc .
     - cd doc
     - make html
