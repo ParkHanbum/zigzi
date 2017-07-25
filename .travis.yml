@@ -47,7 +47,8 @@ cache:
   - $HOME/keystone-master
 
 deploy:
-    provider: doc/_build/html
+    provider: pages
+    local_dir: doc/_build/html
     skip_cleanup: true
     github_token: $GITHUB_TOKEN # Set in travis-ci.org dashboard
     on:
