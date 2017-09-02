@@ -13,8 +13,12 @@ import DataSegment
 from Log import LoggerFactory
 
 
-class PEInstrument(object):
+_INSTRUMENT_POS_PREV_ = 0x1000
+_INSTRUMENT_POS_AFTER_ = 0x1001
+_INSTRUMENT_POS_REPLACE_ = 0x1002
 
+
+class PEInstrument(object):
     def __init__(self, pe_manager):
         if not isinstance(pe_manager, PEManager):
             print("YOU MUST set up PE Manager")
@@ -40,12 +44,25 @@ class PEInstrument(object):
         # variable for handle overflow
         self.overflowed = False
 
+        # function registry
+        self.pre_indirect_branch_functions = []
+        self.pre_relative_branch_functions = []
+        self.pre_return_functions = []
+
+        self.after_indirect_branch_functions = []
+        self.after_relative_branch_functions = []
+        self.after_return_functions = []
+
+        self.replace_indirect_branch_functions = []
+        self.replace_relative_branch_functions = []
+        self.replace_return_functions = []
+
     @classmethod
     def from_filename(cls, filename):
-        pe_util = PEManager(filename)
-        return cls(pe_util)
+        pe_manager = PEManager(filename)
+        return cls(pe_manager)
 
-    def get_peutil(self):
+    def get_pe_manager(self):
         return self.pe_manager
 
     def is_instrument_overflow_occurred(self):
@@ -101,16 +118,46 @@ class PEInstrument(object):
                                      key=operator.itemgetter(0))
         return sorted_instructions
 
-    def instrument_pre_indirect_branch(self, command, position=None):
+    def register_pre_indirect_branch(self, fn):
+        self.pre_indirect_branch_functions.append(fn)
+
+    def register_pre_relative_branch(self, fn):
+        self.pre_relative_branch_functions.append(fn)
+
+    def register_pre_return(self, fn):
+        self.pre_return_functions.append(fn)
+
+    def is_pre_indirect_branch_instrument_exist(self):
+        return len(self.pre_indirect_branch_functions) > 0
+
+    def is_pre_relative_branch_instrument_exist(self):
+        return len(self.pre_relative_branch_functions) > 0
+
+    def is_pre_return_instrument_exist(self):
+        return len(self.pre_return_functions) > 0
+
+    def register_after_indirect_branch(self, fn):
+        self.after_indirect_branch_functions.append(fn)
+
+    def register_after_relative_branch(self, fn):
+        self.after_relative_branch_functions.append(fn)
+
+    def register_after_return(self, fn):
+        self.after_return_functions.append(fn)
+
+    def is_after_indirect_branch_instrument_exist(self):
+        return len(self.after_indirect_branch_functions) > 0
+
+    def is_after_relative_branch_instrument_exist(self):
+        return len(self.after_relative_branch_functions) > 0
+
+    def is_after_return_instrument_exist(self):
+        return len(self.after_return_functions) > 0
+
+    def do_instrument(self):
         """
         instrument instruction when reached instruction that has control flow as
         redirect.
-
-        Args:
-            command(function)
-                A user-defined function that returns an instrument instruction.
-            position
-                The position to be instrumented by the command.
         """
         self.log = LoggerFactory().get_new_logger("Instrument.log")
         instrument_total = 0
@@ -118,18 +165,62 @@ class PEInstrument(object):
         for address, inst in instructions:
             try:
                 if self.disassembler.is_indirect_branch(inst):
-                    self.log.log('[0x{:x}]\t[0x{:x}]\t{:s}\t{:s}\n'
-                                 .format(inst.address + instrument_total,
-                                         inst.address, inst.mnemonic,
-                                         inst.op_str))
-                    result = self.instrument(command, inst, instrument_total)
-                    instrument_total += result
+                    if self.is_pre_indirect_branch_instrument_exist():
+                        self.log.log('[0x{:x}]\t[0x{:x}]\t{:s}\t{:s}\n'
+                                     .format(inst.address + instrument_total,
+                                             inst.address, inst.mnemonic,
+                                             inst.op_str))
+                        for fn in self.pre_indirect_branch_functions:
+                            result = self.instrument(fn, inst,
+                                                     instrument_total)
+                            instrument_total += result
+                    if self.is_after_indirect_branch_instrument_exist():
+                        self.log.log('[0x{:x}]\t[0x{:x}]\t{:s}\t{:s}\n'
+                                     .format(inst.address + instrument_total,
+                                             inst.address, inst.mnemonic,
+                                             inst.op_str))
+                        for fn in self.after_indirect_branch_functions:
+                            result = self.instrument(fn, inst, instrument_total,
+                                                     position=_INSTRUMENT_POS_AFTER_)
+                            instrument_total += result
+                elif self.disassembler.is_relative_branch(inst) \
+                        and self.disassembler.is_call(inst):
+                    if self.is_pre_relative_branch_instrument_exist():
+                        for fn in self.pre_relative_branch_functions:
+                            result = self.instrument(fn, inst,
+                                                     instrument_total)
+                            instrument_total += result
+                    if self.is_after_relative_branch_instrument_exist():
+                        self.log.log('[0x{:x}]\t[0x{:x}]\t{:s}\t{:s}\n'
+                                     .format(inst.address + instrument_total,
+                                             inst.address, inst.mnemonic,
+                                             inst.op_str))
+                        for fn in self.after_relative_branch_functions:
+                            result = self.instrument(fn, inst, instrument_total,
+                                                     position=_INSTRUMENT_POS_AFTER_)
+                            instrument_total += result
+                elif self.disassembler.is_return(inst):
+                    if self.is_pre_return_instrument_exist():
+                        for fn in self.pre_return_functions:
+                            result = self.instrument(fn, inst,
+                                                     instrument_total)
+                            instrument_total += result
+                    if self.is_after_return_instrument_exist():
+                        self.log.log('[0x{:x}]\t[0x{:x}]\t{:s}\t{:s}\n'
+                                     .format(inst.address + instrument_total,
+                                             inst.address, inst.mnemonic,
+                                             inst.op_str))
+                        for fn in self.after_return_functions:
+                            result = self.instrument(fn, inst, instrument_total,
+                                                     position=_INSTRUMENT_POS_AFTER_)
+                            instrument_total += result
             except:
                 print("ERROR WHILE INSTRUMENT")
                 exit()
         self.adjust_instruction_layout()
 
-    def instrument(self, command, instruction, total_count=0):
+    def instrument(self, fn, instruction, total_count=0,
+                   position=_INSTRUMENT_POS_PREV_):
         """
         The instrument passes the instruction to the user function. When
         the user function is finished and the instruction to be instrumented
@@ -138,24 +229,40 @@ class PEInstrument(object):
         pushed backward by the size of the inserted instruction.
 
         Args:
-            command(function)
+            fn(function)
                 User function to return instruction to be instrumented
             instruction(instruction)
                 Instruction to be passed to the user function.
             total_count(int)
-                total count of instrumented
+                total count of instrumented.
+            position(int)
+                position where be instrumented.
         Returns:
             int : size of instrumented instructions.
         """
         instrument_size = 0
-        instrument_inst, count = command(instruction)
+        instrument_inst, count = fn(instruction)
         if count > 0:
-            instrument_size = len(instrument_inst)
-            # put instrument instruction to execute_section_data
-            offset = instruction.address + total_count
-            self.code_manager.instrument(offset, instrument_inst)
-            self.current_instrument_pos_dict[offset] = len(instrument_inst)
-            self.instrument_pos_dict[offset] = len(instrument_inst)
+            if position == _INSTRUMENT_POS_PREV_:
+                instrument_size = len(instrument_inst)
+                offset = instruction.address + total_count
+                self.code_manager.instrument(offset, instrument_inst)
+                self.current_instrument_pos_dict[offset] = instrument_size
+                self.instrument_pos_dict[offset] = instrument_size
+            elif position == _INSTRUMENT_POS_AFTER_:
+                instrument_size = len(instrument_inst)
+                offset = instruction.address + total_count + instruction.size
+                self.code_manager.instrument(offset, instrument_inst)
+                self.current_instrument_pos_dict[offset] = instrument_size
+                self.instrument_pos_dict[offset] = instrument_size
+            elif position == _INSTRUMENT_POS_REPLACE_:
+                instrument_size = len(instrument_inst) - instruction.size
+                offset = instruction.address + total_count
+                self.code_manager.instrument_with_replace(offset,
+                                                          instruction.size,
+                                                          instrument_inst)
+                self.current_instrument_pos_dict[offset] = instrument_size
+                self.instrument_pos_dict[offset] = instrument_size
         return instrument_size
 
     def get_instrumented_size(self, instruction):
@@ -266,7 +373,7 @@ class PEInstrument(object):
             self.log = \
                 LoggerFactory().get_new_logger("AdjustDirectBranches.log")
             for instAddress, instruction in instructions:
-                if self.disassembler.is_direct_branch(instruction):
+                if self.disassembler.is_relative_branch(instruction):
                     self.adjust_direct_branches(instruction)
             self.log.fin()
         if self.is_instrument_overflow_occurred():
@@ -474,72 +581,93 @@ class PEInstrument(object):
         self.log.fin()
         return True
 
-    def merge_adjust_pos_with_prev(self, prev_adjust_dict, adjust_dict):
+    def merge_adjust_pos_with_prev(self, src_adjust_dict, dst_adjust_dict):
         """
         Merging previous adjust map with later adjust map
 
         Args:
-            prev_adjust_dict(dict): previous adjust map.
-            adjust_dict(dict): later adjust map.
+            src_adjust_dict(dict): previous adjust map.
+            dst_adjust_dict(dict): later adjust map.
 
         Returns:
             dict : adjusted instrumented map.
         """
         self.log = LoggerFactory().get_new_logger("AdjustingMerge.log")
         adjusted_dict = {}
-        sorted_prev_adjust_dict = sorted(prev_adjust_dict.items(),
-                                         key=operator.itemgetter(0))
-        sorted_adjust_dict = sorted(adjust_dict.items(),
-                                    key=operator.itemgetter(0))
+        sorted_src_adjust_dict = sorted(src_adjust_dict.items(),
+                                        key=operator.itemgetter(0))
+        sorted_dst_adjust_dict = sorted(dst_adjust_dict.items(),
+                                        key=operator.itemgetter(0))
+        # ready
+        dst_index = 0
+        instrumented_size_by_dst = 0
+        # initialize destiny
+        dst_instrumented_address, dst_instrumented_size = \
+            sorted_dst_adjust_dict[dst_index]
+        instrument_size_of_dst_address = dst_instrumented_size
+        src_total_instrument_size = 0
 
-        adjust_dict_index = 0
-        current_total_increased_size = 0
-        next_total_increased_size = 0
-        next_adjust_address, next_increased_size = \
-            sorted_adjust_dict[adjust_dict_index]
-        next_total_increased_size += next_increased_size
-        total_instrument_size = 0
-        for instrumented_address, instrumented_size in sorted_prev_adjust_dict:
-            adjust_instrument_address = instrumented_address
-            adjust_instrument_address += current_total_increased_size
-            while adjust_instrument_address > next_adjust_address \
-                    and len(sorted_adjust_dict) > adjust_dict_index:
-                # save current persistent
-                current_adjust_address = next_adjust_address
-                current_increased_size = next_increased_size
-                current_total_increased_size = next_total_increased_size
+        self.log.log("[instrument address]\t[instrument size]\t"
+                     "[adjusted address]\t[total instrumented size]\n")
+        # source instrumented iterating
+        for src_instrumented_address, src_instrumented_size \
+                in sorted_src_adjust_dict:
+            adjust_instrument_address = src_instrumented_address
+            # increase source instrument address by destiny instrument size.
+            adjust_instrument_address += instrumented_size_by_dst
 
-                adjust_dict_index += 1
-                if len(sorted_adjust_dict) > adjust_dict_index:
-                    # load next persistent
-                    next_adjust_address, next_increased_size = \
-                        sorted_adjust_dict[adjust_dict_index]
+            # this condition be true when reach next destiny instrument address.
+            # so, append current instrument point and load next.
+            while adjust_instrument_address > dst_instrumented_address \
+                    and len(sorted_dst_adjust_dict) > dst_index:
+                # save current status for append.
+                current_adjust_address = dst_instrumented_address
+                current_instrument_size = instrument_size_of_dst_address
+
+                # get next element of destiny instrument info.
+                dst_index += 1
+                if len(sorted_dst_adjust_dict) > dst_index:
+                    # load next instrument info.
+                    dst_instrumented_address, dst_instrumented_size = \
+                        sorted_dst_adjust_dict[dst_index]
+                    # if same address is exist, then occurred bug.
                     if current_adjust_address in adjusted_dict:
                         self.log.log("[OVERLAPPING]\t")
-                    adjust_instrument_address += next_increased_size
-                    next_total_increased_size += next_increased_size
+                    # update current status.
+                    # increase current source address, cause
+                    adjust_instrument_address += dst_instrumented_size
+                    instrumented_size_by_dst += current_instrument_size
+                    instrument_size_of_dst_address = dst_instrumented_size
+                # this is last instrument
                 else:
-                    print("TEST")
+                    current_adjust_address = dst_instrumented_address
+                    current_instrument_size = instrument_size_of_dst_address
+                    instrumented_size_by_dst += current_instrument_size
+                    print("LAST INSTRUMENT")
+                # append current destiny instrument info to adjust dict.
+                adjusted_dict[current_adjust_address] = current_instrument_size
 
-                # append instrument address by overflow
-                adjusted_dict[current_adjust_address] = current_increased_size
-                self.log.log("[0x{:x}]\t{:d}\t==[OVERFLOW]==>\t{:d}"
-                             "\t{:d}\t[0x{:x}]\n"
-                             .format(current_adjust_address,
-                                     current_increased_size,
-                                     current_total_increased_size,
-                                     next_total_increased_size,
-                                     next_adjust_address))
+                # logging
+                self.log.log("{:>20}\t{:>17}\t{:>18}\t{:>25}\t[OVERFLOW]\n"
+                             .format(hex(current_adjust_address),
+                                     hex(current_instrument_size),
+                                     hex(current_instrument_size),
+                                     hex(instrumented_size_by_dst
+                                         + src_total_instrument_size),
+                                     ))
 
-            self.log.log("[0x{:x}] + {:d} = [0x{:x}] + {:d} = [0x{:x}]\n"
-                         .format(instrumented_address - total_instrument_size,
-                                 total_instrument_size,
-                                 instrumented_address,
-                                 current_total_increased_size,
-                                 adjust_instrument_address
-                                 ))
-            total_instrument_size += instrumented_size
-            adjusted_dict[adjust_instrument_address] = instrumented_size
+            # logging
+            self.log.log("{:>20}\t{:>17}\t{:>18}\t{:>25}\n"
+                         .format(hex(src_instrumented_address
+                                 - src_total_instrument_size),
+                                 hex(src_instrumented_size),
+                                 hex(adjust_instrument_address),
+                                 hex(src_total_instrument_size
+                                 + instrumented_size_by_dst)
+                                 )
+                         )
+            src_total_instrument_size += src_instrumented_size
+            adjusted_dict[adjust_instrument_address] = src_instrumented_size
         return adjusted_dict
 
     def save_instrument_history(self, instrumented_pos_dict,

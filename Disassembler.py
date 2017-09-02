@@ -96,7 +96,29 @@ class Disassembler(object):
         return False
 
     @staticmethod
-    def is_direct_branch(instruction):
+    def is_relative_branch(instruction):
+        """
+        Check whether it is a relative branch instruction.
+
+        Args:
+            instruction(instruction): instruction for check.
+        Returns:
+            bool : True if instruction is direct branch, False otherwise.
+        """
+        if hasattr(instruction, "groups"):
+            for group in instruction.groups:
+                if group == CS_GRP_BRANCH:
+                    return True
+        return False
+
+    @staticmethod
+    def is_call(instruction):
+        if instruction.mnemonic == 'call':
+            return True
+        return False
+
+    @staticmethod
+    def is_return(instruction):
         """
         Check whether it is a direct branch instruction.
 
@@ -107,6 +129,6 @@ class Disassembler(object):
         """
         if hasattr(instruction, "groups"):
             for group in instruction.groups:
-                if group == CS_GRP_BRANCH:
+                if group == CS_GRP_RET:
                     return True
         return False

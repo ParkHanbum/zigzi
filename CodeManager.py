@@ -42,6 +42,13 @@ class CodeManager(object):
         self.code[offset:offset] = instrument_instruction
         self.need_code_handle()
 
+    def instrument_with_replace(self, offset, origin_instruction_size,
+                                instrument_instruction):
+        self.log.log(
+            '[0] [0x{:05x}]\t{}\n'.format(offset, instrument_instruction))
+        self.code[offset:origin_instruction_size] = instrument_instruction
+        self.need_code_handle()
+
     def instrument_at_last(self, instrument_instruction):
         offset = len(self.code) - 1
         self.log.log("[LAST]")

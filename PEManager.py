@@ -11,7 +11,6 @@ from Log import LoggerFactory
 
 
 class PEManager(object):
-
     def __init__(self, filename):
         """
         creator of PEManager
@@ -722,6 +721,8 @@ class PEManager(object):
             import_entry.struct.OriginalFirstThunk += increase_size
             for entry_index in range(len(import_entry.imports)):
                 import_entry_element = import_entry.imports[entry_index]
+                if import_entry_element.import_by_ordinal:
+                    continue
                 iat = import_entry_element.struct_iat
                 import_entry_element.struct_table.AddressOfData += increase_size
                 import_entry_element.struct_table.ForwarderString \
@@ -898,6 +899,136 @@ class PEManager(object):
         """
         return self.PE.OPTIONAL_HEADER.ImageBase + rva
 
+    def get_structure_from_rva(self, rva):
+        result = None
+        offset = self.PE.get_physical_by_rva(rva)
+        if not offset:
+            print("ERROR UNBOUNDED RVA")
+            exit()
+        for structure in self.PE.__structures__:
+            structure_offset = structure.get_file_offset()
+            if offset == structure_offset:
+                result = structure
+        return result
+
+    def get_bytes_at_offset(self, offset_start, offset_stop):
+        return self.PE.__data__[offset_start:offset_stop]
+
+    def adjust_relocation_directories(self, increase_size):
+        """
+        adjust relocation directories and its elements.
+        """
+        self.log = LoggerFactory().get_new_logger("AdjustRelocation1st.log")
+        relocation_blocks, relocation_entries = \
+            self.get_relocation_directories()
+        sorted_relocation_blocks = sorted(relocation_blocks.items(),
+                                          key=operator.itemgetter(0))
+        for index, (block_va, block) in enumerate(sorted_relocation_blocks):
+            for entry in relocation_entries[block_va]:
+                if entry.Data == 0:
+                    continue
+                self.relocation_entry_move_to_appropriate_block(entry, block,
+                                                                increase_size)
+        self.adjust_relocation_offset()
+
+    def relocation_entry_move_to_appropriate_block(self, entry, block,
+                                                   increase_size):
+        pe_structure = self.PE.__structures__
+        # we assume first section is text section.
+        # code section's address end that increased by instrument.
+        instrumented_code_section_end = self.PE.sections[0].VirtualAddress \
+                                        + self.PE.sections[0].Misc_VirtualSize
+        entry_data = entry.Data & 0x0fff
+        entry_type = entry.Data & 0xf000
+        block_va = block.VirtualAddress
+        entry_rva = block_va + entry_data
+
+        # we assume that first section virtual address is 0x1000
+        instrumented_size = self.get_instrument() \
+            .get_instrumented_vector_size(entry_rva - 0x1000)
+        if entry_rva + instrumented_size <= instrumented_code_section_end:
+            self.log.log("[INFO] original entry rva : [0x{:x}]\t"
+                         "adjusted entry rva : [0x{:x}]\t"
+                         "entry data : 0x{:x}\t"
+                         "instrumented size ; 0x{:x}\n"
+                         .format(entry_data + block_va,
+                                 entry_rva + instrumented_size,
+                                 entry_data, instrumented_size))
+            # if entry RVA is overflowed (over 0x1000)
+            # then move entry to appropriate block
+            entry_data += instrumented_size
+            if entry_data >= 0x1000:
+                pe_structure.remove(entry)
+                pe_structure[pe_structure.index(block)].SizeOfBlock -= 2
+                self.register_rva_to_relocation(entry_data + block_va)
+            else:
+                entry.Data = entry_data + entry_type
+        else:
+            entry_data += increase_size
+            pe_structure.remove(entry)
+            pe_structure[pe_structure.index(block)].SizeOfBlock -= 2
+            self.register_rva_to_relocation(entry_data + block_va)
+            self.log.log("[OTHER] original entry rva : [0x{:x}]\t"
+                         "adjusted entry rva : [0x{:x}]\t"
+                         "entry data : 0x{:x}\t"
+                         "instrumented size ; 0x{:x}\n"
+                         .format(entry_rva, entry_data + block_va,
+                                 entry_data, increase_size))
+
+    def register_rva_to_relocation(self, rva):
+        """
+        append rva to relocation list.
+        if appropriate block is not exist, then append it after make new block.
+
+        Args:
+            rva(int) : relative address for relocating.
+        """
+        block_rva = rva & 0xfffff000
+        pe_structure = self.PE.__structures__
+
+        (relocationBlocks, relocationEntries) = \
+            self.get_relocation_directories()
+
+        if block_rva in relocationBlocks:
+            block_index = pe_structure.index(relocationBlocks[block_rva])
+        else:
+            block_index = self.gen_new_relocation_block(block_rva)
+        entry = self.gen_new_relocation_entry(rva)
+        self.append_relocation_entry_to_block(entry, block_index)
+
+    def gen_new_relocation_block(self, block_rva):
+        pe_structure = self.PE.__structures__
+        (relocation_blocks, relocation_entries) \
+            = self.get_relocation_directories()
+        sorted_relocation_blocks = sorted(relocation_blocks.items(),
+                                          key=operator.itemgetter(0))
+        for _block_rva, _block in sorted_relocation_blocks:
+            if _block_rva > block_rva:
+                break
+        next_block_index = pe_structure.index(_block)
+        new_block = copy.deepcopy(_block)
+        new_block.SizeOfBlock = 8
+        new_block.VirtualAddress = block_rva
+        block_index = next_block_index
+        relocation_blocks[block_rva] = new_block
+        pe_structure.insert(block_index, new_block)
+        return block_index
+
+    def gen_new_relocation_entry(self, rva):
+        structure = Structure(self.PE.__IMAGE_BASE_RELOCATION_ENTRY_format__)
+        setattr(structure, "Data", (rva & 0xfff) + 0x3000)
+        return structure
+
+    def append_relocation_entry_to_block(self, entry, block_index):
+        pe_structure = self.PE.__structures__
+        _block_size = pe_structure[block_index].SizeOfBlock
+        if (_block_size - 8) > 0:
+            block_entry_count = (_block_size - 8) / 2
+            pe_structure.insert(block_index + block_entry_count + 1, entry)
+        else:
+            pe_structure.insert(block_index + 1, entry)
+        pe_structure[block_index].SizeOfBlock += 2
+
     @staticmethod
     def get_section_belong_rva(sections, rva):
         for section in sections:
@@ -935,174 +1066,3 @@ class PEManager(object):
         """
         clone_section = copy.copy(section)
         return clone_section
-
-    def get_structure_from_rva(self, rva):
-        result = None
-        offset = self.PE.get_physical_by_rva(rva)
-        if not offset:
-            print("ERROR UNBOUNDED RVA")
-            exit()
-        for structure in self.PE.__structures__:
-            structure_offset = structure.get_file_offset()
-            if offset == structure_offset:
-                result = structure
-        return result
-
-    def get_bytes_at_offset(self, offset_start, offset_stop):
-        return self.PE.__data__[offset_start:offset_stop]
-
-    def adjust_relocation_directories(self, increase_size):
-        """
-        adjust relocation directories and its elements.
-        """
-        self.log = LoggerFactory().get_new_logger("AdjustRelocation1st.log")
-
-        sections = self.PEOrigin.sections
-        pe_structure = self.PE.__structures__
-        # we assume first section is text section.
-        second_section_va = sections[1].VirtualAddress
-
-        (relocationBlocks, relocationEntries) = \
-            self.get_relocation_directories()
-        sorted_relocation_blocks = sorted(relocationBlocks.items(),
-                                          key=operator.itemgetter(0))
-        for index, (block_va, block) in enumerate(sorted_relocation_blocks):
-            # first, adjust other block besides text section
-            if block_va >= second_section_va:
-                # increase_size mean increased size of section.
-                pe_structure[pe_structure.index(block)].VirtualAddress \
-                    += increase_size
-
-        (relocationBlocks, relocationEntries) = \
-            self.get_relocation_directories()
-        sorted_relocation_blocks = sorted(relocationBlocks.items(),
-                                          key=operator.itemgetter(0))
-        for index, (block_va, block) in enumerate(sorted_relocation_blocks):
-            # next, adjust relocation element in text section.
-            if block_va < second_section_va:
-                for entry in relocationEntries[block_va]:
-                    if entry.Data == 0:
-                        continue
-                    entry_data = entry.Data & 0x0fff
-                    entry_type = entry.Data & 0xf000
-                    entry_rva = block_va + entry_data
-                    # we assume that first section virtual address is 0x1000
-                    instrumented_size = \
-                        self.get_instrument() \
-                            .get_instrumented_vector_size(entry_rva - 0x1000)
-                    self.log.log("[INFO] original entry rva : [0x{:x}]\t"
-                                 "adjusted entry rva : [0x{:x}]\t"
-                                 "entry data : 0x{:x}\t"
-                                 "instrumented size ; 0x{:x}\n"
-                                 .format(entry_rva,
-                                         entry_rva + instrumented_size,
-                                         entry_data,
-                                         instrumented_size)
-                                 )
-                    entry_data += instrumented_size
-                    # if entry RVA is overflowed (over 0x1000)
-                    # move entry to appropriate block
-                    if entry_data >= 0x1000:
-                        pe_structure.remove(entry)
-                        pe_structure[pe_structure.index(block)].SizeOfBlock -= 2
-                        appropriate_block_va = (entry_data & 0xf000) + block_va
-                        entry.Data = (entry_data & 0xfff) + entry_type
-                        self.log.log("\t=====> entry rva : [0x{:x}]\t"
-                                     "appopriate block : 0x{:x}\t"
-                                     "entry data : 0x{:x}\n"
-                                     .format(entry_rva,
-                                             appropriate_block_va,
-                                             entry_data)
-                                     )
-                        # if appropriate block address is exist.
-                        if appropriate_block_va in relocationBlocks:
-                            appropriate_block_index = \
-                                pe_structure.index(
-                                    relocationBlocks[appropriate_block_va]
-                                )
-                        else:
-                            # create new relocation block
-                            for _block_rva, _block \
-                                    in sorted_relocation_blocks[index:]:
-                                if _block_rva > appropriate_block_va:
-                                    break
-                            next_block_index = pe_structure.index(_block)
-                            new_block = copy.deepcopy(_block)
-                            new_block.SizeOfBlock = 8
-                            new_block.VirtualAddress = appropriate_block_va
-                            appropriate_block_index = next_block_index
-                            relocationBlocks[appropriate_block_va] = new_block
-                            pe_structure.insert(appropriate_block_index,
-                                                new_block)
-
-                        _block_size = \
-                            pe_structure[appropriate_block_index].SizeOfBlock
-                        if (_block_size - 8) > 0:
-                            block_el_count = (_block_size - 8) / 2
-                            pe_structure.insert(appropriate_block_index
-                                                + block_el_count + 1, entry)
-                        else:
-                            pe_structure.insert(appropriate_block_index + 1,
-                                                entry)
-                        pe_structure[appropriate_block_index].SizeOfBlock += 2
-                    else:
-                        entry.Data = entry_data + entry_type
-        self.adjust_relocation_offset()
-
-    def register_rva_to_relocation(self, rva):
-        """
-        append rva to relocation list.
-
-        Args:
-            rva(int) : relative address for relocating.
-        """
-        block_rva = rva & 0xfffff000
-        entry_rva = rva & 0xfff
-        pe_structure = self.PE.__structures__
-
-        (relocationBlocks, relocationEntries) = \
-            self.get_relocation_directories()
-
-        sorted_relocation_blocks = sorted(relocationBlocks.items(),
-                                          key=operator.itemgetter(0))
-
-        if block_rva in relocationBlocks:
-            block_index = pe_structure.index(relocationBlocks[block_rva])
-        else:
-            block_index = self.gen_new_relocation_block(block_rva)
-        # TODO : make new entry and append to Block
-        entry = self.gen_new_relocation_entry(rva)
-        self.append_relocation_entry_to_block(entry, block_index)
-
-    def gen_new_relocation_block(self, block_rva):
-        pe_structure = self.PE.__structures__
-        (relocation_blocks, relocation_entries) \
-            = self.get_relocation_directories()
-        sorted_relocation_blocks = sorted(relocation_blocks.items(),
-                                          key=operator.itemgetter(0))
-        for _block_rva, _block in sorted_relocation_blocks:
-            if _block_rva > block_rva:
-                break
-        next_block_index = pe_structure.index(_block)
-        new_block = copy.deepcopy(_block)
-        new_block.SizeOfBlock = 8
-        new_block.VirtualAddress = block_rva
-        block_index = next_block_index
-        relocation_blocks[block_rva] = new_block
-        pe_structure.insert(block_index, new_block)
-        return block_index
-
-    def gen_new_relocation_entry(self, rva):
-        structure = Structure(self.PE.__IMAGE_BASE_RELOCATION_ENTRY_format__)
-        setattr(structure, "Data", (rva & 0xfff) + 0x3000)
-        return structure
-
-    def append_relocation_entry_to_block(self, entry, block_index):
-        pe_structure = self.PE.__structures__
-        _block_size = pe_structure[block_index].SizeOfBlock
-        if (_block_size - 8) > 0:
-            block_entry_count = (_block_size - 8) / 2
-            pe_structure.insert(block_index + block_entry_count + 1, entry)
-        else:
-            pe_structure.insert(block_index + 1, entry)
-        pe_structure[block_index].SizeOfBlock += 2
