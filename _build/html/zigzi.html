@@ -44,41 +44,1676 @@
 <div class="section" id="submodules">
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
 </div>
-<div class="section" id="zigzi-codemanager-module">
-<h2>zigzi.CodeManager module<a class="headerlink" href="#zigzi-codemanager-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-zigzi.CodeManager">
+<span id="zigzi-codemanager-module"></span><h2>zigzi.CodeManager module<a class="headerlink" href="#module-zigzi.CodeManager" title="Permalink to this headline">¶</a></h2>
+<p>Disassembler engine for disassemble and instrumentation base on Capstone
+disassemble engine.</p>
+<dl class="class">
+<dt id="zigzi.CodeManager.CodeManager">
+<em class="property">class </em><code class="descclassname">zigzi.CodeManager.</code><code class="descname">CodeManager</code><span class="sig-paren">(</span><em>code</em>, <em>rva</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/CodeManager.html#CodeManager"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.CodeManager.CodeManager" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="zigzi.CodeManager.CodeManager.code_handled">
+<code class="descname">code_handled</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/CodeManager.html#CodeManager.code_handled"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.CodeManager.CodeManager.code_handled" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.CodeManager.CodeManager.get_base_rva">
+<code class="descname">get_base_rva</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/CodeManager.html#CodeManager.get_base_rva"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.CodeManager.CodeManager.get_base_rva" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.CodeManager.CodeManager.get_code">
+<code class="descname">get_code</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/CodeManager.html#CodeManager.get_code"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.CodeManager.CodeManager.get_code" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.CodeManager.CodeManager.get_data_at_offset">
+<code class="descname">get_data_at_offset</code><span class="sig-paren">(</span><em>offset</em>, <em>offset_end</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/CodeManager.html#CodeManager.get_data_at_offset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.CodeManager.CodeManager.get_data_at_offset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.CodeManager.CodeManager.get_data_from_offset_with_format">
+<code class="descname">get_data_from_offset_with_format</code><span class="sig-paren">(</span><em>offset</em>, <em>offset_end</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/CodeManager.html#CodeManager.get_data_from_offset_with_format"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.CodeManager.CodeManager.get_data_from_offset_with_format" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.CodeManager.CodeManager.get_data_from_rva">
+<code class="descname">get_data_from_rva</code><span class="sig-paren">(</span><em>rva</em>, <em>length</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/CodeManager.html#CodeManager.get_data_from_rva"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.CodeManager.CodeManager.get_data_from_rva" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.CodeManager.CodeManager.get_dword_from_offset">
+<code class="descname">get_dword_from_offset</code><span class="sig-paren">(</span><em>offset</em>, <em>offset_end</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/CodeManager.html#CodeManager.get_dword_from_offset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.CodeManager.CodeManager.get_dword_from_offset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="zigzi.CodeManager.CodeManager.get_format_from_size">
+<em class="property">static </em><code class="descname">get_format_from_size</code><span class="sig-paren">(</span><em>size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/CodeManager.html#CodeManager.get_format_from_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.CodeManager.CodeManager.get_format_from_size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="zigzi.CodeManager.CodeManager.get_format_from_size_little_endian">
+<em class="property">static </em><code class="descname">get_format_from_size_little_endian</code><span class="sig-paren">(</span><em>size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/CodeManager.html#CodeManager.get_format_from_size_little_endian"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.CodeManager.CodeManager.get_format_from_size_little_endian" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.CodeManager.CodeManager.instrument">
+<code class="descname">instrument</code><span class="sig-paren">(</span><em>offset</em>, <em>instrument_instruction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/CodeManager.html#CodeManager.instrument"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.CodeManager.CodeManager.instrument" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.CodeManager.CodeManager.instrument_at_last">
+<code class="descname">instrument_at_last</code><span class="sig-paren">(</span><em>instrument_instruction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/CodeManager.html#CodeManager.instrument_at_last"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.CodeManager.CodeManager.instrument_at_last" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.CodeManager.CodeManager.instrument_with_replace">
+<code class="descname">instrument_with_replace</code><span class="sig-paren">(</span><em>offset</em>, <em>origin_instruction_size</em>, <em>instrument_instruction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/CodeManager.html#CodeManager.instrument_with_replace"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.CodeManager.CodeManager.instrument_with_replace" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.CodeManager.CodeManager.is_need_code_handle">
+<code class="descname">is_need_code_handle</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/CodeManager.html#CodeManager.is_need_code_handle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.CodeManager.CodeManager.is_need_code_handle" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.CodeManager.CodeManager.need_code_handle">
+<code class="descname">need_code_handle</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/CodeManager.html#CodeManager.need_code_handle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.CodeManager.CodeManager.need_code_handle" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.CodeManager.CodeManager.set_data_at_offset_with_format">
+<code class="descname">set_data_at_offset_with_format</code><span class="sig-paren">(</span><em>offset</em>, <em>offset_end</em>, <em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/CodeManager.html#CodeManager.set_data_at_offset_with_format"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.CodeManager.CodeManager.set_data_at_offset_with_format" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.CodeManager.CodeManager.set_instruction_at_offset">
+<code class="descname">set_instruction_at_offset</code><span class="sig-paren">(</span><em>offset</em>, <em>offset_end</em>, <em>instruction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/CodeManager.html#CodeManager.set_instruction_at_offset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.CodeManager.CodeManager.set_instruction_at_offset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </div>
-<div class="section" id="zigzi-dataobject-module">
-<h2>zigzi.DataObject module<a class="headerlink" href="#zigzi-dataobject-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-zigzi.DataObject">
+<span id="zigzi-dataobject-module"></span><h2>zigzi.DataObject module<a class="headerlink" href="#module-zigzi.DataObject" title="Permalink to this headline">¶</a></h2>
+<p>DataObject
+Helper class for data instrument to file.</p>
+<dl class="class">
+<dt id="zigzi.DataObject.DataObject">
+<em class="property">class </em><code class="descclassname">zigzi.DataObject.</code><code class="descname">DataObject</code><span class="sig-paren">(</span><em>base_address</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/DataObject.html#DataObject"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.DataObject.DataObject" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="zigzi.DataObject.DataObject.append_byte">
+<code class="descname">append_byte</code><span class="sig-paren">(</span><em>byte</em>, <em>variable_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/DataObject.html#DataObject.append_byte"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.DataObject.DataObject.append_byte" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.DataObject.DataObject.append_chunk">
+<code class="descname">append_chunk</code><span class="sig-paren">(</span><em>data_list</em>, <em>variable_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/DataObject.html#DataObject.append_chunk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.DataObject.DataObject.append_chunk" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.DataObject.DataObject.append_dword">
+<code class="descname">append_dword</code><span class="sig-paren">(</span><em>dword</em>, <em>variable_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/DataObject.html#DataObject.append_dword"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.DataObject.DataObject.append_dword" title="Permalink to this definition">¶</a></dt>
+<dd><p>append_dword size value to data list.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>dword</strong> – value.</li>
+<li><strong>variable_name</strong> – name of this space.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">base position point before appending.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">int</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.DataObject.DataObject.append_finish">
+<code class="descname">append_finish</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/DataObject.html#DataObject.append_finish"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.DataObject.DataObject.append_finish" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.DataObject.DataObject.append_word">
+<code class="descname">append_word</code><span class="sig-paren">(</span><em>word</em>, <em>variable_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/DataObject.html#DataObject.append_word"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.DataObject.DataObject.append_word" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="zigzi.DataObject.DataObject.base_address">
+<code class="descname">base_address</code><a class="headerlink" href="#zigzi.DataObject.DataObject.base_address" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.DataObject.DataObject.declare_byte">
+<code class="descname">declare_byte</code><span class="sig-paren">(</span><em>init_value=None</em>, <em>variable_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/DataObject.html#DataObject.declare_byte"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.DataObject.DataObject.declare_byte" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.DataObject.DataObject.declare_dword">
+<code class="descname">declare_dword</code><span class="sig-paren">(</span><em>init_value=None</em>, <em>variable_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/DataObject.html#DataObject.declare_dword"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.DataObject.DataObject.declare_dword" title="Permalink to this definition">¶</a></dt>
+<dd><p>declare and set up dword type variable.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>init_value</strong> – value of this variable</li>
+<li><strong>variable_name</strong> – name of this variable</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">current base position.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">int</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.DataObject.DataObject.declare_word">
+<code class="descname">declare_word</code><span class="sig-paren">(</span><em>init_value=None</em>, <em>variable_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/DataObject.html#DataObject.declare_word"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.DataObject.DataObject.declare_word" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.DataObject.DataObject.get_current_base_pos">
+<code class="descname">get_current_base_pos</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/DataObject.html#DataObject.get_current_base_pos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.DataObject.DataObject.get_current_base_pos" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.DataObject.DataObject.get_variable_reference">
+<code class="descname">get_variable_reference</code><span class="sig-paren">(</span><em>variable_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/DataObject.html#DataObject.get_variable_reference"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.DataObject.DataObject.get_variable_reference" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.DataObject.DataObject.get_variable_value">
+<code class="descname">get_variable_value</code><span class="sig-paren">(</span><em>variable_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/DataObject.html#DataObject.get_variable_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.DataObject.DataObject.get_variable_value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.DataObject.DataObject.init_byte_order">
+<code class="descname">init_byte_order</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/DataObject.html#DataObject.init_byte_order"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.DataObject.DataObject.init_byte_order" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.DataObject.DataObject.is_append_not_finish">
+<code class="descname">is_append_not_finish</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/DataObject.html#DataObject.is_append_not_finish"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.DataObject.DataObject.is_append_not_finish" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.DataObject.DataObject.save_local_variable">
+<code class="descname">save_local_variable</code><span class="sig-paren">(</span><em>base_point</em>, <em>variable_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/DataObject.html#DataObject.save_local_variable"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.DataObject.DataObject.save_local_variable" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.DataObject.DataObject.set_variable_value">
+<code class="descname">set_variable_value</code><span class="sig-paren">(</span><em>variable_name</em>, <em>value</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/DataObject.html#DataObject.set_variable_value"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.DataObject.DataObject.set_variable_value" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="zigzi.DataObject.DataObject.size">
+<code class="descname">size</code><a class="headerlink" href="#zigzi.DataObject.DataObject.size" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </div>
-<div class="section" id="zigzi-datasegment-module">
-<h2>zigzi.DataSegment module<a class="headerlink" href="#zigzi-datasegment-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-zigzi.DataSegment">
+<span id="zigzi-datasegment-module"></span><h2>zigzi.DataSegment module<a class="headerlink" href="#module-zigzi.DataSegment" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="zigzi.DataSegment.Chunk">
+<em class="property">class </em><code class="descclassname">zigzi.DataSegment.</code><code class="descname">Chunk</code><span class="sig-paren">(</span><em>pe_manager</em>, <em>size=4096</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/DataSegment.html#Chunk"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.DataSegment.Chunk" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">future.types.newobject.newobject</span></code></p>
+<dl class="method">
+<dt id="zigzi.DataSegment.Chunk.get_va">
+<code class="descname">get_va</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/DataSegment.html#Chunk.get_va"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.DataSegment.Chunk.get_va" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </div>
-<div class="section" id="zigzi-disassembler-module">
-<h2>zigzi.Disassembler module<a class="headerlink" href="#zigzi-disassembler-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-zigzi.Disassembler">
+<span id="zigzi-disassembler-module"></span><h2>zigzi.Disassembler module<a class="headerlink" href="#module-zigzi.Disassembler" title="Permalink to this headline">¶</a></h2>
+<p>Disassembler engine for disassemble and instrumentation base on Capstone
+disassemble engine.</p>
+<dl class="class">
+<dt id="zigzi.Disassembler.Disassembler">
+<em class="property">class </em><code class="descclassname">zigzi.Disassembler.</code><code class="descname">Disassembler</code><span class="sig-paren">(</span><em>_code_manager</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Disassembler.html#Disassembler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Disassembler.Disassembler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="zigzi.Disassembler.Disassembler.disassemble">
+<code class="descname">disassemble</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Disassembler.html#Disassembler.disassemble"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Disassembler.Disassembler.disassemble" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.Disassembler.Disassembler.disassemble_dict_handle">
+<code class="descname">disassemble_dict_handle</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Disassembler.html#Disassembler.disassemble_dict_handle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Disassembler.Disassembler.disassemble_dict_handle" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.Disassembler.Disassembler.disassemble_list_handle">
+<code class="descname">disassemble_list_handle</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Disassembler.html#Disassembler.disassemble_list_handle"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Disassembler.Disassembler.disassemble_list_handle" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.Disassembler.Disassembler.get_disassemble_dict">
+<code class="descname">get_disassemble_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Disassembler.html#Disassembler.get_disassemble_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Disassembler.Disassembler.get_disassemble_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.Disassembler.Disassembler.get_disassemble_list">
+<code class="descname">get_disassemble_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Disassembler.html#Disassembler.get_disassemble_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Disassembler.Disassembler.get_disassemble_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="zigzi.Disassembler.Disassembler.is_call">
+<em class="property">static </em><code class="descname">is_call</code><span class="sig-paren">(</span><em>instruction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Disassembler.html#Disassembler.is_call"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Disassembler.Disassembler.is_call" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="zigzi.Disassembler.Disassembler.is_indirect_branch">
+<em class="property">static </em><code class="descname">is_indirect_branch</code><span class="sig-paren">(</span><em>instruction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Disassembler.html#Disassembler.is_indirect_branch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Disassembler.Disassembler.is_indirect_branch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether it is a indirect branch instruction.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>instruction</strong> (<em>instruction</em>) – instruction for check.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True if instruction is indirect branch, False otherwise.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.Disassembler.Disassembler.is_need_handle_disassemble_dict">
+<code class="descname">is_need_handle_disassemble_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Disassembler.html#Disassembler.is_need_handle_disassemble_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Disassembler.Disassembler.is_need_handle_disassemble_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.Disassembler.Disassembler.is_need_handle_disassemble_list">
+<code class="descname">is_need_handle_disassemble_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Disassembler.html#Disassembler.is_need_handle_disassemble_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Disassembler.Disassembler.is_need_handle_disassemble_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="zigzi.Disassembler.Disassembler.is_relative_branch">
+<em class="property">static </em><code class="descname">is_relative_branch</code><span class="sig-paren">(</span><em>instruction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Disassembler.html#Disassembler.is_relative_branch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Disassembler.Disassembler.is_relative_branch" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether it is a relative branch instruction.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>instruction</strong> (<em>instruction</em>) – instruction for check.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True if instruction is direct branch, False otherwise.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="zigzi.Disassembler.Disassembler.is_return">
+<em class="property">static </em><code class="descname">is_return</code><span class="sig-paren">(</span><em>instruction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Disassembler.html#Disassembler.is_return"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Disassembler.Disassembler.is_return" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check whether it is a direct branch instruction.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>instruction</strong> (<em>instruction</em>) – instruction for check.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True if instruction is direct branch, False otherwise.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.Disassembler.Disassembler.need_handle_disassemble_list">
+<code class="descname">need_handle_disassemble_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Disassembler.html#Disassembler.need_handle_disassemble_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Disassembler.Disassembler.need_handle_disassemble_list" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.Disassembler.Disassembler.need_handled_disassemble_dict">
+<code class="descname">need_handled_disassemble_dict</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Disassembler.html#Disassembler.need_handled_disassemble_dict"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Disassembler.Disassembler.need_handled_disassemble_dict" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </div>
-<div class="section" id="zigzi-heap-module">
-<h2>zigzi.Heap module<a class="headerlink" href="#zigzi-heap-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-zigzi.Heap">
+<span id="zigzi-heap-module"></span><h2>zigzi.Heap module<a class="headerlink" href="#module-zigzi.Heap" title="Permalink to this headline">¶</a></h2>
+<p>Heap,
+helper class for heap space.</p>
+<dl class="class">
+<dt id="zigzi.Heap.Heap">
+<em class="property">class </em><code class="descclassname">zigzi.Heap.</code><code class="descname">Heap</code><span class="sig-paren">(</span><em>base_address</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Heap.html#Heap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Heap.Heap" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#zigzi.DataObject.DataObject" title="zigzi.DataObject.DataObject"><code class="xref py py-class docutils literal"><span class="pre">zigzi.DataObject.DataObject</span></code></a></p>
+<dl class="method">
+<dt id="zigzi.Heap.Heap.append_element">
+<code class="descname">append_element</code><span class="sig-paren">(</span><em>element</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Heap.html#Heap.append_element"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Heap.Heap.append_element" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.Heap.Heap.append_element_finish">
+<code class="descname">append_element_finish</code><span class="sig-paren">(</span><em>last_element</em>, <em>variable_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Heap.html#Heap.append_element_finish"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Heap.Heap.append_element_finish" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.Heap.Heap.append_string">
+<code class="descname">append_string</code><span class="sig-paren">(</span><em>_str</em>, <em>variable_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Heap.html#Heap.append_string"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Heap.Heap.append_string" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert a string hex byte values into a byte string.
+The Hex Byte values may or may not be space separated.</p>
+</dd></dl>
+
+</dd></dl>
+
 </div>
-<div class="section" id="zigzi-log-module">
-<h2>zigzi.Log module<a class="headerlink" href="#zigzi-log-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-zigzi.Log">
+<span id="zigzi-log-module"></span><h2>zigzi.Log module<a class="headerlink" href="#module-zigzi.Log" title="Permalink to this headline">¶</a></h2>
+<p>Logger, Utility for logging.</p>
+<dl class="class">
+<dt id="zigzi.Log.Logger">
+<em class="property">class </em><code class="descclassname">zigzi.Log.</code><code class="descname">Logger</code><span class="sig-paren">(</span><em>sequence</em>, <em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Log.html#Logger"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Log.Logger" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="zigzi.Log.Logger.fin">
+<code class="descname">fin</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Log.html#Logger.fin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Log.Logger.fin" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.Log.Logger.get_log_path">
+<code class="descname">get_log_path</code><span class="sig-paren">(</span><em>log_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Log.html#Logger.get_log_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Log.Logger.get_log_path" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.Log.Logger.log">
+<code class="descname">log</code><span class="sig-paren">(</span><em>msg</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Log.html#Logger.log"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Log.Logger.log" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="zigzi.Log.LoggerFactory">
+<em class="property">class </em><code class="descclassname">zigzi.Log.</code><code class="descname">LoggerFactory</code><a class="reference internal" href="_modules/zigzi/Log.html#LoggerFactory"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Log.LoggerFactory" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#zigzi.Log.Singleton" title="zigzi.Log.Singleton"><code class="xref py py-class docutils literal"><span class="pre">zigzi.Log.Singleton</span></code></a>, <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="zigzi.Log.LoggerFactory.get_new_logger">
+<code class="descname">get_new_logger</code><span class="sig-paren">(</span><em>log_name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Log.html#LoggerFactory.get_new_logger"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Log.LoggerFactory.get_new_logger" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="zigzi.Log.Singleton">
+<em class="property">class </em><code class="descclassname">zigzi.Log.</code><code class="descname">Singleton</code><a class="reference internal" href="_modules/zigzi/Log.html#Singleton"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Log.Singleton" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+</dd></dl>
+
 </div>
-<div class="section" id="zigzi-peanalyzetool-module">
-<h2>zigzi.PEAnalyzeTool module<a class="headerlink" href="#zigzi-peanalyzetool-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-zigzi.PEAnalyzeTool">
+<span id="zigzi-peanalyzetool-module"></span><h2>zigzi.PEAnalyzeTool module<a class="headerlink" href="#module-zigzi.PEAnalyzeTool" title="Permalink to this headline">¶</a></h2>
+<p>PEAnalyzeTool, Analyze tool for PE that Windows Portable Executable Format</p>
+<dl class="class">
+<dt id="zigzi.PEAnalyzeTool.BasicBlock">
+<em class="property">class </em><code class="descclassname">zigzi.PEAnalyzeTool.</code><code class="descname">BasicBlock</code><a class="reference internal" href="_modules/zigzi/PEAnalyzeTool.html#BasicBlock"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEAnalyzeTool.BasicBlock" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="method">
+<dt id="zigzi.PEAnalyzeTool.BasicBlock.append">
+<code class="descname">append</code><span class="sig-paren">(</span><em>inst</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEAnalyzeTool.html#BasicBlock.append"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEAnalyzeTool.BasicBlock.append" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEAnalyzeTool.BasicBlock.getStartAddress">
+<code class="descname">getStartAddress</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEAnalyzeTool.html#BasicBlock.getStartAddress"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEAnalyzeTool.BasicBlock.getStartAddress" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEAnalyzeTool.BasicBlock.toDotNode">
+<code class="descname">toDotNode</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEAnalyzeTool.html#BasicBlock.toDotNode"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEAnalyzeTool.BasicBlock.toDotNode" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="zigzi.PEAnalyzeTool.PEAnalyzer">
+<em class="property">class </em><code class="descclassname">zigzi.PEAnalyzeTool.</code><code class="descname">PEAnalyzer</code><span class="sig-paren">(</span><em>execute_section</em>, <em>execute_section_data</em>, <em>entry_point_va</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEAnalyzeTool.html#PEAnalyzer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">object</span></code></p>
+<dl class="attribute">
+<dt id="zigzi.PEAnalyzeTool.PEAnalyzer.OPERAND_ABSOLUTE_ADDRESS">
+<code class="descname">OPERAND_ABSOLUTE_ADDRESS</code><em class="property"> = 'AbsoluteMemoryAddress'</em><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer.OPERAND_ABSOLUTE_ADDRESS" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="zigzi.PEAnalyzeTool.PEAnalyzer.OPERAND_FAR_MEMORY">
+<code class="descname">OPERAND_FAR_MEMORY</code><em class="property"> = 'FarMemory'</em><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer.OPERAND_FAR_MEMORY" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="zigzi.PEAnalyzeTool.PEAnalyzer.OPERAND_IMMEDIATE">
+<code class="descname">OPERAND_IMMEDIATE</code><em class="property"> = 'Immediate'</em><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer.OPERAND_IMMEDIATE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="zigzi.PEAnalyzeTool.PEAnalyzer.OPERAND_MEMORY">
+<code class="descname">OPERAND_MEMORY</code><em class="property"> = 'AbsoluteMemory'</em><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer.OPERAND_MEMORY" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="zigzi.PEAnalyzeTool.PEAnalyzer.OPERAND_NONE">
+<code class="descname">OPERAND_NONE</code><em class="property"> = ''</em><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer.OPERAND_NONE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="zigzi.PEAnalyzeTool.PEAnalyzer.OPERAND_REGISTER">
+<code class="descname">OPERAND_REGISTER</code><em class="property"> = 'Register'</em><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer.OPERAND_REGISTER" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEAnalyzeTool.PEAnalyzer.assignNewBranch">
+<code class="descname">assignNewBranch</code><span class="sig-paren">(</span><em>va</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEAnalyzeTool.html#PEAnalyzer.assignNewBranch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer.assignNewBranch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEAnalyzeTool.PEAnalyzer.genControlFlowGraph">
+<code class="descname">genControlFlowGraph</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEAnalyzeTool.html#PEAnalyzer.genControlFlowGraph"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer.genControlFlowGraph" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEAnalyzeTool.PEAnalyzer.handleConrolFlow">
+<code class="descname">handleConrolFlow</code><span class="sig-paren">(</span><em>basic_block_size</em>, <em>inst</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEAnalyzeTool.html#PEAnalyzer.handleConrolFlow"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer.handleConrolFlow" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dispatch method</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEAnalyzeTool.PEAnalyzer.handle_FC_CALL">
+<code class="descname">handle_FC_CALL</code><span class="sig-paren">(</span><em>basic_block_size</em>, <em>inst</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEAnalyzeTool.html#PEAnalyzer.handle_FC_CALL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer.handle_FC_CALL" title="Permalink to this definition">¶</a></dt>
+<dd><p>handle kinds of CALL instruction.
+ex) CALL, CALL FAR.
+:param BasicBlock: &#64;type BasicBlock
+:return:</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEAnalyzeTool.PEAnalyzer.handle_FC_CND_BRANCH">
+<code class="descname">handle_FC_CND_BRANCH</code><span class="sig-paren">(</span><em>basic_block_size</em>, <em>inst</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEAnalyzeTool.html#PEAnalyzer.handle_FC_CND_BRANCH"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer.handle_FC_CND_BRANCH" title="Permalink to this definition">¶</a></dt>
+<dd><p>handle kinds of Contional Branch instructions
+ex) JCXZ, JO, JNO, JB, JAE, JZ, JNZ, JBE, JA, JS, JNS, JP, JNP, JL, JGE, JLE, JG, LOOP, LOOPZ, LOOPNZ.
+:param basic_block: &#64;type BasicBlock
+:return:</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEAnalyzeTool.PEAnalyzer.handle_FC_NONE">
+<code class="descname">handle_FC_NONE</code><span class="sig-paren">(</span><em>basic_block_size</em>, <em>inst</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEAnalyzeTool.html#PEAnalyzer.handle_FC_NONE"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer.handle_FC_NONE" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEAnalyzeTool.PEAnalyzer.handle_FC_RET">
+<code class="descname">handle_FC_RET</code><span class="sig-paren">(</span><em>basic_block_size</em>, <em>inst</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEAnalyzeTool.html#PEAnalyzer.handle_FC_RET"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer.handle_FC_RET" title="Permalink to this definition">¶</a></dt>
+<dd><p>handle kinds of RET instruction.
+ex) RET, IRET, RETF.
+:param BasicBlock: &#64;type BasicBlock
+:return: always return True cause RET is notice that end of decoding.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEAnalyzeTool.PEAnalyzer.handle_FC_SYS">
+<code class="descname">handle_FC_SYS</code><span class="sig-paren">(</span><em>basic_block_size</em>, <em>inst</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEAnalyzeTool.html#PEAnalyzer.handle_FC_SYS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer.handle_FC_SYS" title="Permalink to this definition">¶</a></dt>
+<dd><p>handle kinds of SYS instruction.
+ex) SYSCALL, SYSRET, SYSENTER, SYSEXIT.
+:param basic_block: &#64;type BasicBlock
+:return:</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEAnalyzeTool.PEAnalyzer.handle_FC_UNC_BRANCH">
+<code class="descname">handle_FC_UNC_BRANCH</code><span class="sig-paren">(</span><em>basic_block_size</em>, <em>inst</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEAnalyzeTool.html#PEAnalyzer.handle_FC_UNC_BRANCH"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer.handle_FC_UNC_BRANCH" title="Permalink to this definition">¶</a></dt>
+<dd><p>handle kinds of Unconditional Branch instructions
+ex) JMP, JMP FAR.
+:param basic_block: &#64;type BasicBlock
+:return:</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEAnalyzeTool.PEAnalyzer.parse">
+<code class="descname">parse</code><span class="sig-paren">(</span><em>start_va</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEAnalyzeTool.html#PEAnalyzer.parse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer.parse" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEAnalyzeTool.PEAnalyzer.parser">
+<code class="descname">parser</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEAnalyzeTool.html#PEAnalyzer.parser"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer.parser" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEAnalyzeTool.PEAnalyzer.removeInstructionFromMap">
+<code class="descname">removeInstructionFromMap</code><span class="sig-paren">(</span><em>va</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEAnalyzeTool.html#PEAnalyzer.removeInstructionFromMap"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer.removeInstructionFromMap" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEAnalyzeTool.PEAnalyzer.save_cfg">
+<code class="descname">save_cfg</code><span class="sig-paren">(</span><em>save_path</em>, <em>name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEAnalyzeTool.html#PEAnalyzer.save_cfg"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer.save_cfg" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </div>
-<div class="section" id="zigzi-peinstrument-module">
-<h2>zigzi.PEInstrument module<a class="headerlink" href="#zigzi-peinstrument-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-zigzi.PEInstrument">
+<span id="zigzi-peinstrument-module"></span><h2>zigzi.PEInstrument module<a class="headerlink" href="#module-zigzi.PEInstrument" title="Permalink to this headline">¶</a></h2>
+<p>PEInstrument
+support instrumentation feature for window executable binary format(PE).</p>
+<dl class="class">
+<dt id="zigzi.PEInstrument.PEInstrument">
+<em class="property">class </em><code class="descclassname">zigzi.PEInstrument.</code><code class="descname">PEInstrument</code><span class="sig-paren">(</span><em>pe_manager</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">future.types.newobject.newobject</span></code></p>
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.adjust_direct_branches">
+<code class="descname">adjust_direct_branches</code><span class="sig-paren">(</span><em>instruction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.adjust_direct_branches"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.adjust_direct_branches" title="Permalink to this definition">¶</a></dt>
+<dd><p>adjust instruction’s operand value. Because the instructions calculate
+the address to branch relatively from the current position, it is
+necessary to apply the offset value changed by the instrument.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>instruction</strong> (<em>instruction</em>) – branch instruction that has relatively operand value</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.adjust_instruction_layout">
+<code class="descname">adjust_instruction_layout</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.adjust_instruction_layout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.adjust_instruction_layout" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adjusts the binary layout that has changed due to the address
+and the relatively operand of the instruction being changed during
+the instrumenting.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.append_code">
+<code class="descname">append_code</code><span class="sig-paren">(</span><em>_code</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.append_code"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.append_code" title="Permalink to this definition">¶</a></dt>
+<dd><p>append code to last of code section.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>_code</strong> (<em>str</em>) – assembly code that append to last of code section.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">relative address of code that appended</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">rva(int)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.do_instrument">
+<code class="descname">do_instrument</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.do_instrument"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.do_instrument" title="Permalink to this definition">¶</a></dt>
+<dd><p>instrument instruction when reached instruction that has control flow as
+redirect.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.falloc">
+<code class="descname">falloc</code><span class="sig-paren">(</span><em>size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.falloc"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.falloc" title="Permalink to this definition">¶</a></dt>
+<dd><p>get allocated memory space from data segment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>size</strong> (<em>int</em>) – size of space that allocate.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">DataSegment that represent for allocation.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#module-zigzi.DataSegment" title="zigzi.DataSegment">DataSegment</a>(<a class="reference internal" href="#module-zigzi.DataSegment" title="zigzi.DataSegment">DataSegment</a>)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="classmethod">
+<dt id="zigzi.PEInstrument.PEInstrument.from_filename">
+<em class="property">classmethod </em><code class="descname">from_filename</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.from_filename"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.from_filename" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.get_code">
+<code class="descname">get_code</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.get_code"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.get_code" title="Permalink to this definition">¶</a></dt>
+<dd><p>get codes that working on.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">text section’s data.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">bytearray</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.get_instructions">
+<code class="descname">get_instructions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.get_instructions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.get_instructions" title="Permalink to this definition">¶</a></dt>
+<dd><p>get disassembled instructions. Instructions excluding data that
+exist in the text section.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">tuple that contain instruction address, instruction</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.get_instrumented_pos">
+<code class="descname">get_instrumented_pos</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.get_instrumented_pos"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.get_instrumented_pos" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.get_instrumented_size">
+<code class="descname">get_instrumented_size</code><span class="sig-paren">(</span><em>instruction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.get_instrumented_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.get_instrumented_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the instrumented size from the current address to the branch
+target. use this when instrumented thing is applied to disassembled one.
+but if not applied instrumented thing, then use method the
+get_instrumented_size_with_vector.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>instruction</strong> (<em>instrution</em>) – branch instruction that has relatively operand value</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">size of instrumented until instruction’s address.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.get_instrumented_total_size">
+<code class="descname">get_instrumented_total_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.get_instrumented_total_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.get_instrumented_total_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Total size of instrument.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.get_instrumented_vector_size">
+<code class="descname">get_instrumented_vector_size</code><span class="sig-paren">(</span><em>rva</em>, <em>instrument_pos_dict=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.get_instrumented_vector_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.get_instrumented_vector_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calculate the instrumented size until virtual address that argumented.
+if not applied instrumented thing, to disssembled one, use this.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>rva</strong> (<em>int</em>) – virtual address for calculate on.</li>
+<li><strong>instrument_pos_dict</strong> (<em>dict</em>) – dict contains instruments position.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><dl class="docutils">
+<dt>int</dt>
+<dd><p class="first last">instrumented size until argument virtual address with
+increasing of instrumented size.</p>
+</dd>
+</dl>
+</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.get_pe_manager">
+<code class="descname">get_pe_manager</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.get_pe_manager"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.get_pe_manager" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.handle_overflowed_instrument">
+<code class="descname">handle_overflowed_instrument</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.handle_overflowed_instrument"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.handle_overflowed_instrument" title="Permalink to this definition">¶</a></dt>
+<dd><p>extend the size of the operand if exceed the range of operand values
+while instrument.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.instrument">
+<code class="descname">instrument</code><span class="sig-paren">(</span><em>fn</em>, <em>instruction</em>, <em>total_count=0</em>, <em>position=4096</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.instrument"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.instrument" title="Permalink to this definition">¶</a></dt>
+<dd><p>The instrument passes the instruction to the user function. When
+the user function is finished and the instruction to be instrumented
+is returned, the instruction is inserted at the position of the current
+instruction. As a result, the position of the current instruction is
+pushed backward by the size of the inserted instruction.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>fn</strong> (<em>function</em>) – User function to return instruction to be instrumented</li>
+<li><strong>instruction</strong> (<em>instruction</em>) – Instruction to be passed to the user function.</li>
+<li><strong>total_count</strong> (<em>int</em>) – total count of instrumented.</li>
+<li><strong>position</strong> (<em>int</em>) – position where be instrumented.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">size of instrumented instructions.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">int</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.instrument_overflow_handled">
+<code class="descname">instrument_overflow_handled</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.instrument_overflow_handled"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.instrument_overflow_handled" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.instrument_overflow_occurred">
+<code class="descname">instrument_overflow_occurred</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.instrument_overflow_occurred"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.instrument_overflow_occurred" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.is_after_indirect_branch_instrument_exist">
+<code class="descname">is_after_indirect_branch_instrument_exist</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.is_after_indirect_branch_instrument_exist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.is_after_indirect_branch_instrument_exist" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.is_after_relative_branch_instrument_exist">
+<code class="descname">is_after_relative_branch_instrument_exist</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.is_after_relative_branch_instrument_exist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.is_after_relative_branch_instrument_exist" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.is_after_return_instrument_exist">
+<code class="descname">is_after_return_instrument_exist</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.is_after_return_instrument_exist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.is_after_return_instrument_exist" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.is_instrument_overflow_occurred">
+<code class="descname">is_instrument_overflow_occurred</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.is_instrument_overflow_occurred"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.is_instrument_overflow_occurred" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.is_pre_indirect_branch_instrument_exist">
+<code class="descname">is_pre_indirect_branch_instrument_exist</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.is_pre_indirect_branch_instrument_exist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.is_pre_indirect_branch_instrument_exist" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.is_pre_relative_branch_instrument_exist">
+<code class="descname">is_pre_relative_branch_instrument_exist</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.is_pre_relative_branch_instrument_exist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.is_pre_relative_branch_instrument_exist" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.is_pre_return_instrument_exist">
+<code class="descname">is_pre_return_instrument_exist</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.is_pre_return_instrument_exist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.is_pre_return_instrument_exist" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.merge_adjust_pos_with_prev">
+<code class="descname">merge_adjust_pos_with_prev</code><span class="sig-paren">(</span><em>src_adjust_dict</em>, <em>dst_adjust_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.merge_adjust_pos_with_prev"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.merge_adjust_pos_with_prev" title="Permalink to this definition">¶</a></dt>
+<dd><p>Merging previous adjust map with later adjust map</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>src_adjust_dict</strong> (<em>dict</em>) – previous adjust map.</li>
+<li><strong>dst_adjust_dict</strong> (<em>dict</em>) – later adjust map.</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">adjusted instrumented map.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">dict</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.register_after_indirect_branch">
+<code class="descname">register_after_indirect_branch</code><span class="sig-paren">(</span><em>fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.register_after_indirect_branch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.register_after_indirect_branch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.register_after_relative_branch">
+<code class="descname">register_after_relative_branch</code><span class="sig-paren">(</span><em>fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.register_after_relative_branch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.register_after_relative_branch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.register_after_return">
+<code class="descname">register_after_return</code><span class="sig-paren">(</span><em>fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.register_after_return"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.register_after_return" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.register_pre_indirect_branch">
+<code class="descname">register_pre_indirect_branch</code><span class="sig-paren">(</span><em>fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.register_pre_indirect_branch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.register_pre_indirect_branch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.register_pre_relative_branch">
+<code class="descname">register_pre_relative_branch</code><span class="sig-paren">(</span><em>fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.register_pre_relative_branch"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.register_pre_relative_branch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.register_pre_return">
+<code class="descname">register_pre_return</code><span class="sig-paren">(</span><em>fn</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.register_pre_return"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.register_pre_return" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.save_instrument_history">
+<code class="descname">save_instrument_history</code><span class="sig-paren">(</span><em>instrumented_pos_dict</em>, <em>handled_overflowed_pos_dict</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.save_instrument_history"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.save_instrument_history" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEInstrument.PEInstrument.writefile">
+<code class="descname">writefile</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.writefile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.writefile" title="Permalink to this definition">¶</a></dt>
+<dd><p>write to file that has PE format.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<em>str</em>) – Filename represent absolute filepath that include with filename</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
 </div>
-<div class="section" id="zigzi-pemanager-module">
-<h2>zigzi.PEManager module<a class="headerlink" href="#zigzi-pemanager-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-zigzi.PEManager">
+<span id="zigzi-pemanager-module"></span><h2>zigzi.PEManager module<a class="headerlink" href="#module-zigzi.PEManager" title="Permalink to this headline">¶</a></h2>
+<p>PEManager, Utility for parsing and modifying PE.</p>
+<dl class="class">
+<dt id="zigzi.PEManager.PEManager">
+<em class="property">class </em><code class="descclassname">zigzi.PEManager.</code><code class="descname">PEManager</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal"><span class="pre">future.types.newobject.newobject</span></code></p>
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.adjust_TLS">
+<code class="descname">adjust_TLS</code><span class="sig-paren">(</span><em>directory</em>, <em>rva</em>, <em>size</em>, <em>increase_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.adjust_TLS"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.adjust_TLS" title="Permalink to this definition">¶</a></dt>
+<dd><p>adjust relocation directory’s elements.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>directory</strong> – directory that has name “IMAGE_DIRECTORY_ENTRY_TLS”</li>
+<li><strong>rva</strong> – current directory address</li>
+<li><strong>size</strong> – current directory size</li>
+<li><strong>increase_size</strong> – increased size of section that directory included</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.adjust_bound_imports">
+<code class="descname">adjust_bound_imports</code><span class="sig-paren">(</span><em>directory</em>, <em>rva</em>, <em>size</em>, <em>increase_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.adjust_bound_imports"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.adjust_bound_imports" title="Permalink to this definition">¶</a></dt>
+<dd><p>adjust relocation directory’s elements.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>directory</strong> – directory that has name “IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT”</li>
+<li><strong>rva</strong> – current directory address</li>
+<li><strong>size</strong> – current directory size</li>
+<li><strong>increase_size</strong> – increased size of section that directory included</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.adjust_debug">
+<code class="descname">adjust_debug</code><span class="sig-paren">(</span><em>directory</em>, <em>rva</em>, <em>size</em>, <em>increase_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.adjust_debug"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.adjust_debug" title="Permalink to this definition">¶</a></dt>
+<dd><p>adjust relocation directory’s elements.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>directory</strong> – directory that has name “IMAGE_DIRECTORY_ENTRY_DEBUG”</li>
+<li><strong>rva</strong> – current directory address</li>
+<li><strong>size</strong> – current directory size</li>
+<li><strong>increase_size</strong> – increased size of section that directory included</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.adjust_delay_import">
+<code class="descname">adjust_delay_import</code><span class="sig-paren">(</span><em>directory</em>, <em>rva</em>, <em>size</em>, <em>increase_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.adjust_delay_import"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.adjust_delay_import" title="Permalink to this definition">¶</a></dt>
+<dd><p>adjust relocation directory’s elements.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>directory</strong> – directory that has name “IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT”</li>
+<li><strong>rva</strong> – current directory address</li>
+<li><strong>size</strong> – current directory size</li>
+<li><strong>increase_size</strong> – increased size of section that directory included</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.adjust_directories">
+<code class="descname">adjust_directories</code><span class="sig-paren">(</span><em>data_directories</em>, <em>section_origin_va</em>, <em>section_adjusted_va</em>, <em>origin_section_size</em>, <em>adjusted_section_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.adjust_directories"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.adjust_directories" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.adjust_export">
+<code class="descname">adjust_export</code><span class="sig-paren">(</span><em>directory</em>, <em>rva</em>, <em>size</em>, <em>increase_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.adjust_export"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.adjust_export" title="Permalink to this definition">¶</a></dt>
+<dd><p>adjust relocation directory’s elements.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>directory</strong> – directory that has name “IMAGE_DIRECTORY_ENTRY_EXPORT”</li>
+<li><strong>rva</strong> – current directory address</li>
+<li><strong>size</strong> – current directory size</li>
+<li><strong>increase_size</strong> – increased size of section that directory included</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.adjust_file_layout">
+<code class="descname">adjust_file_layout</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.adjust_file_layout"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.adjust_file_layout" title="Permalink to this definition">¶</a></dt>
+<dd><p>adjust broken file layout while instrumentation.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.adjust_import">
+<code class="descname">adjust_import</code><span class="sig-paren">(</span><em>directory</em>, <em>rva</em>, <em>size</em>, <em>increase_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.adjust_import"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.adjust_import" title="Permalink to this definition">¶</a></dt>
+<dd><p>adjust relocation directory’s elements.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>directory</strong> – directory that has thunk_data “IMAGE_DIRECTORY_ENTRY_IMPORT”</li>
+<li><strong>rva</strong> – current directory address</li>
+<li><strong>size</strong> – current directory size</li>
+<li><strong>increase_size</strong> – increased size of section that directory included</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.adjust_load_config">
+<code class="descname">adjust_load_config</code><span class="sig-paren">(</span><em>directory</em>, <em>rva</em>, <em>size</em>, <em>increase_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.adjust_load_config"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.adjust_load_config" title="Permalink to this definition">¶</a></dt>
+<dd><p>adjust relocation directory’s elements.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>directory</strong> – directory that has name “IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG”</li>
+<li><strong>rva</strong> – current directory address</li>
+<li><strong>size</strong> – current directory size</li>
+<li><strong>increase_size</strong> – increased size of section that directory included</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.adjust_relocation">
+<code class="descname">adjust_relocation</code><span class="sig-paren">(</span><em>directory</em>, <em>rva</em>, <em>size</em>, <em>increase_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.adjust_relocation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.adjust_relocation" title="Permalink to this definition">¶</a></dt>
+<dd><p>adjust relocation directory’s elements.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>directory</strong> – directory that has name “IMAGE_DIRECTORY_ENTRY_BASERELOC”</li>
+<li><strong>rva</strong> – current directory reloc_rva</li>
+<li><strong>size</strong> – current directory size</li>
+<li><strong>increase_size</strong> – increased size of section that directory included</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.adjust_relocation_directories">
+<code class="descname">adjust_relocation_directories</code><span class="sig-paren">(</span><em>increase_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.adjust_relocation_directories"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.adjust_relocation_directories" title="Permalink to this definition">¶</a></dt>
+<dd><p>adjust relocation directories and its elements.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.adjust_relocation_offset">
+<code class="descname">adjust_relocation_offset</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.adjust_relocation_offset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.adjust_relocation_offset" title="Permalink to this definition">¶</a></dt>
+<dd><p>structures has owned offset.
+so, if modify position or order of structures element
+then must fix offset of structures element.</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.adjust_resource">
+<code class="descname">adjust_resource</code><span class="sig-paren">(</span><em>directory</em>, <em>rva</em>, <em>size</em>, <em>increase_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.adjust_resource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.adjust_resource" title="Permalink to this definition">¶</a></dt>
+<dd><p>adjust relocation directory’s elements.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>directory</strong> – directory that has name “IMAGE_DIRECTORY_ENTRY_RESOURCE”</li>
+<li><strong>rva</strong> – current directory address</li>
+<li><strong>size</strong> – current directory size</li>
+<li><strong>increase_size</strong> – increased size of section that directory included</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.append_data_to_file">
+<code class="descname">append_data_to_file</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.append_data_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.append_data_to_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>append data to file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data</strong> (<em>bytearray</em>) – data for append that bytearray type.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
+<dt>tuple containing:</dt>
+<dd>aligned_orig_data_len (int) : file data length that aligned
+aligned_data_len (int) : argument data length that aligned</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">(tuple)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.append_relocation_entry_to_block">
+<code class="descname">append_relocation_entry_to_block</code><span class="sig-paren">(</span><em>entry</em>, <em>block_index</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.append_relocation_entry_to_block"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.append_relocation_entry_to_block" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.append_section_to_file">
+<code class="descname">append_section_to_file</code><span class="sig-paren">(</span><em>section</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.append_section_to_file"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.append_section_to_file" title="Permalink to this definition">¶</a></dt>
+<dd><p>append section to file structure.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>section</strong> (<em>section</em>) – section that append to file</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.create_new_data_section">
+<code class="descname">create_new_data_section</code><span class="sig-paren">(</span><em>data</em>, <em>name</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.create_new_data_section"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.create_new_data_section" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.create_new_executable_section">
+<code class="descname">create_new_executable_section</code><span class="sig-paren">(</span><em>data</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.create_new_executable_section"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.create_new_executable_section" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create new executable section with given data.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>data</strong> (<em>bytearray</em>) – Raw point of new section</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.gen_new_relocation_block">
+<code class="descname">gen_new_relocation_block</code><span class="sig-paren">(</span><em>block_rva</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.gen_new_relocation_block"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.gen_new_relocation_block" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.gen_new_relocation_entry">
+<code class="descname">gen_new_relocation_entry</code><span class="sig-paren">(</span><em>rva</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.gen_new_relocation_entry"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.gen_new_relocation_entry" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.get_abs_va_from_offset">
+<code class="descname">get_abs_va_from_offset</code><span class="sig-paren">(</span><em>offset</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.get_abs_va_from_offset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.get_abs_va_from_offset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.get_abs_va_from_rva">
+<code class="descname">get_abs_va_from_rva</code><span class="sig-paren">(</span><em>rva</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.get_abs_va_from_rva"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.get_abs_va_from_rva" title="Permalink to this definition">¶</a></dt>
+<dd><p>get absolute virtual address from rva that argument.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>rva</strong> (<em>int</em>) – relative address to be calculate.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">absolute address of rva.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">ava(int)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.get_aligned_offset">
+<code class="descname">get_aligned_offset</code><span class="sig-paren">(</span><em>offset</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.get_aligned_offset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.get_aligned_offset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Align offset with file alignment</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>offset</strong> (<em>int</em>) – offset of file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">aligned offset</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.get_aligned_rva">
+<code class="descname">get_aligned_rva</code><span class="sig-paren">(</span><em>va</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.get_aligned_rva"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.get_aligned_rva" title="Permalink to this definition">¶</a></dt>
+<dd><p>get aligned virtual address from argument.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>va</strong> (<em>int</em>) – virtual address for align</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">aligned virtual address</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.get_bytes_at_offset">
+<code class="descname">get_bytes_at_offset</code><span class="sig-paren">(</span><em>offset_start</em>, <em>offset_stop</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.get_bytes_at_offset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.get_bytes_at_offset" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="staticmethod">
+<dt id="zigzi.PEManager.PEManager.get_cloned_section_header">
+<em class="property">static </em><code class="descname">get_cloned_section_header</code><span class="sig-paren">(</span><em>section</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.get_cloned_section_header"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.get_cloned_section_header" title="Permalink to this definition">¶</a></dt>
+<dd><p>make clone section from argument and return it.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>section</strong> (<em>section</em>) – section that need clone</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">cloned section from argument</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">(section)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.get_data_section">
+<code class="descname">get_data_section</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.get_data_section"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.get_data_section" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.get_entry_point_rva">
+<code class="descname">get_entry_point_rva</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.get_entry_point_rva"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.get_entry_point_rva" title="Permalink to this definition">¶</a></dt>
+<dd><p>get Entry point virtual address of file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">entry point virtual address</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.get_file_data">
+<code class="descname">get_file_data</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.get_file_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.get_file_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>get data of file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">bytearray type data of file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(bytearray)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.get_image_size">
+<code class="descname">get_image_size</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.get_image_size"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.get_image_size" title="Permalink to this definition">¶</a></dt>
+<dd><p>last section’s end represent that Image size.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Image size.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.get_instrument">
+<code class="descname">get_instrument</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.get_instrument"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.get_instrument" title="Permalink to this definition">¶</a></dt>
+<dd><p>get instrument of current file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">instrument of current file util</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(<a class="reference internal" href="#zigzi.CodeManager.CodeManager.instrument" title="zigzi.CodeManager.CodeManager.instrument">instrument</a>)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.get_relocation">
+<code class="descname">get_relocation</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.get_relocation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.get_relocation" title="Permalink to this definition">¶</a></dt>
+<dd><p>get relocation elements.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
+<dt>Dict with a List containing the following items.</dt>
+<dd><ul class="first last simple">
+<li>RVA(int) : address of relocation element.</li>
+<li>Address(int) : address of relocation element.</li>
+<li>Type(int) : type that represented by int.</li>
+</ul>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>{ Relocation block address : [RVA, Address, Type]}</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.get_relocation_directories">
+<code class="descname">get_relocation_directories</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.get_relocation_directories"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.get_relocation_directories" title="Permalink to this definition">¶</a></dt>
+<dd><p>get relocation directories with its include elements.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">2-Dict with relocation entries and blocks.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">tuple</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.get_relocation_from_structures">
+<code class="descname">get_relocation_from_structures</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.get_relocation_from_structures"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.get_relocation_from_structures" title="Permalink to this definition">¶</a></dt>
+<dd><p>get relocation elements from file structures that not parsed yet.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
+<dt>dict</dt>
+<dd>containing relocation blocks.
+list : relocation entry</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+<p class="rubric">Examples</p>
+<p>{ Relocation block address : [Relocation Entry]}</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.get_section_alignment">
+<code class="descname">get_section_alignment</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.get_section_alignment"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.get_section_alignment" title="Permalink to this definition">¶</a></dt>
+<dd><p>get section alignment.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">section alignment</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="zigzi.PEManager.PEManager.get_section_belong_rva">
+<em class="property">static </em><code class="descname">get_section_belong_rva</code><span class="sig-paren">(</span><em>sections</em>, <em>rva</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.get_section_belong_rva"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.get_section_belong_rva" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.get_section_raw_data">
+<code class="descname">get_section_raw_data</code><span class="sig-paren">(</span><em>section</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.get_section_raw_data"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.get_section_raw_data" title="Permalink to this definition">¶</a></dt>
+<dd><p>get raw data from section header</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>section</strong> (<em>section</em>) – section header that</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">data that section contain.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">data(bytearray)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.get_structure_from_rva">
+<code class="descname">get_structure_from_rva</code><span class="sig-paren">(</span><em>rva</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.get_structure_from_rva"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.get_structure_from_rva" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.get_text_section">
+<code class="descname">get_text_section</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.get_text_section"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.get_text_section" title="Permalink to this definition">¶</a></dt>
+<dd><p>get text section.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Text section.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(section)</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.get_text_section_virtual_address_range">
+<code class="descname">get_text_section_virtual_address_range</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.get_text_section_virtual_address_range"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.get_text_section_virtual_address_range" title="Permalink to this definition">¶</a></dt>
+<dd><p>get Virtual address range of text section</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
+<dt>tuple.</dt>
+<dd>a tuple containing section’s start and end pair.
+( start, end )</dd>
+</dl>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="staticmethod">
+<dt id="zigzi.PEManager.PEManager.is_executable_section">
+<em class="property">static </em><code class="descname">is_executable_section</code><span class="sig-paren">(</span><em>section</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.is_executable_section"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.is_executable_section" title="Permalink to this definition">¶</a></dt>
+<dd><p>Whether the section is an executable.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>section</strong> (<em>section</em>) – Section to check</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">true if executable, false otherwise</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.is_possible_relocation">
+<code class="descname">is_possible_relocation</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.is_possible_relocation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.is_possible_relocation" title="Permalink to this definition">¶</a></dt>
+<dd><p>Verify that the file can be relocated.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True if relocation possible, False otherwise.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.register_rva_to_relocation">
+<code class="descname">register_rva_to_relocation</code><span class="sig-paren">(</span><em>rva</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.register_rva_to_relocation"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.register_rva_to_relocation" title="Permalink to this definition">¶</a></dt>
+<dd><p>append rva to relocation list.
+if appropriate block is not exist, then append it after make new block.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>rva</strong> (<em>int</em>) – relative address for relocating.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.relocation_entry_move_to_appropriate_block">
+<code class="descname">relocation_entry_move_to_appropriate_block</code><span class="sig-paren">(</span><em>entry</em>, <em>block</em>, <em>increase_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.relocation_entry_move_to_appropriate_block"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.relocation_entry_move_to_appropriate_block" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.set_dword_at_rva">
+<code class="descname">set_dword_at_rva</code><span class="sig-paren">(</span><em>rva</em>, <em>dword</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.set_dword_at_rva"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.set_dword_at_rva" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.set_entry_point">
+<code class="descname">set_entry_point</code><span class="sig-paren">(</span><em>entry_va</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.set_entry_point"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.set_entry_point" title="Permalink to this definition">¶</a></dt>
+<dd><p>Set up entry point of file</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>entry_va</strong> (<em>int</em>) – virtual address of entry point</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.set_instrument">
+<code class="descname">set_instrument</code><span class="sig-paren">(</span><em>instrumentor</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.set_instrument"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.set_instrument" title="Permalink to this definition">¶</a></dt>
+<dd><p>set up instrument</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>(</strong><strong>instrument</strong><strong>)</strong> – instrument of this file</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="zigzi.PEManager.PEManager.writefile">
+<code class="descname">writefile</code><span class="sig-paren">(</span><em>file_path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.writefile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.writefile" title="Permalink to this definition">¶</a></dt>
+<dd><p>write instrumented &amp; modified file data to file.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>file_path</strong> (<em>str</em>) – file path with absolute path.</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
 </div>
-<div class="section" id="zigzi-stack-module">
-<h2>zigzi.Stack module<a class="headerlink" href="#zigzi-stack-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-zigzi.Stack">
+<span id="zigzi-stack-module"></span><h2>zigzi.Stack module<a class="headerlink" href="#module-zigzi.Stack" title="Permalink to this headline">¶</a></h2>
+<p>Stack,
+helper class for stack.</p>
+<dl class="class">
+<dt id="zigzi.Stack.Stack">
+<em class="property">class </em><code class="descclassname">zigzi.Stack.</code><code class="descname">Stack</code><span class="sig-paren">(</span><em>base_address</em>, <em>stack_size=4096</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Stack.html#Stack"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Stack.Stack" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <a class="reference internal" href="#zigzi.DataObject.DataObject" title="zigzi.DataObject.DataObject"><code class="xref py py-class docutils literal"><span class="pre">zigzi.DataObject.DataObject</span></code></a></p>
+<dl class="attribute">
+<dt id="zigzi.Stack.Stack.base_point">
+<code class="descname">base_point</code><a class="headerlink" href="#zigzi.Stack.Stack.base_point" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="attribute">
+<dt id="zigzi.Stack.Stack.frame_point">
+<code class="descname">frame_point</code><a class="headerlink" href="#zigzi.Stack.Stack.frame_point" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.Stack.Stack.pop">
+<code class="descname">pop</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Stack.html#Stack.pop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Stack.Stack.pop" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="method">
+<dt id="zigzi.Stack.Stack.push">
+<code class="descname">push</code><span class="sig-paren">(</span><em>value</em>, <em>variable_name=None</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Stack.html#Stack.push"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Stack.Stack.push" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
 </div>
-<div class="section" id="zigzi-example-module">
-<h2>zigzi.example module<a class="headerlink" href="#zigzi-example-module" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-zigzi.example">
+<span id="zigzi-example-module"></span><h2>zigzi.example module<a class="headerlink" href="#module-zigzi.example" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="zigzi.example.instrument_example">
+<code class="descclassname">zigzi.example.</code><code class="descname">instrument_example</code><span class="sig-paren">(</span><em>instruction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/example.html#instrument_example"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.example.instrument_example" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </div>
-<div class="section" id="module-contents">
-<h2>Module contents<a class="headerlink" href="#module-contents" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="module-zigzi">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-zigzi" title="Permalink to this headline">¶</a></h2>
+<p>zigzi, Platform independent binary instrumentation module.</p>
+<p>Copyright (c) 2016-2017 hanbum park &lt;<a class="reference external" href="mailto:kese111&#37;&#52;&#48;gmail&#46;com">kese111<span>&#64;</span>gmail<span>&#46;</span>com</a>&gt;</p>
+<p>All rights reserved.</p>
+<p>For detailed copyright information see the file COPYING in the root of the
+distribution archive.</p>
+<dl class="function">
+<dt id="zigzi.simple_indirect_branch_counting_function_call_instrument">
+<code class="descclassname">zigzi.</code><code class="descname">simple_indirect_branch_counting_function_call_instrument</code><span class="sig-paren">(</span><em>instruction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi.html#simple_indirect_branch_counting_function_call_instrument"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.simple_indirect_branch_counting_function_call_instrument" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zigzi.simple_indirect_branch_counting_function_instrument">
+<code class="descclassname">zigzi.</code><code class="descname">simple_indirect_branch_counting_function_instrument</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi.html#simple_indirect_branch_counting_function_instrument"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.simple_indirect_branch_counting_function_instrument" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zigzi.simple_return_address_save_function">
+<code class="descclassname">zigzi.</code><code class="descname">simple_return_address_save_function</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi.html#simple_return_address_save_function"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.simple_return_address_save_function" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="function">
+<dt id="zigzi.simple_return_address_save_function_call_instrument">
+<code class="descclassname">zigzi.</code><code class="descname">simple_return_address_save_function_call_instrument</code><span class="sig-paren">(</span><em>instruction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi.html#simple_return_address_save_function_call_instrument"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.simple_return_address_save_function_call_instrument" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
 </div>
 </div>
 
@@ -102,18 +1737,18 @@
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">zigzi package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#zigzi-codemanager-module">zigzi.CodeManager module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#zigzi-dataobject-module">zigzi.DataObject module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#zigzi-datasegment-module">zigzi.DataSegment module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#zigzi-disassembler-module">zigzi.Disassembler module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#zigzi-heap-module">zigzi.Heap module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#zigzi-log-module">zigzi.Log module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#zigzi-peanalyzetool-module">zigzi.PEAnalyzeTool module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#zigzi-peinstrument-module">zigzi.PEInstrument module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#zigzi-pemanager-module">zigzi.PEManager module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#zigzi-stack-module">zigzi.Stack module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#zigzi-example-module">zigzi.example module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-contents">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.CodeManager">zigzi.CodeManager module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.DataObject">zigzi.DataObject module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.DataSegment">zigzi.DataSegment module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.Disassembler">zigzi.Disassembler module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.Heap">zigzi.Heap module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.Log">zigzi.Log module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.PEAnalyzeTool">zigzi.PEAnalyzeTool module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.PEInstrument">zigzi.PEInstrument module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.PEManager">zigzi.PEManager module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.Stack">zigzi.Stack module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.example">zigzi.example module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-zigzi">Module contents</a></li>
 </ul>
 </li>
 </ul>

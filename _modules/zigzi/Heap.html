@@ -1,0 +1,144 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>zigzi.Heap &#8212; zigzi  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for zigzi.Heap</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;Heap,</span>
+<span class="sd">helper class for heap space.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">binascii</span>
+<span class="kn">from</span> <span class="nn">DataObject</span> <span class="k">import</span> <span class="o">*</span>
+
+
+<div class="viewcode-block" id="Heap"><a class="viewcode-back" href="../../zigzi.html#zigzi.Heap.Heap">[docs]</a><span class="k">class</span> <span class="nc">Heap</span><span class="p">(</span><span class="n">DataObject</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_address</span><span class="p">):</span>
+        <span class="n">DataObject</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_address</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_frame_point</span> <span class="o">=</span> <span class="n">base_address</span>
+
+<div class="viewcode-block" id="Heap.append_element"><a class="viewcode-back" href="../../zigzi.html#zigzi.Heap.Heap.append_element">[docs]</a>    <span class="k">def</span> <span class="nf">append_element</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">element</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_appending</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_frame_point</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">_frame_point</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">element</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_frame_point</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="Heap.append_element_finish"><a class="viewcode-back" href="../../zigzi.html#zigzi.Heap.Heap.append_element_finish">[docs]</a>    <span class="k">def</span> <span class="nf">append_element_finish</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">last_element</span><span class="p">,</span> <span class="n">variable_name</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">append_element</span><span class="p">(</span><span class="n">last_element</span><span class="p">)</span>
+        <span class="n">increase_size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frame_point</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base_point</span>
+        <span class="c1"># local variable log</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_local_variable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_frame_point</span> <span class="o">-</span> <span class="n">increase_size</span><span class="p">,</span>
+                                 <span class="n">variable_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_size</span> <span class="o">+=</span> <span class="n">increase_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_base_point</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_frame_point</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_appending</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="n">increase_size</span></div>
+
+<div class="viewcode-block" id="Heap.append_string"><a class="viewcode-back" href="../../zigzi.html#zigzi.Heap.Heap.append_string">[docs]</a>    <span class="k">def</span> <span class="nf">append_string</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_str</span><span class="p">,</span> <span class="n">variable_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Convert a string hex byte values into a byte string.</span>
+<span class="sd">        The Hex Byte values may or may not be space separated.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">base_point</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_base_pos</span><span class="p">()</span>
+        <span class="n">hex_str</span> <span class="o">=</span> <span class="n">binascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">_str</span><span class="p">)</span>
+        <span class="n">hex_str</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">hex_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">hex_str</span><span class="p">),</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">append_element</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">hex_str</span><span class="p">[</span><span class="n">i</span><span class="p">:</span><span class="n">i</span> <span class="o">+</span> <span class="mi">2</span><span class="p">],</span> <span class="mi">16</span><span class="p">)))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">append_element_finish</span><span class="p">(</span><span class="nb">chr</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="s2">&quot;0&quot;</span><span class="p">,</span> <span class="mi">16</span><span class="p">)),</span> <span class="n">variable_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">base_point</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">zigzi</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../zigzi.html">zigzi package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  <li><a href="../zigzi.html">zigzi</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

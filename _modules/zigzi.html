@@ -1,0 +1,231 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>zigzi &#8212; zigzi  documentation</title>
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for zigzi</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;zigzi, Platform independent binary instrumentation module.</span>
+
+
+<span class="sd">Copyright (c) 2016-2017 hanbum park &lt;kese111@gmail.com&gt;</span>
+
+<span class="sd">All rights reserved.</span>
+
+<span class="sd">For detailed copyright information see the file COPYING in the root of the</span>
+<span class="sd">distribution archive.</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">from</span> <span class="nn">PEInstrument</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">PEAnalyzeTool</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">PEManager</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">keystone</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">DataSegment</span> <span class="k">import</span> <span class="o">*</span>
+
+
+<span class="n">code_rva</span> <span class="o">=</span> <span class="mi">0</span>
+
+
+<div class="viewcode-block" id="simple_return_address_save_function_call_instrument"><a class="viewcode-back" href="../zigzi.html#zigzi.simple_return_address_save_function_call_instrument">[docs]</a><span class="k">def</span> <span class="nf">simple_return_address_save_function_call_instrument</span><span class="p">(</span><span class="n">instruction</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">code_rva</span>
+    <span class="n">code_zero_rva</span> <span class="o">=</span> <span class="n">code_rva</span> <span class="o">-</span> <span class="mh">0x1000</span>
+    <span class="n">instruction_zero_rva</span> <span class="o">=</span> <span class="n">instruction</span><span class="o">.</span><span class="n">address</span>
+    <span class="n">instruction_end_rva</span> <span class="o">=</span> <span class="n">instruction_zero_rva</span> <span class="o">+</span> <span class="n">instruction</span><span class="o">.</span><span class="n">size</span>
+    <span class="c1"># 5 mean instrumented code size.</span>
+    <span class="n">code</span> <span class="o">=</span> <span class="s2">&quot;CALL </span><span class="si">{:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">code_zero_rva</span> <span class="o">-</span> <span class="n">instruction_end_rva</span> <span class="o">+</span> <span class="mi">5</span><span class="p">)</span>
+    <span class="n">hex_code</span> <span class="o">=</span> <span class="n">binascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">code</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;hex&#39;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Initialize engine in X86-32bit mode</span>
+        <span class="n">ks</span> <span class="o">=</span> <span class="n">Ks</span><span class="p">(</span><span class="n">KS_ARCH_X86</span><span class="p">,</span> <span class="n">KS_MODE_32</span><span class="p">)</span>
+        <span class="n">encoding</span><span class="p">,</span> <span class="n">count</span> <span class="o">=</span> <span class="n">ks</span><span class="o">.</span><span class="n">asm</span><span class="p">(</span><span class="n">hex_code</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">encoding</span><span class="p">,</span> <span class="n">count</span>
+    <span class="k">except</span> <span class="n">KsError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ex</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="mi">0</span></div>
+
+
+<div class="viewcode-block" id="simple_return_address_save_function"><a class="viewcode-back" href="../zigzi.html#zigzi.simple_return_address_save_function">[docs]</a><span class="k">def</span> <span class="nf">simple_return_address_save_function</span><span class="p">():</span>
+    <span class="k">global</span> <span class="n">code_rva</span>
+    <span class="n">allocation</span> <span class="o">=</span> <span class="n">pe_instrument</span><span class="o">.</span><span class="n">falloc</span><span class="p">(</span><span class="mh">0x1000</span><span class="p">)</span>
+    <span class="n">code</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;push eax;push ebx;&quot;</span>    <span class="c1"># save register</span>
+            <span class="s2">&quot;mov eax, [</span><span class="si">{0}</span><span class="s2">];&quot;</span>       <span class="c1"># get shadow stack counter</span>
+            <span class="s2">&quot;inc eax;&quot;</span>              <span class="c1"># increase shadow stack counter</span>
+            <span class="s2">&quot;&quot;</span>                      <span class="c1"># get return address from stack</span>
+            <span class="s2">&quot;mov [</span><span class="si">{0}</span><span class="s2">], eax;&quot;</span>       <span class="c1"># save return address </span>
+            <span class="s2">&quot;pop ebx;pop eax;&quot;</span>      <span class="c1"># restore register</span>
+            <span class="s2">&quot;ret;&quot;</span>                  <span class="c1"># return</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">allocation</span><span class="o">.</span><span class="n">get_va</span><span class="p">()</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">code_rva</span> <span class="o">=</span> <span class="n">pe_instrument</span><span class="o">.</span><span class="n">append_code</span><span class="p">(</span><span class="n">code</span><span class="p">)</span>
+    <span class="n">code_abs_va</span> <span class="o">=</span> <span class="n">pe_manager</span><span class="o">.</span><span class="n">get_abs_va_from_rva</span><span class="p">(</span><span class="n">code_rva</span><span class="p">)</span>
+    <span class="n">allocation</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">code_abs_va</span>
+
+    <span class="c1"># TODO : need a way for does not calculate the relocation address directly.</span>
+    <span class="n">pe_manager</span><span class="o">.</span><span class="n">register_rva_to_relocation</span><span class="p">(</span><span class="n">code_rva</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">pe_manager</span><span class="o">.</span><span class="n">register_rva_to_relocation</span><span class="p">(</span><span class="n">code_rva</span> <span class="o">+</span> <span class="mi">7</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="simple_indirect_branch_counting_function_call_instrument"><a class="viewcode-back" href="../zigzi.html#zigzi.simple_indirect_branch_counting_function_call_instrument">[docs]</a><span class="k">def</span> <span class="nf">simple_indirect_branch_counting_function_call_instrument</span><span class="p">(</span><span class="n">instruction</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">code_rva</span>
+    <span class="n">code_zero_rva</span> <span class="o">=</span> <span class="n">code_rva</span> <span class="o">-</span> <span class="mh">0x1000</span>
+    <span class="n">instruction_zero_rva</span> <span class="o">=</span> <span class="n">instruction</span><span class="o">.</span><span class="n">address</span>
+    <span class="c1"># 5 mean instrumented code size.</span>
+    <span class="n">code</span> <span class="o">=</span> <span class="s2">&quot;CALL </span><span class="si">{:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">code_zero_rva</span> <span class="o">-</span> <span class="n">instruction_zero_rva</span> <span class="o">+</span> <span class="mi">5</span><span class="p">)</span>
+    <span class="n">hex_code</span> <span class="o">=</span> <span class="n">binascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">code</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;hex&#39;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Initialize engine in X86-32bit mode</span>
+        <span class="n">ks</span> <span class="o">=</span> <span class="n">Ks</span><span class="p">(</span><span class="n">KS_ARCH_X86</span><span class="p">,</span> <span class="n">KS_MODE_32</span><span class="p">)</span>
+        <span class="n">encoding</span><span class="p">,</span> <span class="n">count</span> <span class="o">=</span> <span class="n">ks</span><span class="o">.</span><span class="n">asm</span><span class="p">(</span><span class="n">hex_code</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">encoding</span><span class="p">,</span> <span class="n">count</span>
+    <span class="k">except</span> <span class="n">KsError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ex</span><span class="p">)</span>
+    <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="mi">0</span></div>
+
+
+<div class="viewcode-block" id="simple_indirect_branch_counting_function_instrument"><a class="viewcode-back" href="../zigzi.html#zigzi.simple_indirect_branch_counting_function_instrument">[docs]</a><span class="k">def</span> <span class="nf">simple_indirect_branch_counting_function_instrument</span><span class="p">():</span>
+    <span class="k">global</span> <span class="n">code_rva</span>
+    <span class="n">allocation</span> <span class="o">=</span> <span class="n">pe_instrument</span><span class="o">.</span><span class="n">falloc</span><span class="p">(</span><span class="mh">0x1000</span><span class="p">)</span>
+    <span class="n">code</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;push eax;&quot;</span>
+            <span class="s2">&quot;mov eax, [</span><span class="si">{0}</span><span class="s2">];&quot;</span>
+            <span class="s2">&quot;inc eax;&quot;</span>
+            <span class="s2">&quot;mov [</span><span class="si">{0}</span><span class="s2">], eax;&quot;</span>
+            <span class="s2">&quot;pop eax;&quot;</span>
+            <span class="s2">&quot;ret;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">allocation</span><span class="o">.</span><span class="n">get_va</span><span class="p">()</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span>
+    <span class="n">code_rva</span> <span class="o">=</span> <span class="n">pe_instrument</span><span class="o">.</span><span class="n">append_code</span><span class="p">(</span><span class="n">code</span><span class="p">)</span>
+    <span class="n">code_abs_va</span> <span class="o">=</span> <span class="n">pe_manager</span><span class="o">.</span><span class="n">get_abs_va_from_rva</span><span class="p">(</span><span class="n">code_rva</span><span class="p">)</span>
+    <span class="n">allocation</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">4</span><span class="p">]</span> <span class="o">=</span> <span class="n">code_abs_va</span>
+
+    <span class="c1"># TODO : need a way for does not calculate the relocation address directly.</span>
+    <span class="n">pe_manager</span><span class="o">.</span><span class="n">register_rva_to_relocation</span><span class="p">(</span><span class="n">code_rva</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+    <span class="n">pe_manager</span><span class="o">.</span><span class="n">register_rva_to_relocation</span><span class="p">(</span><span class="n">code_rva</span> <span class="o">+</span> <span class="mi">7</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="s2">&quot;zigzi&quot;</span><span class="p">)</span>
+    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;file&quot;</span><span class="p">,</span>
+                        <span class="n">help</span><span class="o">=</span><span class="s2">&quot;filename include its absolute path.&quot;</span><span class="p">,</span>
+                        <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">)</span>
+    <span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+    <span class="n">filename</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">file</span>
+    <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+        <span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>
+        <span class="n">exit</span><span class="p">()</span>
+    <span class="n">pe_manager</span> <span class="o">=</span> <span class="n">PEManager</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="c1"># set new instrumentation</span>
+    <span class="n">pe_instrument</span> <span class="o">=</span> <span class="n">PEInstrument</span><span class="p">(</span><span class="n">pe_manager</span><span class="p">)</span>
+    <span class="n">simple_indirect_branch_counting_function_instrument</span><span class="p">()</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    pe_instrument.register_pre_indirect_branch(</span>
+<span class="sd">        simple_indirect_branch_counting_function_call_instrument</span>
+<span class="sd">    )</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># need bug fix</span>
+    <span class="n">pe_instrument</span><span class="o">.</span><span class="n">register_after_indirect_branch</span><span class="p">(</span>
+        <span class="n">simple_return_address_save_function_call_instrument</span>
+    <span class="p">)</span>
+
+    <span class="n">pe_instrument</span><span class="o">.</span><span class="n">do_instrument</span><span class="p">()</span>
+    <span class="c1"># TODO : change to avoid duplicate processing.</span>
+    <span class="c1"># do not double adjustment for file, it break file layout.</span>
+    <span class="c1"># pe_manager.adjust_file_layout()</span>
+    <span class="n">output_filename</span> <span class="o">=</span> <span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;_after_test.exe&quot;</span>
+    <span class="n">pe_manager</span><span class="o">.</span><span class="n">writefile</span><span class="p">(</span><span class="n">output_filename</span><span class="p">)</span>
+
+<span class="c1"># C:\work\python\zigzi\tests\simple_echo_server.exe</span>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">zigzi</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../zigzi.html">zigzi package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,390 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>zigzi.PEAnalyzeTool &#8212; zigzi  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for zigzi.PEAnalyzeTool</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/python</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="sd">&quot;&quot;&quot;PEAnalyzeTool, Analyze tool for PE that Windows Portable Executable Format</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">Queue</span>
+<span class="kn">import</span> <span class="nn">struct</span>
+<span class="kn">import</span> <span class="nn">binascii</span>
+<span class="kn">import</span> <span class="nn">operator</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">distorm3</span>
+<span class="kn">import</span> <span class="nn">pydotplus</span>
+<span class="kn">import</span> <span class="nn">PEManager</span>
+<span class="kn">import</span> <span class="nn">array</span>
+<span class="kn">from</span> <span class="nn">threading</span> <span class="k">import</span> <span class="n">Thread</span>
+<span class="kn">from</span> <span class="nn">keystone</span> <span class="k">import</span> <span class="o">*</span>
+
+
+<div class="viewcode-block" id="PEAnalyzer"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEAnalyzeTool.PEAnalyzer">[docs]</a><span class="k">class</span> <span class="nc">PEAnalyzer</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="c1"># OPERAND TYPES</span>
+    <span class="n">OPERAND_NONE</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="n">OPERAND_IMMEDIATE</span> <span class="o">=</span> <span class="s2">&quot;Immediate&quot;</span>
+    <span class="n">OPERAND_REGISTER</span> <span class="o">=</span> <span class="s2">&quot;Register&quot;</span>
+    <span class="c1"># the operand is a memory address</span>
+    <span class="n">OPERAND_ABSOLUTE_ADDRESS</span> <span class="o">=</span> <span class="s2">&quot;AbsoluteMemoryAddress&quot;</span>  <span class="c1"># The address calculated is absolute</span>
+    <span class="n">OPERAND_MEMORY</span> <span class="o">=</span> <span class="s2">&quot;AbsoluteMemory&quot;</span>  <span class="c1"># The address calculated uses registers expression</span>
+    <span class="n">OPERAND_FAR_MEMORY</span> <span class="o">=</span> <span class="s2">&quot;FarMemory&quot;</span>  <span class="c1"># like absolute but with selector/segment specified too</span>
+
+<div class="viewcode-block" id="PEAnalyzer.handle_FC_NONE"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEAnalyzeTool.PEAnalyzer.handle_FC_NONE">[docs]</a>    <span class="k">def</span> <span class="nf">handle_FC_NONE</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basic_block_size</span><span class="p">,</span> <span class="n">inst</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">0</span></div>
+
+<div class="viewcode-block" id="PEAnalyzer.handle_FC_CALL"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEAnalyzeTool.PEAnalyzer.handle_FC_CALL">[docs]</a>    <span class="k">def</span> <span class="nf">handle_FC_CALL</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basic_block_size</span><span class="p">,</span> <span class="n">inst</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        handle kinds of CALL instruction.</span>
+<span class="sd">        ex) CALL, CALL FAR.</span>
+<span class="sd">        :param BasicBlock: @type BasicBlock</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">handled</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">operands</span> <span class="o">=</span> <span class="n">inst</span><span class="o">.</span><span class="n">operands</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">operands</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="n">operand</span> <span class="o">=</span> <span class="n">operands</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># fin when operand is reg cause redirect</span>
+        <span class="k">if</span> <span class="n">operand</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">PEAnalyzer</span><span class="o">.</span><span class="n">OPERAND_REGISTER</span><span class="p">:</span>
+            <span class="n">handled</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="n">operand</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">PEAnalyzer</span><span class="o">.</span><span class="n">OPERAND_IMMEDIATE</span><span class="p">:</span>
+            <span class="n">operand_value</span> <span class="o">=</span> <span class="n">operand</span><span class="o">.</span><span class="n">value</span>
+            <span class="k">if</span> <span class="n">operand_value</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">branch_va</span> <span class="o">=</span> <span class="n">inst</span><span class="o">.</span><span class="n">address</span> <span class="o">+</span> <span class="n">inst</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="n">operand_value</span> <span class="o">-</span> <span class="n">basic_block_size</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">branch_va</span> <span class="o">=</span> <span class="n">inst</span><span class="o">.</span><span class="n">address</span> <span class="o">+</span> <span class="n">inst</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="n">operand_value</span> <span class="o">-</span> <span class="n">basic_block_size</span>
+            <span class="c1">#self.create_basic_block(operand_value + basic_block.start_va)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">direct_control_flow</span><span class="p">[</span><span class="n">inst</span><span class="o">.</span><span class="n">address</span><span class="p">]</span> <span class="o">=</span> <span class="n">branch_va</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assignNewBranch</span><span class="p">(</span><span class="n">branch_va</span><span class="p">)</span>
+            <span class="n">handled</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="n">operand</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">PEAnalyzer</span><span class="o">.</span><span class="n">OPERAND_ABSOLUTE_ADDRESS</span><span class="p">:</span>
+            <span class="n">handled</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assignNewBranch</span><span class="p">(</span><span class="n">inst</span><span class="o">.</span><span class="n">address</span> <span class="o">+</span> <span class="n">inst</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">handled</span></div>
+
+<div class="viewcode-block" id="PEAnalyzer.handle_FC_RET"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEAnalyzeTool.PEAnalyzer.handle_FC_RET">[docs]</a>    <span class="k">def</span> <span class="nf">handle_FC_RET</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basic_block_size</span><span class="p">,</span> <span class="n">inst</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        handle kinds of RET instruction.</span>
+<span class="sd">        ex) RET, IRET, RETF.</span>
+<span class="sd">        :param BasicBlock: @type BasicBlock</span>
+<span class="sd">        :return: always return True cause RET is notice that end of decoding.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="PEAnalyzer.handle_FC_SYS"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEAnalyzeTool.PEAnalyzer.handle_FC_SYS">[docs]</a>    <span class="k">def</span> <span class="nf">handle_FC_SYS</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basic_block_size</span><span class="p">,</span> <span class="n">inst</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        handle kinds of SYS instruction.</span>
+<span class="sd">        ex) SYSCALL, SYSRET, SYSENTER, SYSEXIT.</span>
+<span class="sd">        :param basic_block: @type BasicBlock</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="PEAnalyzer.handle_FC_UNC_BRANCH"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEAnalyzeTool.PEAnalyzer.handle_FC_UNC_BRANCH">[docs]</a>    <span class="k">def</span> <span class="nf">handle_FC_UNC_BRANCH</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basic_block_size</span><span class="p">,</span> <span class="n">inst</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        handle kinds of Unconditional Branch instructions</span>
+<span class="sd">        ex) JMP, JMP FAR.</span>
+<span class="sd">        :param basic_block: @type BasicBlock</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">handled</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="n">operands</span> <span class="o">=</span> <span class="n">inst</span><span class="o">.</span><span class="n">operands</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">operands</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="n">operand</span> <span class="o">=</span> <span class="n">operands</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+        <span class="c1"># fin when operand is reg cause redirect</span>
+        <span class="k">if</span> <span class="n">operand</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">PEAnalyzer</span><span class="o">.</span><span class="n">OPERAND_REGISTER</span><span class="p">:</span>
+            <span class="n">handled</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="k">if</span> <span class="n">operand</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">PEAnalyzer</span><span class="o">.</span><span class="n">OPERAND_IMMEDIATE</span><span class="p">:</span>
+            <span class="n">operand_value</span> <span class="o">=</span> <span class="n">operand</span><span class="o">.</span><span class="n">value</span>
+            <span class="k">if</span> <span class="n">operand_value</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">branch_va</span> <span class="o">=</span> <span class="n">inst</span><span class="o">.</span><span class="n">address</span> <span class="o">+</span> <span class="n">inst</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="n">operand_value</span> <span class="o">-</span> <span class="n">basic_block_size</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">branch_va</span> <span class="o">=</span> <span class="n">inst</span><span class="o">.</span><span class="n">address</span> <span class="o">+</span> <span class="n">inst</span><span class="o">.</span><span class="n">size</span> <span class="o">+</span> <span class="n">operand_value</span> <span class="o">-</span> <span class="n">basic_block_size</span>
+            <span class="c1"># self.create_basic_block(operand_value + basic_block.start_va)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">direct_control_flow</span><span class="p">[</span><span class="n">inst</span><span class="o">.</span><span class="n">address</span><span class="p">]</span> <span class="o">=</span> <span class="n">branch_va</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">assignNewBranch</span><span class="p">(</span><span class="n">branch_va</span><span class="p">)</span>
+            <span class="n">handled</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="n">operand</span><span class="o">.</span><span class="n">type</span> <span class="o">==</span> <span class="n">PEAnalyzer</span><span class="o">.</span><span class="n">OPERAND_ABSOLUTE_ADDRESS</span><span class="p">:</span>
+            <span class="n">handled</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">assignNewBranch</span><span class="p">(</span><span class="n">inst</span><span class="o">.</span><span class="n">address</span> <span class="o">+</span> <span class="n">inst</span><span class="o">.</span><span class="n">size</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">handled</span></div>
+
+<div class="viewcode-block" id="PEAnalyzer.handle_FC_CND_BRANCH"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEAnalyzeTool.PEAnalyzer.handle_FC_CND_BRANCH">[docs]</a>    <span class="k">def</span> <span class="nf">handle_FC_CND_BRANCH</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basic_block_size</span><span class="p">,</span> <span class="n">inst</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        handle kinds of Contional Branch instructions</span>
+<span class="sd">        ex) JCXZ, JO, JNO, JB, JAE, JZ, JNZ, JBE, JA, JS, JNS, JP, JNP, JL, JGE, JLE, JG, LOOP, LOOPZ, LOOPNZ.</span>
+<span class="sd">        :param basic_block: @type BasicBlock</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">handle_FC_UNC_BRANCH</span><span class="p">(</span><span class="n">basic_block_size</span><span class="p">,</span> <span class="n">inst</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PEAnalyzer.handleConrolFlow"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEAnalyzeTool.PEAnalyzer.handleConrolFlow">[docs]</a>    <span class="k">def</span> <span class="nf">handleConrolFlow</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">basic_block_size</span><span class="p">,</span> <span class="n">inst</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Dispatch method&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">method_name</span> <span class="o">=</span> <span class="s1">&#39;handle_&#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">inst</span><span class="o">.</span><span class="n">flowControl</span><span class="p">)</span>
+            <span class="n">method</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method_name</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">callable</span><span class="p">(</span><span class="n">method</span><span class="p">):</span>
+                <span class="c1"># Call the method as we return it</span>
+                <span class="k">return</span> <span class="n">method</span><span class="p">(</span><span class="n">basic_block_size</span><span class="p">,</span> <span class="n">inst</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="nb">print</span> <span class="s2">&quot;error?&quot;</span>
+
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="nb">print</span> <span class="s2">&quot;===== [INDEX ERROR] =====&quot;</span>
+            <span class="c1"># self.print_basic_block(new_basic_block.start_va, new_basic_block)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="c1"># self.print_basic_block(new_basic_block.start_va, new_basic_block)</span>
+            <span class="k">return</span> <span class="kc">False</span></div>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">execute_section</span><span class="p">,</span> <span class="n">execute_section_data</span><span class="p">,</span> <span class="n">entry_point_va</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">MAX_DECODE_SIZE</span> <span class="o">=</span> <span class="mi">200</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">inst_map</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">direct_control_flow</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">queue</span> <span class="o">=</span> <span class="n">Queue</span><span class="o">.</span><span class="n">Queue</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">execute_section</span> <span class="o">=</span> <span class="n">execute_section</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">execute_section_data</span> <span class="o">=</span> <span class="n">execute_section_data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">entry_point_va</span> <span class="o">=</span> <span class="n">entry_point_va</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">execute_section_va</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute_section</span><span class="o">.</span><span class="n">VirtualAddress</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lock</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Lock</span><span class="p">()</span>
+
+<div class="viewcode-block" id="PEAnalyzer.assignNewBranch"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEAnalyzeTool.PEAnalyzer.assignNewBranch">[docs]</a>    <span class="k">def</span> <span class="nf">assignNewBranch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">va</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="o">.</span><span class="n">acquire</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span><span class="p">(</span><span class="n">va</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">inst_map</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">inst_map</span><span class="p">[</span><span class="n">va</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="c1">#print(&quot;Assign va : {:x}&quot;.format(va))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">va</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="o">.</span><span class="n">release</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PEAnalyzer.genControlFlowGraph"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEAnalyzeTool.PEAnalyzer.genControlFlowGraph">[docs]</a>    <span class="k">def</span> <span class="nf">genControlFlowGraph</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># self.create_basic_block(self.entry_point_va - self.execute_section_va)</span>
+        <span class="c1"># assignment entry point to work</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">assignNewBranch</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">entry_point_va</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">execute_section_va</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parser</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="PEAnalyzer.parser"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEAnalyzeTool.PEAnalyzer.parser">[docs]</a>    <span class="k">def</span> <span class="nf">parser</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">MAX_IDLE_TIME</span> <span class="o">=</span> <span class="mi">1000</span>
+        <span class="n">IDLE_TIME</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">IDLE_TIME</span> <span class="o">&gt;</span> <span class="n">MAX_IDLE_TIME</span><span class="p">:</span>
+                <span class="k">break</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">empty</span><span class="p">():</span>
+                <span class="n">IDLE_TIME</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">branch_addr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">queue</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+                <span class="c1">#self.create_basic_block(branch_addr)</span>
+                <span class="n">t</span> <span class="o">=</span> <span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">parse</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">[</span><span class="n">branch_addr</span><span class="p">])</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+                <span class="n">t</span><span class="o">.</span><span class="n">join</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">IDLE_TIME</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="PEAnalyzer.parse"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEAnalyzeTool.PEAnalyzer.parse">[docs]</a>    <span class="k">def</span> <span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_va</span><span class="p">):</span>
+        <span class="n">start_rva</span> <span class="o">=</span> <span class="n">start_va</span>
+        <span class="n">basic_block</span> <span class="o">=</span> <span class="n">distorm3</span><span class="o">.</span><span class="n">Decompose</span><span class="p">(</span><span class="mh">0x0</span><span class="p">,</span>
+                                         <span class="n">binascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span>
+                                             <span class="bp">self</span><span class="o">.</span><span class="n">execute_section_data</span><span class="p">[</span><span class="n">start_rva</span><span class="p">:</span><span class="n">start_rva</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">MAX_DECODE_SIZE</span><span class="p">])</span>
+                                         <span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;hex&#39;</span><span class="p">),</span>
+                                         <span class="n">distorm3</span><span class="o">.</span><span class="n">Decode32Bits</span><span class="p">,</span>
+                                         <span class="n">distorm3</span><span class="o">.</span><span class="n">DF_STOP_ON_FLOW_CONTROL</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">basic_block</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">basic_block_size</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">for</span> <span class="n">inst</span> <span class="ow">in</span> <span class="n">basic_block</span><span class="p">:</span>
+                    <span class="n">basic_block_size</span> <span class="o">+=</span> <span class="n">inst</span><span class="o">.</span><span class="n">size</span>
+                    <span class="n">inst</span><span class="o">.</span><span class="n">address</span> <span class="o">+=</span> <span class="n">start_rva</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">inst_map</span><span class="p">[</span><span class="n">inst</span><span class="o">.</span><span class="n">address</span><span class="p">]</span> <span class="o">=</span> <span class="n">inst</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">handleConrolFlow</span><span class="p">(</span><span class="n">basic_block_size</span><span class="p">,</span> <span class="n">basic_block</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">removeInstructionFromMap</span><span class="p">(</span><span class="n">start_rva</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Cannot Parse Addr [0x</span><span class="si">{:x}</span><span class="s2">]&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">start_rva</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">removeInstructionFromMap</span><span class="p">(</span><span class="n">start_rva</span><span class="p">)</span>
+            <span class="nb">print</span> <span class="ne">IndexError</span></div>
+
+<div class="viewcode-block" id="PEAnalyzer.removeInstructionFromMap"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEAnalyzeTool.PEAnalyzer.removeInstructionFromMap">[docs]</a>    <span class="k">def</span> <span class="nf">removeInstructionFromMap</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">va</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">va</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">inst_map</span><span class="p">:</span>
+            <span class="k">del</span> <span class="bp">self</span><span class="o">.</span><span class="n">inst_map</span><span class="p">[</span><span class="n">va</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="PEAnalyzer.save_cfg"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEAnalyzeTool.PEAnalyzer.save_cfg">[docs]</a>    <span class="k">def</span> <span class="nf">save_cfg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">save_path</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="c1"># initialize pydotplus</span>
+        <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">dot</span> <span class="o">=</span> <span class="n">pydotplus</span><span class="o">.</span><span class="n">graphviz</span><span class="o">.</span><span class="n">Dot</span><span class="p">(</span><span class="n">prog</span><span class="o">=</span><span class="s1">&#39;test&#39;</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;dot&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">dot</span> <span class="o">=</span> <span class="n">pydotplus</span><span class="o">.</span><span class="n">graphviz</span><span class="o">.</span><span class="n">Dot</span><span class="p">(</span><span class="n">prog</span><span class="o">=</span><span class="n">name</span><span class="p">,</span> <span class="nb">format</span><span class="o">=</span><span class="s1">&#39;dot&#39;</span><span class="p">)</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="n">pydotplus</span><span class="o">.</span><span class="n">graphviz</span><span class="o">.</span><span class="n">Node</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;node&#39;</span><span class="p">,</span> <span class="n">shape</span><span class="o">=</span><span class="s1">&#39;record&#39;</span><span class="p">)</span>
+        <span class="n">dot</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+
+        <span class="n">basicblock_map</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">basicblock_els</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">sorted_basic_blocks</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">inst_map</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="n">operator</span><span class="o">.</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">first_inst</span> <span class="o">=</span> <span class="p">(</span><span class="n">sorted_basic_blocks</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">basicblock</span> <span class="o">=</span> <span class="n">BasicBlock</span><span class="p">()</span>
+        <span class="n">next_inst_addr</span> <span class="o">=</span> <span class="n">first_inst</span><span class="o">.</span><span class="n">address</span> <span class="o">+</span> <span class="n">first_inst</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">basicblock_els</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">first_inst</span><span class="o">.</span><span class="n">address</span><span class="p">)</span>
+        <span class="n">basicblock</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">first_inst</span><span class="p">)</span>
+        <span class="k">del</span> <span class="n">sorted_basic_blocks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">addr</span><span class="p">,</span> <span class="n">inst</span> <span class="ow">in</span> <span class="n">sorted_basic_blocks</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">inst</span><span class="o">.</span><span class="n">address</span> <span class="o">!=</span> <span class="n">next_inst_addr</span><span class="p">:</span>
+                <span class="n">dot</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">basicblock</span><span class="o">.</span><span class="n">toDotNode</span><span class="p">())</span>
+                <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="n">basicblock_els</span><span class="p">:</span>
+                    <span class="n">basicblock_map</span><span class="p">[</span><span class="n">n</span><span class="p">]</span> <span class="o">=</span> <span class="n">basicblock</span><span class="o">.</span><span class="n">getStartAddress</span><span class="p">()</span>
+                <span class="n">basicblock_els</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="n">basicblock</span> <span class="o">=</span> <span class="n">BasicBlock</span><span class="p">()</span>
+            <span class="n">basicblock_els</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">inst</span><span class="o">.</span><span class="n">address</span><span class="p">)</span>
+            <span class="n">basicblock</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">inst</span><span class="p">)</span>
+            <span class="n">next_inst_addr</span> <span class="o">=</span> <span class="n">inst</span><span class="o">.</span><span class="n">address</span> <span class="o">+</span> <span class="n">inst</span><span class="o">.</span><span class="n">size</span>
+        <span class="n">sorted_dcfg_item</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">direct_control_flow</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="n">operator</span><span class="o">.</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">start_va</span><span class="p">,</span> <span class="n">branch_va</span> <span class="ow">in</span> <span class="n">sorted_dcfg_item</span><span class="p">:</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">start_va</span> <span class="ow">in</span> <span class="n">basicblock_map</span><span class="p">)</span> <span class="ow">and</span> <span class="p">(</span><span class="n">branch_va</span> <span class="ow">in</span> <span class="n">basicblock_map</span><span class="p">):</span>
+                <span class="n">basicblock_va</span> <span class="o">=</span> <span class="n">basicblock_map</span><span class="p">[</span><span class="n">start_va</span><span class="p">]</span>
+                <span class="n">src_va</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;loc_0x</span><span class="si">{:x}</span><span class="s2">:loc_0x</span><span class="si">{:x}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">basicblock_va</span><span class="p">,</span> <span class="n">start_va</span><span class="p">)</span>
+                <span class="n">basicblock_va</span> <span class="o">=</span> <span class="n">basicblock_map</span><span class="p">[</span><span class="n">branch_va</span><span class="p">]</span>
+                <span class="n">dst_va</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;loc_0x</span><span class="si">{:x}</span><span class="s2">:loc_0x</span><span class="si">{:x}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">basicblock_va</span><span class="p">,</span> <span class="n">branch_va</span><span class="p">)</span>
+                <span class="n">edge</span> <span class="o">=</span> <span class="n">pydotplus</span><span class="o">.</span><span class="n">graphviz</span><span class="o">.</span><span class="n">Edge</span><span class="p">(</span><span class="n">src</span><span class="o">=</span><span class="n">src_va</span><span class="p">,</span> <span class="n">dst</span><span class="o">=</span><span class="n">dst_va</span><span class="p">)</span>
+                <span class="n">dot</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">edge</span><span class="p">)</span>
+        <span class="n">dot</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">save_path</span><span class="p">)</span>
+        <span class="n">dot</span><span class="o">.</span><span class="n">write_svg</span><span class="p">(</span><span class="n">save_path</span><span class="o">+</span><span class="s2">&quot;.svg&quot;</span><span class="p">)</span>
+        <span class="nb">print</span> <span class="s2">&quot;Done&quot;</span></div></div>
+
+
+<div class="viewcode-block" id="BasicBlock"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEAnalyzeTool.BasicBlock">[docs]</a><span class="k">class</span> <span class="nc">BasicBlock</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">basicblock</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">start_va</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">maxint</span>
+
+<div class="viewcode-block" id="BasicBlock.append"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEAnalyzeTool.BasicBlock.append">[docs]</a>    <span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">inst</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">basicblock</span><span class="p">[</span><span class="n">inst</span><span class="o">.</span><span class="n">address</span><span class="p">]</span> <span class="o">=</span> <span class="n">inst</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_va</span> <span class="o">&gt;</span> <span class="n">inst</span><span class="o">.</span><span class="n">address</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">start_va</span> <span class="o">=</span> <span class="n">inst</span><span class="o">.</span><span class="n">address</span></div>
+
+<div class="viewcode-block" id="BasicBlock.getStartAddress"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEAnalyzeTool.BasicBlock.getStartAddress">[docs]</a>    <span class="k">def</span> <span class="nf">getStartAddress</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">start_va</span></div>
+
+<div class="viewcode-block" id="BasicBlock.toDotNode"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEAnalyzeTool.BasicBlock.toDotNode">[docs]</a>    <span class="k">def</span> <span class="nf">toDotNode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">sorted_basic_blocks</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">basicblock</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="n">operator</span><span class="o">.</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="s2">&quot;{&quot;</span>
+        <span class="k">for</span> <span class="n">addr</span><span class="p">,</span> <span class="n">inst</span> <span class="ow">in</span> <span class="n">sorted_basic_blocks</span><span class="p">:</span>
+            <span class="n">label</span> <span class="o">+=</span> <span class="s2">&quot;{&quot;</span>
+            <span class="n">label</span> <span class="o">+=</span> <span class="p">(</span><span class="s2">&quot;&lt;loc_0x</span><span class="si">{:x}</span><span class="s2">&gt;loc_0x</span><span class="si">{:x}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">inst</span><span class="o">.</span><span class="n">address</span><span class="p">,</span> <span class="n">inst</span><span class="o">.</span><span class="n">address</span><span class="p">)</span>
+            <span class="n">label</span> <span class="o">+=</span> <span class="s2">&quot;|&quot;</span>
+            <span class="n">label</span> <span class="o">+=</span> <span class="p">(</span><span class="s2">&quot;</span><span class="si">{:s}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">inst</span><span class="p">)</span>
+            <span class="n">label</span> <span class="o">+=</span> <span class="s2">&quot;}&quot;</span>
+            <span class="n">label</span> <span class="o">+=</span> <span class="s2">&quot;|&quot;</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">label</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">label</span> <span class="o">+=</span> <span class="s2">&quot;}&quot;</span>
+        <span class="n">node</span> <span class="o">=</span> <span class="n">pydotplus</span><span class="o">.</span><span class="n">graphviz</span><span class="o">.</span><span class="n">Node</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;loc_0x</span><span class="si">{:x}</span><span class="s2">&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">start_va</span><span class="p">),</span> <span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">node</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">zigzi</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../zigzi.html">zigzi package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  <li><a href="../zigzi.html">zigzi</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

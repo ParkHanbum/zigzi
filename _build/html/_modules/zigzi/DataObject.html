@@ -1,0 +1,243 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>zigzi.DataObject &#8212; zigzi  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for zigzi.DataObject</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;DataObject</span>
+<span class="sd">Helper class for data instrument to file.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">struct</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+
+
+<div class="viewcode-block" id="DataObject"><a class="viewcode-back" href="../../zigzi.html#zigzi.DataObject.DataObject">[docs]</a><span class="k">class</span> <span class="nc">DataObject</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_address</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_base_address</span> <span class="o">=</span> <span class="n">base_address</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_base_point</span> <span class="o">=</span> <span class="n">base_address</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_frame_point</span> <span class="o">=</span> <span class="n">base_address</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_size</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_appending</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">variable</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="c1"># default little endian</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prefix_byte_order</span> <span class="o">=</span> <span class="s2">&quot;&lt;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">init_byte_order</span><span class="p">()</span>
+
+<div class="viewcode-block" id="DataObject.init_byte_order"><a class="viewcode-back" href="../../zigzi.html#zigzi.DataObject.DataObject.init_byte_order">[docs]</a>    <span class="k">def</span> <span class="nf">init_byte_order</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="s1">&#39;little&#39;</span> <span class="o">==</span> <span class="n">sys</span><span class="o">.</span><span class="n">byteorder</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prefix_byte_order</span> <span class="o">=</span> <span class="s2">&quot;&lt;&quot;</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">prefix_byte_order</span> <span class="o">=</span> <span class="s2">&quot;&gt;&quot;</span></div>
+
+<div class="viewcode-block" id="DataObject.is_append_not_finish"><a class="viewcode-back" href="../../zigzi.html#zigzi.DataObject.DataObject.is_append_not_finish">[docs]</a>    <span class="k">def</span> <span class="nf">is_append_not_finish</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_appending</span></div>
+
+<div class="viewcode-block" id="DataObject.append_finish"><a class="viewcode-back" href="../../zigzi.html#zigzi.DataObject.DataObject.append_finish">[docs]</a>    <span class="k">def</span> <span class="nf">append_finish</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">is_appending</span> <span class="o">=</span> <span class="kc">False</span></div>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">base_address</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base_address</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_size</span>
+
+<div class="viewcode-block" id="DataObject.get_current_base_pos"><a class="viewcode-back" href="../../zigzi.html#zigzi.DataObject.DataObject.get_current_base_pos">[docs]</a>    <span class="k">def</span> <span class="nf">get_current_base_pos</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_base_point</span></div>
+
+<div class="viewcode-block" id="DataObject.append_chunk"><a class="viewcode-back" href="../../zigzi.html#zigzi.DataObject.DataObject.append_chunk">[docs]</a>    <span class="k">def</span> <span class="nf">append_chunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_list</span><span class="p">,</span> <span class="n">variable_name</span><span class="p">):</span>
+        <span class="n">base_point</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_base_pos</span><span class="p">()</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_append_not_finish</span><span class="p">():</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;previous append is not finish correctly.&quot;</span><span class="p">)</span>
+            <span class="n">exit</span><span class="p">()</span>
+        <span class="n">data_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">data_list</span><span class="p">)</span>
+        <span class="c1"># local variable log</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_local_variable</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_base_point</span><span class="p">,</span> <span class="n">variable_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_base_point</span><span class="p">:</span><span class="bp">self</span><span class="o">.</span><span class="n">_base_point</span> <span class="o">+</span> <span class="n">data_len</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">data_list</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_size</span> <span class="o">+=</span> <span class="n">data_len</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_base_point</span> <span class="o">+=</span> <span class="n">data_len</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_frame_point</span> <span class="o">+=</span> <span class="n">data_len</span>
+        <span class="k">return</span> <span class="n">base_point</span></div>
+
+<div class="viewcode-block" id="DataObject.save_local_variable"><a class="viewcode-back" href="../../zigzi.html#zigzi.DataObject.DataObject.save_local_variable">[docs]</a>    <span class="k">def</span> <span class="nf">save_local_variable</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">base_point</span><span class="p">,</span> <span class="n">variable_name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">variable_name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">variable</span><span class="p">[</span><span class="n">base_point</span><span class="p">]</span> <span class="o">=</span> <span class="n">base_point</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">variable</span><span class="p">[</span><span class="n">variable_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">base_point</span></div>
+
+<div class="viewcode-block" id="DataObject.append_dword"><a class="viewcode-back" href="../../zigzi.html#zigzi.DataObject.DataObject.append_dword">[docs]</a>    <span class="k">def</span> <span class="nf">append_dword</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dword</span><span class="p">,</span> <span class="n">variable_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        append_dword size value to data list.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            dword: value.</span>
+<span class="sd">            variable_name: name of this space.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            int : base position point before appending.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">base_point</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_base_pos</span><span class="p">()</span>
+        <span class="n">encoding_list</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix_byte_order</span> <span class="o">+</span> <span class="s2">&quot;I&quot;</span><span class="p">,</span> <span class="n">dword</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">append_chunk</span><span class="p">(</span><span class="n">encoding_list</span><span class="p">,</span> <span class="n">variable_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">base_point</span></div>
+
+<div class="viewcode-block" id="DataObject.append_word"><a class="viewcode-back" href="../../zigzi.html#zigzi.DataObject.DataObject.append_word">[docs]</a>    <span class="k">def</span> <span class="nf">append_word</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">word</span><span class="p">,</span> <span class="n">variable_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">base_point</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_base_pos</span><span class="p">()</span>
+        <span class="n">encoding_list</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix_byte_order</span> <span class="o">+</span> <span class="s2">&quot;H&quot;</span><span class="p">,</span> <span class="n">word</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">append_chunk</span><span class="p">(</span><span class="n">encoding_list</span><span class="p">,</span> <span class="n">variable_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">base_point</span></div>
+
+<div class="viewcode-block" id="DataObject.append_byte"><a class="viewcode-back" href="../../zigzi.html#zigzi.DataObject.DataObject.append_byte">[docs]</a>    <span class="k">def</span> <span class="nf">append_byte</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">byte</span><span class="p">,</span> <span class="n">variable_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">base_point</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_current_base_pos</span><span class="p">()</span>
+        <span class="n">encoding_list</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">pack</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix_byte_order</span> <span class="o">+</span> <span class="s2">&quot;B&quot;</span><span class="p">,</span> <span class="n">byte</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">append_chunk</span><span class="p">(</span><span class="n">encoding_list</span><span class="p">,</span> <span class="n">variable_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">base_point</span></div>
+
+<div class="viewcode-block" id="DataObject.declare_dword"><a class="viewcode-back" href="../../zigzi.html#zigzi.DataObject.DataObject.declare_dword">[docs]</a>    <span class="k">def</span> <span class="nf">declare_dword</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">init_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">variable_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;declare and set up dword type variable.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            init_value: value of this variable</span>
+<span class="sd">            variable_name:  name of this variable</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            int : current base position.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">init_value</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">append_dword</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">variable_name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">append_dword</span><span class="p">(</span><span class="n">init_value</span><span class="p">,</span> <span class="n">variable_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DataObject.declare_word"><a class="viewcode-back" href="../../zigzi.html#zigzi.DataObject.DataObject.declare_word">[docs]</a>    <span class="k">def</span> <span class="nf">declare_word</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">init_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">variable_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">init_value</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">append_word</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">variable_name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">append_word</span><span class="p">(</span><span class="n">init_value</span><span class="p">,</span> <span class="n">variable_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DataObject.declare_byte"><a class="viewcode-back" href="../../zigzi.html#zigzi.DataObject.DataObject.declare_byte">[docs]</a>    <span class="k">def</span> <span class="nf">declare_byte</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">init_value</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">variable_name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">init_value</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">append_byte</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">variable_name</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">append_byte</span><span class="p">(</span><span class="n">init_value</span><span class="p">,</span> <span class="n">variable_name</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="DataObject.set_variable_value"><a class="viewcode-back" href="../../zigzi.html#zigzi.DataObject.DataObject.set_variable_value">[docs]</a>    <span class="k">def</span> <span class="nf">set_variable_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variable_name</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">variable_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">variable</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">variable</span><span class="p">[</span><span class="n">variable_name</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;CANNOT FIND VARIABLE NAME&quot;</span><span class="p">)</span>
+            <span class="n">exit</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DataObject.get_variable_reference"><a class="viewcode-back" href="../../zigzi.html#zigzi.DataObject.DataObject.get_variable_reference">[docs]</a>    <span class="k">def</span> <span class="nf">get_variable_reference</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variable_name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">variable_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">variable</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">variable</span><span class="p">[</span><span class="n">variable_name</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;CANNOT FIND VARIABLE NAME&quot;</span><span class="p">)</span>
+            <span class="n">exit</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="DataObject.get_variable_value"><a class="viewcode-back" href="../../zigzi.html#zigzi.DataObject.DataObject.get_variable_value">[docs]</a>    <span class="k">def</span> <span class="nf">get_variable_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">variable_name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">variable_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">variable</span><span class="p">:</span>
+            <span class="n">address</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">variable</span><span class="p">[</span><span class="n">variable_name</span><span class="p">]</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">address</span><span class="p">:</span><span class="n">address</span> <span class="o">+</span> <span class="mi">4</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;CANNOT FIND VARIABLE NAME&quot;</span><span class="p">)</span>
+            <span class="n">exit</span><span class="p">()</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">zigzi</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../zigzi.html">zigzi package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  <li><a href="../zigzi.html">zigzi</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
