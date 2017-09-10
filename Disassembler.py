@@ -91,7 +91,23 @@ class Disassembler(object):
         """
         if hasattr(instruction, "groups"):
             for group in instruction.groups:
-                if group == CS_GRP_INDIRECT_BRANCH:
+                if group == CS_GRP_BRANCH_INDIRECT:
+                    return True
+        return False
+
+    @staticmethod
+    def is_branch(instruction):
+        """
+        Check whether it is a indirect branch instruction.
+
+        Args:
+            instruction(instruction): instruction for check.
+        Returns:
+            bool : True if instruction is indirect branch, False otherwise.
+        """
+        if hasattr(instruction, "groups"):
+            for group in instruction.groups:
+                if group == CS_GRP_BRANCH:
                     return True
         return False
 
@@ -107,7 +123,7 @@ class Disassembler(object):
         """
         if hasattr(instruction, "groups"):
             for group in instruction.groups:
-                if group == CS_GRP_BRANCH:
+                if group == CS_GRP_BRANCH_RELATIVE:
                     return True
         return False
 
@@ -132,3 +148,13 @@ class Disassembler(object):
                 if group == CS_GRP_RET:
                     return True
         return False
+
+    @staticmethod
+    def get_instruction_length(instruction):
+        opcode = instruction.opcode
+        length = 0
+        for index, el in enumerate(opcode):
+            length = index + 1
+            if el == 0:
+                break
+        return length

@@ -11,9 +11,12 @@ from Log import LoggerFactory
 
 
 class PEManager(object):
+    """
+    PEManager
+    """
     def __init__(self, filename):
         """
-        creator of PEManager
+        construct a new PEManager
 
         Args:
             filename (str) : file name with absolute file path.
@@ -26,6 +29,7 @@ class PEManager(object):
         self._IMAGE_BASE_ = self.PE.OPTIONAL_HEADER.ImageBase
         self.instrument = None
         self.log = None
+        self.section_prev_adjust = None
 
     def set_instrument(self, instrumentor):
         """
@@ -138,6 +142,16 @@ class PEManager(object):
         # self.PE.OPTIONAL_HEADER.SizeOfCode = size_of_data
 
     def create_new_data_section(self, data, name):
+        """
+        Create a new data section and add it to the last section.
+
+        Args:
+            data(bytearray) : data for append to section.
+            name(str) : name of section.
+
+        Returns:
+            new section.
+        """
         if len(name) > 8:
             print("[EXCEPTION] SECTION NAME MUST LESS THEN 8 CHARACTER")
             exit()
@@ -251,6 +265,15 @@ class PEManager(object):
         self.adjust_file_layout()
         self.PE.write(file_path)
 
+    def writefile_without_adjust(self, file_path):
+        """
+        write file data to file.
+
+        Args:
+            file_path(str) : file name with its absolute path.
+        """
+        self.PE.write(file_path)
+
     def get_image_size(self):
         """
         last section's end represent that Image size.
@@ -311,6 +334,50 @@ class PEManager(object):
                 "DIRECTORY"
         return structures_relocation_entries
 
+    def get_import_structures(self):
+        """
+        get import lists of pe file.
+
+        Returns:
+            (list) : containing structures of import.
+        """
+        imports_start_index = 0
+        imports_end_index = 0
+
+        for index, structure in enumerate(self.PE.__structures__):
+            if ((structure.name == 'IMAGE_IMPORT_DESCRIPTOR')
+                    == (structure.name == 'IMAGE_THUNK_DATA')):
+                if imports_start_index > 0:
+                    imports_end_index = index
+                    break
+            else:
+                if imports_start_index == 0:
+                    imports_start_index = index
+        return self.PE.__structures__[imports_start_index:imports_end_index]
+
+    def get_imports_range_in_structures(self):
+        """
+        start and end index of import at structures.
+
+        Returns:
+            (tuple): tuple containing:
+                start_index (int) : start index of import at structures.
+                end_index (int) : last index of import at structures.
+        """
+        imports_start_index = 0
+        imports_end_index = 0
+
+        for index, structure in enumerate(self.PE.__structures__):
+            if ((structure.name == 'IMAGE_IMPORT_DESCRIPTOR')
+                    == (structure.name == 'IMAGE_THUNK_DATA')):
+                if imports_start_index > 0:
+                    imports_end_index = index
+                    break
+            else:
+                if imports_start_index == 0:
+                    imports_start_index = index
+        return imports_start_index, imports_end_index
+
     def is_possible_relocation(self):
         """
         Verify that the file can be relocated.
@@ -342,6 +409,7 @@ class PEManager(object):
         as a result, section's area can overlapped.
         that is why we need to relocate section without overlapped area.
         """
+        self.section_prev_adjust = copy.deepcopy(self.PE.sections)
         for index in range(len(self.PE.sections) - 1):
             src_section = self.PE.sections[index]
             virtual_size = src_section.Misc_VirtualSize
@@ -409,22 +477,38 @@ class PEManager(object):
         adjust element of data directories.
         """
         sections = self.PE.sections
-        origin_sections = self.PEOrigin.sections
+        origin_sections = self.section_prev_adjust
         data_directories = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY
 
         for index in range(len(origin_sections)):
             section = sections[index]
             origin_section = origin_sections[index]
+            origin_section_start = origin_section.VirtualAddress
+            if index + 1 < len(origin_sections):
+                origin_section_end = origin_sections[index + 1].VirtualAddress
+            else:
+                origin_section_end = origin_section.VirtualAddress + \
+                                     origin_section.Misc_VirtualSize
             data_directories = \
                 self.adjust_directories(data_directories,
-                                        origin_section.VirtualAddress,
+                                        origin_section_start,
                                         section.VirtualAddress,
-                                        origin_section.Misc_VirtualSize,
+                                        origin_section_end,
                                         section.Misc_VirtualSize)
 
-    def adjust_directories(self, data_directories, section_origin_va,
-                           section_adjusted_va, origin_section_size,
+    def adjust_directories(self, data_directories, origin_section_start,
+                           section_adjusted_va, origin_section_end,
                            adjusted_section_size):
+        """
+        adjust directories Virtual address.
+
+        Args:
+            data_directories:
+            origin_section_start:
+            section_adjusted_va:
+            origin_section_end:
+            adjusted_section_size:
+        """
         directory_adjust = {
             'IMAGE_DIRECTORY_ENTRY_IMPORT': self.adjust_import,
             # 'IMAGE_DIRECTORY_ENTRY_DEBUG': self.adjustDebug,
@@ -434,15 +518,21 @@ class PEManager(object):
             'IMAGE_DIRECTORY_ENTRY_RESOURCE': self.adjust_resource,
             'IMAGE_DIRECTORY_ENTRY_BASERELOC': self.adjust_relocation,
             'IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT': self.adjust_delay_import,
-            'IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT': self.adjust_bound_imports
+            'IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT': self.adjust_bound_imports,
+            'IMAGE_DIRECTORY_ENTRY_IAT': self.adjust_iat,
         }
 
         remove_list = []
-        increased_size = section_adjusted_va - section_origin_va
+        increased_size = section_adjusted_va - origin_section_start
         for directory in data_directories:
-            if (section_origin_va
+            if (origin_section_start
                     <= directory.VirtualAddress
-                    < (section_origin_va + origin_section_size)):
+                    < origin_section_end):
+                print("{} <= {} < {}, {}"
+                      .format(origin_section_start,
+                              directory.VirtualAddress,
+                              origin_section_end,
+                              directory.name))
                 index = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY.index(directory)
                 self.PE.OPTIONAL_HEADER.DATA_DIRECTORY[index].VirtualAddress \
                     = directory.VirtualAddress + increased_size
@@ -451,6 +541,9 @@ class PEManager(object):
                         entry = directory_adjust[directory.name]
                         entry(directory, directory.VirtualAddress,
                               directory.Size, increased_size)
+                        if directory.name == 'IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG':
+                            print("{}".format(increased_size))
+
                 except IndexError:
                     print("===== [INDEX ERROR] =====")
                     return False
@@ -652,6 +745,9 @@ class PEManager(object):
             directory_tls.struct.StartAddressOfRawData += increase_size
         return 0
 
+    def adjust_iat(self, directory, rva, size, increase_size):
+        pass
+
     def adjust_bound_imports(self, directory, rva, size, increase_size):
         """
         adjust relocation directory's elements.
@@ -713,50 +809,28 @@ class PEManager(object):
             size: current directory size
             increase_size: increased size of section that directory included
         """
-        for importIndex in range(len(self.PE.DIRECTORY_ENTRY_IMPORT)):
-            import_entry = self.PE.DIRECTORY_ENTRY_IMPORT[importIndex]
-            import_entry.struct.Characteristics += increase_size
-            import_entry.struct.FirstThunk += increase_size
-            import_entry.struct.Name += increase_size
-            import_entry.struct.OriginalFirstThunk += increase_size
-            for entry_index in range(len(import_entry.imports)):
-                import_entry_element = import_entry.imports[entry_index]
-                if import_entry_element.import_by_ordinal:
-                    continue
-                iat = import_entry_element.struct_iat
-                import_entry_element.struct_table.AddressOfData += increase_size
-                import_entry_element.struct_table.ForwarderString \
-                    += increase_size
-                import_entry_element.struct_table.Function += increase_size
-                import_entry_element.struct_table.Ordinal += increase_size
-                if iat:
-                    # if import entry element has IAT then just adjusting.
-                    import_entry_element.struct_iat.AddressOfData \
-                        += increase_size
-                    import_entry_element.struct_iat.ForwarderString \
-                        += increase_size
-                    import_entry_element.struct_iat.Function += increase_size
-                    import_entry_element.struct_iat.Ordinal += increase_size
+        import_structures = self.get_import_structures()
+        for entry in import_structures:
+            if entry.name == 'IMAGE_IMPORT_DESCRIPTOR':
+                if entry.OriginalFirstThunk > 0:
+                    entry.OriginalFirstThunk += increase_size
+                if entry.Characteristics > 0:
+                    entry.Characteristics += increase_size
+                if entry.FirstThunk > 0:
+                    entry.FirstThunk += increase_size
+                if entry.Name > 0:
+                    entry.Name += increase_size
+            elif entry.name == 'IMAGE_THUNK_DATA':
+                if entry.Ordinal & 0x80000000:
+                    # This is Ordinal import
+                    pass
                 else:
-                    # if import entry element has not IAT, create new iat.
-                    iat_va = import_entry_element.address \
-                             - self.PE.OPTIONAL_HEADER.ImageBase \
-                             + increase_size
-                    iat_size = \
-                        Structure(self.PE.__IMAGE_THUNK_DATA_format__).sizeof()
-                    # read data from import entry element
-                    thunk_data = self.PE.get_data(iat_va, iat_size)
-                    # create new IAT from data that import entry element's
-                    new_iat = self.PE.__unpack_data__(
-                        self.PE.__IMAGE_THUNK_DATA_format__, thunk_data,
-                        file_offset=self.PE.get_offset_from_rva(iat_va))
-                    # adjust new entry
-                    new_iat.AddressOfData += increase_size
-                    new_iat.ForwarderString += increase_size
-                    new_iat.Function += increase_size
-                    new_iat.Ordinal += increase_size
-                    # set new IAT to import entry element.
-                    import_entry_element.struct_iat = new_iat
+                    if entry.AddressOfData > 0:
+                        entry.AddressOfData += increase_size
+                    if entry.ForwarderString > 0:
+                        entry.ForwarderString += increase_size
+                    if entry.Function > 0:
+                        entry.Function += increase_size
 
     def adjust_export(self, directory, rva, size, increase_size):
         """
@@ -817,12 +891,24 @@ class PEManager(object):
                     rsrc_directory_el.data.struct.OffsetToData += increase_size
 
     def set_dword_at_rva(self, rva, dword):
+        """
+        set dword at rva.
+
+        Args:
+            rva(int) : relative address.
+            dword:
+        """
         return self.PE.set_dword_at_rva(rva, dword)
 
     def get_data_section(self):
+        """
+        get data section of PE.
+
+        Returns:
+            (section) : data section of PE.
+        """
         data_section = \
-            self.get_section_belong_rva(self.PE.sections,
-                                        self.PE.OPTIONAL_HEADER.BaseOfData)
+            self.get_section_belong_rva(self.PE.OPTIONAL_HEADER.BaseOfData)
         return data_section
 
     def _adjust_entry_point(self):
@@ -884,6 +970,15 @@ class PEManager(object):
                 'DIRECTORY_ENTRY_BASERELOC'
 
     def get_abs_va_from_offset(self, offset):
+        """
+        calculate absolute virtual address from offset.
+
+        Args:
+            offset(int) : offset of file.
+
+        Returns:
+            (int) : absolute address to match offset.
+        """
         rva = self.PE.get_rva_from_offset(offset)
         return self.get_abs_va_from_rva(rva)
 
@@ -899,7 +994,25 @@ class PEManager(object):
         """
         return self.PE.OPTIONAL_HEADER.ImageBase + rva
 
+    def get_image_base(self):
+        """
+        get address of image base.
+
+        Returns:
+            (int) : virtual address of image base.
+        """
+        return self.PE.OPTIONAL_HEADER.ImageBase
+
     def get_structure_from_rva(self, rva):
+        """
+        Find the structure located in rva.
+
+        Args:
+            rva(int) : relative address.
+
+        Returns:
+            (Structure) : structure that has located in rva.
+        """
         result = None
         offset = self.PE.get_physical_by_rva(rva)
         if not offset:
@@ -909,6 +1022,7 @@ class PEManager(object):
             structure_offset = structure.get_file_offset()
             if offset == structure_offset:
                 result = structure
+                break
         return result
 
     def get_bytes_at_offset(self, offset_start, offset_stop):
@@ -933,6 +1047,14 @@ class PEManager(object):
 
     def relocation_entry_move_to_appropriate_block(self, entry, block,
                                                    increase_size):
+        """
+        move relocation entry to appropriate relocation block.
+
+        Args:
+            entry:
+            block:
+            increase_size:
+        """
         pe_structure = self.PE.__structures__
         # we assume first section is text section.
         # code section's address end that increased by instrument.
@@ -997,6 +1119,14 @@ class PEManager(object):
         self.append_relocation_entry_to_block(entry, block_index)
 
     def gen_new_relocation_block(self, block_rva):
+        """
+        generate new relocation block that cover rva.
+        Args:
+            block_rva: relative address that has covered by new block.
+
+        Returns:
+            (int) : index of generated block.
+        """
         pe_structure = self.PE.__structures__
         (relocation_blocks, relocation_entries) \
             = self.get_relocation_directories()
@@ -1014,12 +1144,58 @@ class PEManager(object):
         pe_structure.insert(block_index, new_block)
         return block_index
 
+    def gen_new_empty_import_descriptor(self):
+        """
+        generate new import descriptor that has empty.
+
+        Returns:
+            (Structure) : IMPORT_DESCRIPTOR format
+        """
+        structure = Structure(self.PE.__IMAGE_IMPORT_DESCRIPTOR_format__)
+        return structure
+
+    def gen_new_empty_import_thunk(self):
+        """
+        generate new import descriptor that has empty.
+
+        Returns:
+            (Structure) : IMPORT_THUNK format
+        """
+        structure = Structure(self.PE.__IMAGE_THUNK_DATA_format__)
+        return structure
+
+    def get_new_empty_thunk(self):
+        """
+        generate new empty thunk.
+
+        Returns:
+            (Structure) : IMPORT_THUNK format
+        """
+        structure = Structure(self.PE.__IMAGE_THUNK_DATA_format__)
+        return structure
+
     def gen_new_relocation_entry(self, rva):
+        """
+        Create a relocation entry for rva.
+
+        Args:
+            rva(int) : relative address.
+
+        Returns:
+            (Structure) : relocation entry.
+        """
         structure = Structure(self.PE.__IMAGE_BASE_RELOCATION_ENTRY_format__)
         setattr(structure, "Data", (rva & 0xfff) + 0x3000)
         return structure
 
     def append_relocation_entry_to_block(self, entry, block_index):
+        """
+        append relocation entry to appropriate relocation block.
+
+        Args:
+            entry(Structure) : entry to be append.
+            block_index(int) : index of block.
+        """
         pe_structure = self.PE.__structures__
         _block_size = pe_structure[block_index].SizeOfBlock
         if (_block_size - 8) > 0:
@@ -1029,14 +1205,61 @@ class PEManager(object):
             pe_structure.insert(block_index + 1, entry)
         pe_structure[block_index].SizeOfBlock += 2
 
-    @staticmethod
-    def get_section_belong_rva(sections, rva):
+    def get_section_belong_rva(self, rva):
+        """
+        Find the section containing rva.
+
+        Args:
+            rva(int) : rva for find section.
+
+        Returns:
+            (Section)
+        """
+        sections = self.PE.sections
         for section in sections:
             if section.VirtualAddress \
                     <= rva \
                     < section.VirtualAddress + section.Misc_VirtualSize:
                 return section
         return None
+
+    def get_data_directory_address_range(self, entry_name):
+        """
+        Gets the scope of the data directory with the given name as an argument.
+
+        Args:
+            entry_name(str) : name of data directory to find.
+
+        Returns:
+            (tuple) :
+                (int) : Virtual address of data directory.
+                (int) : Size of data directory.
+        """
+        for entry in self.PE.OPTIONAL_HEADER.DATA_DIRECTORY:
+            if entry.name == entry_name:
+                return entry.VirtualAddress, entry.Size
+
+    def get_import_descriptor_address_range(self):
+        """
+        Gets the scope of the import descriptor.
+
+        Returns:
+            (tuple) :
+                (int) : Virtual address of import descriptor.
+                (int) : Size of import data descriptor.
+        """
+        return self.get_data_directory_address_range('IMAGE_DIRECTORY_ENTRY_IMPORT')
+
+    def get_import_address_table_address_range(self):
+        """
+        Gets the scope of the import address table.
+
+        Returns:
+            (tuple) :
+                (int) : Virtual address of import address table.
+                (int) : Size of import data address table.
+        """
+        return self.get_data_directory_address_range('IMAGE_DIRECTORY_ENTRY_IAT')
 
     @staticmethod
     def is_executable_section(section):
@@ -1066,3 +1289,28 @@ class PEManager(object):
         """
         clone_section = copy.copy(section)
         return clone_section
+
+    def adjust_data_in_range(self, start, end, increase_size):
+        """
+        Adjust the values of data belonging to a specific range.
+
+        Args:
+            start(int) : start of range.
+            end(int) : end of range.
+            increase_size(int): the size to be adjust.
+        """
+        relocation_dict = self.get_relocation_from_structures()
+        sorted_relocation_dict = sorted(relocation_dict.items(),
+                                        key=operator.itemgetter(0))
+        for block_va, entries in sorted_relocation_dict:
+            for entry in entries:
+                if entry.Data == 0x0:
+                    continue
+                relocation_rva = (entry.Data & 0xfff) + block_va
+                value = self.PE.get_dword_at_rva(relocation_rva)
+                if ((start + self._IMAGE_BASE_)
+                        <= value
+                        < (end + self._IMAGE_BASE_)):
+                    self.set_dword_at_rva(relocation_rva, value + increase_size)
+                    print("{:x}\t{:x}\t{:x}".format(relocation_rva, value,
+                                                    increase_size))

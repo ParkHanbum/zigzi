@@ -5,6 +5,13 @@ from PEManager import *
 class Chunk(object):
 
     def __init__(self, pe_manager, size=0x1000):
+        """
+        creator of memory chunk that be allocated.
+
+        Args:
+            pe_manager(PEManager) : target PEManager to append chunk.
+            size(int) : size of chunk.
+        """
         if not isinstance(pe_manager, PEManager):
             raise TypeError('data should be of type: PEManager')
         data = bytearray(size)
@@ -55,6 +62,7 @@ class Chunk(object):
             step = i.step
             if step is not None:
                 print("NOT SUPPORTED STEP")
+                exit()
         else:
             start = i + self.offset
 
@@ -64,8 +72,8 @@ class Chunk(object):
                 "Indexing is out of range Max:{} but argument:{}"
                     .format(self.size, start - self.offset)
             )
-        self.pe_manager.PE.set_bytes_at_offset(start,
-                                               struct.pack('<L', v))
+        self.pe_manager.PE.set_bytes_at_offset(start, v)
+                                               # struct.pack('<L', v))
 
     def get_va(self):
         return self.section_va

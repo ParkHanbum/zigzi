@@ -19,7 +19,8 @@ from PEAnalyzeTool import *
 from PEManager import *
 from keystone import *
 from DataSegment import *
-
+from SampleReturnVerifier import *
+from WindowAPIHelper import *
 
 code_rva = 0
 
@@ -97,6 +98,31 @@ def simple_indirect_branch_counting_function_instrument():
     pe_manager.register_rva_to_relocation(code_rva + 7 + 1)
 
 
+def do_indirect_branch_counting():
+    simple_indirect_branch_counting_function_instrument()
+
+    pe_instrument.register_pre_indirect_branch(
+        simple_indirect_branch_counting_function_call_instrument
+    )
+
+    pe_instrument.register_after_indirect_branch(
+        simple_return_address_save_function_call_instrument
+    )
+
+
+def do_return_address_verifier(pe_instrument, pe_manager, fn_rva):
+    simple_instrument_error_handler(pe_instrument, pe_manager, fn_rva)
+    pe_instrument.register_after_relative_branch(
+        simple_instrument_return_address_at_after_branch
+    )
+    pe_instrument.register_after_indirect_branch(
+        simple_instrument_return_address_at_after_branch
+    )
+    pe_instrument.register_pre_return(
+        simple_instrument_return_address_verifier_at_pre_return
+    )
+    pe_instrument.do_instrument()
+
 if __name__ == '__main__':
     parser = argparse.ArgumentParser("zigzi")
     parser.add_argument("file",
@@ -108,24 +134,19 @@ if __name__ == '__main__':
         parser.print_help()
         exit()
     pe_manager = PEManager(filename)
+    # add api
+    window_api_helper = WindowAPIHelper(pe_manager)
+    message_box_fn_rva = window_api_helper.add_message_box()
     # set new instrumentation
     pe_instrument = PEInstrument(pe_manager)
-    simple_indirect_branch_counting_function_instrument()
-    """
-    pe_instrument.register_pre_indirect_branch(
-        simple_indirect_branch_counting_function_call_instrument
-    )
-    """
-    # need bug fix
-    pe_instrument.register_after_indirect_branch(
-        simple_return_address_save_function_call_instrument
-    )
 
-    pe_instrument.do_instrument()
+    do_return_address_verifier(pe_instrument, pe_manager, message_box_fn_rva)
+    # do_indirect_branch_counting()
+
     # TODO : change to avoid duplicate processing.
     # do not double adjustment for file, it break file layout.
     # pe_manager.adjust_file_layout()
     output_filename = filename[:-4] + "_after_test.exe"
     pe_manager.writefile(output_filename)
-
+    pe_instrument._save_instruction_log()
 # C:\work\python\zigzi\tests\simple_echo_server.exe

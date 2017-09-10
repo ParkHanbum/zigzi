@@ -19,7 +19,14 @@ _INSTRUMENT_POS_REPLACE_ = 0x1002
 
 
 class PEInstrument(object):
+
     def __init__(self, pe_manager):
+        """
+        creator of PEInstrument.
+
+        Args:
+            pe_manager(PEManager) : The target file manager to instrument.
+        """
         if not isinstance(pe_manager, PEManager):
             print("YOU MUST set up PE Manager")
             exit()
@@ -65,13 +72,13 @@ class PEInstrument(object):
     def get_pe_manager(self):
         return self.pe_manager
 
-    def is_instrument_overflow_occurred(self):
+    def _is_instrument_overflow_occurred(self):
         return self.overflowed
 
-    def instrument_overflow_handled(self):
+    def _instrument_overflow_handled(self):
         self.overflowed = False
 
-    def instrument_overflow_occurred(self):
+    def _instrument_overflow_occurred(self):
         self.overflowed = True
 
     def writefile(self, filename):
@@ -369,14 +376,18 @@ class PEInstrument(object):
         if not self.pe_manager.is_possible_relocation():
             print("Not Support PE without relocation, yet.")
             exit()
-        else:
-            self.log = \
-                LoggerFactory().get_new_logger("AdjustDirectBranches.log")
-            for instAddress, instruction in instructions:
-                if self.disassembler.is_relative_branch(instruction):
-                    self.adjust_direct_branches(instruction)
-            self.log.fin()
-        if self.is_instrument_overflow_occurred():
+        self._save_instruction_log()
+        self.log = LoggerFactory().get_new_logger("AdjustDirectBranches.log")
+        for instAddress, instruction in instructions:
+            if ((not self.disassembler.is_indirect_branch(instruction))
+                and (self.disassembler.is_branch(instruction)
+                     or self.disassembler.is_relative_branch(instruction))):
+                self.adjust_direct_branches(instruction)
+            if instruction.mnemonic.startswith('prefetch'):
+                self.adjust_registers_instruction_operand(instruction)
+        self.log.fin()
+
+        if self._is_instrument_overflow_occurred():
             overflowed_inst_handled = self.handle_overflowed_instrument()
             if overflowed_inst_handled:
                 self.adjust_instruction_layout()
@@ -404,12 +415,20 @@ class PEInstrument(object):
             if instruction_size == 2:
                 operand_start = instruction.address + 1
                 operand_end = instruction.address + 2
+            elif instruction_size == 3:
+                operand_start = instruction.address + 2
+                operand_end = instruction.address + 3
             elif instruction_size == 6:
                 operand_start = instruction.address + 2
                 operand_end = instruction.address + 6
+            elif instruction_size == 5:
+                operand_start = instruction.address + 1
+                operand_end = instruction.address + instruction_size
             else:
-                operand_start = instruction.address + instruction_size \
-                                - operand_size
+                instruction_length = \
+                    self.disassembler.get_instruction_length(instruction)
+                self.log.log("[CACULATED][{:d}]\t".format(instruction_length))
+                operand_start = instruction.address + instruction_length
                 operand_end = instruction.address + instruction_size
 
             self.log.log("[{:d}]\t".format(instruction_size))
@@ -421,14 +440,16 @@ class PEInstrument(object):
                     )
             except:
                 print ("[except]============================================")
-                print ("[0x%08x]\t%s 0x%x\t\tINS:%d\tOPS:%d\tOP START:%x\t"
-                       "OP END:%x".format(instruction.address,
-                                          instruction.mnemonic,
-                                          instruction.operands[0].imm,
-                                          instruction_size, operand_size,
-                                          operand_start, operand_end,
-                                          operand_value
-                                          )
+                print ("[0x{}]\t{} {}\t\tINSIZE:{}\tOPSIZE:{}\t"
+                       "OP START:{}\tOP END:{}\tVALUE:{:x}"
+                       .format(instruction.address,
+                               instruction.mnemonic,
+                               instruction.op_str,
+                               instruction_size,
+                               operand_size,
+                               operand_start, operand_end,
+                               instruction.operands[0].imm
+                               )
                        )
                 exit()
             if operand_value > 0:
@@ -457,7 +478,7 @@ class PEInstrument(object):
                                      instruction.op_str, operand_value,
                                      adjusted_operand_value))
             except:
-                self.instrument_overflow_occurred()
+                self._instrument_overflow_occurred()
                 self.overflowed_instrument_dict[instruction.address] = \
                     (instruction,
                      (operand_value, adjusted_operand_value,
@@ -468,6 +489,88 @@ class PEInstrument(object):
                         .format(instruction.address, instruction.mnemonic,
                                 instruction.op_str, operand_value,
                                 adjusted_operand_value))
+        return adjusted_operand_value
+
+    def adjust_registers_instruction_operand(self, instruction):
+        """
+        adjust instruction operand that register before.
+
+        Args:
+            instruction(instruction) : instruction to be adjusting.
+
+        Returns:
+            (int) : adjusted operand value.
+        """
+        operand_value = 0
+        adjusted_operand_value = 0
+        instrumented_size_till = self.get_instrumented_size(instruction)
+        # fixed instruction opcode size for prefetch
+        opcode_size = 3
+        instruction_size = instruction.size
+        operand_start = instruction.address + opcode_size
+        operand_end = instruction.address + instruction_size
+        self.log.log("[{:d}]\t".format(instruction_size))
+        try:
+            operand_value = \
+                self.code_manager.get_data_from_offset_with_format(
+                    operand_start,
+                    operand_end
+                )
+        except:
+            print ("[except]============================================")
+            print ("[0x%08x]\t%s 0x%x\t\tINS:%d\tOPS:%d\tOP START:%x\t"
+                   "OP END:%x".format(instruction.address,
+                                      instruction.mnemonic,
+                                      instruction.operands[0].imm,
+                                      instruction_size,
+                                      operand_start, operand_end,
+                                      operand_value
+                                      )
+                   )
+            exit()
+
+        image_base = self.pe_manager.get_image_base()
+        if operand_value > 0:
+            adjusted_operand_value = operand_value + instrumented_size_till
+            if adjusted_operand_value < image_base:
+                adjusted_operand_value += image_base
+        else:
+            adjusted_operand_value = operand_value - instrumented_size_till
+            if adjusted_operand_value < image_base:
+                adjusted_operand_value += image_base
+        try:
+            self.code_manager.set_data_at_offset_with_format(
+                operand_start,
+                operand_end,
+                adjusted_operand_value
+            )
+
+            set_value = \
+                self.code_manager.get_data_from_offset_with_format(
+                    operand_start,
+                    operand_end
+                )
+
+            if adjusted_operand_value != set_value:
+                print("ERROR WHILE ADJUST DIRECT BRANCH")
+                exit()
+            self.log.log("[0x{:04x}]\t{:s}\t{:s}\t{:x}\t{:x}\n"
+                         .format(instruction.address,
+                                 instruction.mnemonic,
+                                 instruction.op_str, operand_value,
+                                 adjusted_operand_value))
+        except:
+            self._instrument_overflow_occurred()
+            self.overflowed_instrument_dict[instruction.address] = \
+                (instruction,
+                 (operand_value, adjusted_operand_value,
+                  instrumented_size_till)
+                 )
+            self.log.log(
+                "\t[OVERFLOWED] [0x{:04x}]\t{:s}\t{:s}\t{:x}\t{:x}\n"
+                    .format(instruction.address, instruction.mnemonic,
+                            instruction.op_str, operand_value,
+                            adjusted_operand_value))
         return adjusted_operand_value
 
     def handle_overflowed_instrument(self):
@@ -577,7 +680,7 @@ class PEInstrument(object):
                                      handled_overflowed_pos_dict)
         self.current_instrument_pos_dict = handled_overflowed_pos_dict
         self.overflowed_instrument_dict.clear()
-        self.instrument_overflow_handled()
+        self._instrument_overflow_handled()
         self.log.fin()
         return True
 
@@ -659,11 +762,11 @@ class PEInstrument(object):
             # logging
             self.log.log("{:>20}\t{:>17}\t{:>18}\t{:>25}\n"
                          .format(hex(src_instrumented_address
-                                 - src_total_instrument_size),
+                                     - src_total_instrument_size),
                                  hex(src_instrumented_size),
                                  hex(adjust_instrument_address),
                                  hex(src_total_instrument_size
-                                 + instrumented_size_by_dst)
+                                     + instrumented_size_by_dst)
                                  )
                          )
             src_total_instrument_size += src_instrumented_size
@@ -707,3 +810,14 @@ class PEInstrument(object):
         """
         data_chunk = DataSegment.Chunk(self.pe_manager, size)
         return data_chunk
+
+    def _save_instruction_log(self):
+        self.log = LoggerFactory().get_new_logger("final_instructions.log")
+        instructions = self.get_instructions()
+        for address, inst in instructions:
+            self.log.log("[0x{:04x}]\t{}\t{}\n"
+                         .format(address
+                                 + self.pe_manager.get_image_base()
+                                 + 0x1000,
+                                 inst.mnemonic, inst.op_str))
+
