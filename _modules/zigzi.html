@@ -60,7 +60,8 @@
 <span class="kn">from</span> <span class="nn">PEManager</span> <span class="k">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">keystone</span> <span class="k">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">DataSegment</span> <span class="k">import</span> <span class="o">*</span>
-
+<span class="kn">from</span> <span class="nn">SampleReturnVerifier</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">WindowAPIHelper</span> <span class="k">import</span> <span class="o">*</span>
 
 <span class="n">code_rva</span> <span class="o">=</span> <span class="mi">0</span>
 
@@ -138,6 +139,31 @@
     <span class="n">pe_manager</span><span class="o">.</span><span class="n">register_rva_to_relocation</span><span class="p">(</span><span class="n">code_rva</span> <span class="o">+</span> <span class="mi">7</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="do_indirect_branch_counting"><a class="viewcode-back" href="../zigzi.html#zigzi.do_indirect_branch_counting">[docs]</a><span class="k">def</span> <span class="nf">do_indirect_branch_counting</span><span class="p">():</span>
+    <span class="n">simple_indirect_branch_counting_function_instrument</span><span class="p">()</span>
+
+    <span class="n">pe_instrument</span><span class="o">.</span><span class="n">register_pre_indirect_branch</span><span class="p">(</span>
+        <span class="n">simple_indirect_branch_counting_function_call_instrument</span>
+    <span class="p">)</span>
+
+    <span class="n">pe_instrument</span><span class="o">.</span><span class="n">register_after_indirect_branch</span><span class="p">(</span>
+        <span class="n">simple_return_address_save_function_call_instrument</span>
+    <span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="do_return_address_verifier"><a class="viewcode-back" href="../zigzi.html#zigzi.do_return_address_verifier">[docs]</a><span class="k">def</span> <span class="nf">do_return_address_verifier</span><span class="p">(</span><span class="n">pe_instrument</span><span class="p">,</span> <span class="n">pe_manager</span><span class="p">,</span> <span class="n">fn_rva</span><span class="p">):</span>
+    <span class="n">simple_instrument_error_handler</span><span class="p">(</span><span class="n">pe_instrument</span><span class="p">,</span> <span class="n">pe_manager</span><span class="p">,</span> <span class="n">fn_rva</span><span class="p">)</span>
+    <span class="n">pe_instrument</span><span class="o">.</span><span class="n">register_after_relative_branch</span><span class="p">(</span>
+        <span class="n">simple_instrument_return_address_at_after_branch</span>
+    <span class="p">)</span>
+    <span class="n">pe_instrument</span><span class="o">.</span><span class="n">register_after_indirect_branch</span><span class="p">(</span>
+        <span class="n">simple_instrument_return_address_at_after_branch</span>
+    <span class="p">)</span>
+    <span class="n">pe_instrument</span><span class="o">.</span><span class="n">register_pre_return</span><span class="p">(</span>
+        <span class="n">simple_instrument_return_address_verifier_at_pre_return</span>
+    <span class="p">)</span>
+    <span class="n">pe_instrument</span><span class="o">.</span><span class="n">do_instrument</span><span class="p">()</span></div>
+
 <span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
     <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="s2">&quot;zigzi&quot;</span><span class="p">)</span>
     <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">&quot;file&quot;</span><span class="p">,</span>
@@ -149,26 +175,21 @@
         <span class="n">parser</span><span class="o">.</span><span class="n">print_help</span><span class="p">()</span>
         <span class="n">exit</span><span class="p">()</span>
     <span class="n">pe_manager</span> <span class="o">=</span> <span class="n">PEManager</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="c1"># add api</span>
+    <span class="n">window_api_helper</span> <span class="o">=</span> <span class="n">WindowAPIHelper</span><span class="p">(</span><span class="n">pe_manager</span><span class="p">)</span>
+    <span class="n">message_box_fn_rva</span> <span class="o">=</span> <span class="n">window_api_helper</span><span class="o">.</span><span class="n">add_message_box</span><span class="p">()</span>
     <span class="c1"># set new instrumentation</span>
     <span class="n">pe_instrument</span> <span class="o">=</span> <span class="n">PEInstrument</span><span class="p">(</span><span class="n">pe_manager</span><span class="p">)</span>
-    <span class="n">simple_indirect_branch_counting_function_instrument</span><span class="p">()</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    pe_instrument.register_pre_indirect_branch(</span>
-<span class="sd">        simple_indirect_branch_counting_function_call_instrument</span>
-<span class="sd">    )</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    <span class="c1"># need bug fix</span>
-    <span class="n">pe_instrument</span><span class="o">.</span><span class="n">register_after_indirect_branch</span><span class="p">(</span>
-        <span class="n">simple_return_address_save_function_call_instrument</span>
-    <span class="p">)</span>
 
-    <span class="n">pe_instrument</span><span class="o">.</span><span class="n">do_instrument</span><span class="p">()</span>
+    <span class="n">do_return_address_verifier</span><span class="p">(</span><span class="n">pe_instrument</span><span class="p">,</span> <span class="n">pe_manager</span><span class="p">,</span> <span class="n">message_box_fn_rva</span><span class="p">)</span>
+    <span class="c1"># do_indirect_branch_counting()</span>
+
     <span class="c1"># TODO : change to avoid duplicate processing.</span>
     <span class="c1"># do not double adjustment for file, it break file layout.</span>
     <span class="c1"># pe_manager.adjust_file_layout()</span>
     <span class="n">output_filename</span> <span class="o">=</span> <span class="n">filename</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;_after_test.exe&quot;</span>
     <span class="n">pe_manager</span><span class="o">.</span><span class="n">writefile</span><span class="p">(</span><span class="n">output_filename</span><span class="p">)</span>
-
+    <span class="n">pe_instrument</span><span class="o">.</span><span class="n">_save_instruction_log</span><span class="p">()</span>
 <span class="c1"># C:\work\python\zigzi\tests\simple_echo_server.exe</span>
 </pre></div>
 

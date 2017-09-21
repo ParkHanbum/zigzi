@@ -136,6 +136,22 @@
                     <span class="k">return</span> <span class="kc">True</span>
         <span class="k">return</span> <span class="kc">False</span></div>
 
+<div class="viewcode-block" id="Disassembler.is_branch"><a class="viewcode-back" href="../../zigzi.html#zigzi.Disassembler.Disassembler.is_branch">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">is_branch</span><span class="p">(</span><span class="n">instruction</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check whether it is a indirect branch instruction.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            instruction(instruction): instruction for check.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            bool : True if instruction is indirect branch, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">instruction</span><span class="p">,</span> <span class="s2">&quot;groups&quot;</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">instruction</span><span class="o">.</span><span class="n">groups</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">group</span> <span class="o">==</span> <span class="n">CS_GRP_BRANCH</span><span class="p">:</span>
+                    <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
 <div class="viewcode-block" id="Disassembler.is_relative_branch"><a class="viewcode-back" href="../../zigzi.html#zigzi.Disassembler.Disassembler.is_relative_branch">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">is_relative_branch</span><span class="p">(</span><span class="n">instruction</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -172,7 +188,17 @@
             <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="n">instruction</span><span class="o">.</span><span class="n">groups</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">group</span> <span class="o">==</span> <span class="n">CS_GRP_RET</span><span class="p">:</span>
                     <span class="k">return</span> <span class="kc">True</span>
-        <span class="k">return</span> <span class="kc">False</span></div></div>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="Disassembler.get_instruction_length"><a class="viewcode-back" href="../../zigzi.html#zigzi.Disassembler.Disassembler.get_instruction_length">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_instruction_length</span><span class="p">(</span><span class="n">instruction</span><span class="p">):</span>
+        <span class="n">opcode</span> <span class="o">=</span> <span class="n">instruction</span><span class="o">.</span><span class="n">opcode</span>
+        <span class="n">length</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">el</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">opcode</span><span class="p">):</span>
+            <span class="n">length</span> <span class="o">=</span> <span class="n">index</span> <span class="o">+</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="n">el</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">break</span>
+        <span class="k">return</span> <span class="n">length</span></div></div>
 </pre></div>
 
           </div>

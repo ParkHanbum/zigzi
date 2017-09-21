@@ -76,6 +76,14 @@ zigzi\.PEManager module
     :undoc-members:
     :show-inheritance:
 
+zigzi\.SampleReturnVerifier module
+----------------------------------
+
+.. automodule:: zigzi.SampleReturnVerifier
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 zigzi\.Stack module
 -------------------
 
@@ -84,10 +92,10 @@ zigzi\.Stack module
     :undoc-members:
     :show-inheritance:
 
-zigzi\.example module
----------------------
+zigzi\.WindowAPIHelper module
+-----------------------------
 
-.. automodule:: zigzi.example
+.. automodule:: zigzi.WindowAPIHelper
     :members:
     :undoc-members:
     :show-inheritance:

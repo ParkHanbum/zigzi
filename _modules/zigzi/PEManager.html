@@ -52,9 +52,12 @@
 
 
 <div class="viewcode-block" id="PEManager"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager">[docs]</a><span class="k">class</span> <span class="nc">PEManager</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    PEManager</span>
+<span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        creator of PEManager</span>
+<span class="sd">        construct a new PEManager</span>
 
 <span class="sd">        Args:</span>
 <span class="sd">            filename (str) : file name with absolute file path.</span>
@@ -67,6 +70,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_IMAGE_BASE_</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">OPTIONAL_HEADER</span><span class="o">.</span><span class="n">ImageBase</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">instrument</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">section_prev_adjust</span> <span class="o">=</span> <span class="kc">None</span>
 
 <div class="viewcode-block" id="PEManager.set_instrument"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.set_instrument">[docs]</a>    <span class="k">def</span> <span class="nf">set_instrument</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">instrumentor</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -179,6 +183,16 @@
         <span class="c1"># self.PE.OPTIONAL_HEADER.SizeOfCode = size_of_data</span>
 
 <div class="viewcode-block" id="PEManager.create_new_data_section"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.create_new_data_section">[docs]</a>    <span class="k">def</span> <span class="nf">create_new_data_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a new data section and add it to the last section.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data(bytearray) : data for append to section.</span>
+<span class="sd">            name(str) : name of section.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            new section.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">8</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[EXCEPTION] SECTION NAME MUST LESS THEN 8 CHARACTER&quot;</span><span class="p">)</span>
             <span class="n">exit</span><span class="p">()</span>
@@ -292,6 +306,15 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">adjust_file_layout</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span></div>
 
+<div class="viewcode-block" id="PEManager.writefile_without_adjust"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.writefile_without_adjust">[docs]</a>    <span class="k">def</span> <span class="nf">writefile_without_adjust</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">file_path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        write file data to file.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            file_path(str) : file name with its absolute path.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">file_path</span><span class="p">)</span></div>
+
 <div class="viewcode-block" id="PEManager.get_image_size"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.get_image_size">[docs]</a>    <span class="k">def</span> <span class="nf">get_image_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        last section&#39;s end represent that Image size.</span>
@@ -352,6 +375,50 @@
                 <span class="s2">&quot;DIRECTORY&quot;</span>
         <span class="k">return</span> <span class="n">structures_relocation_entries</span></div>
 
+<div class="viewcode-block" id="PEManager.get_import_structures"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.get_import_structures">[docs]</a>    <span class="k">def</span> <span class="nf">get_import_structures</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        get import lists of pe file.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (list) : containing structures of import.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">imports_start_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">imports_end_index</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">structure</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__structures__</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">((</span><span class="n">structure</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_IMPORT_DESCRIPTOR&#39;</span><span class="p">)</span>
+                    <span class="o">==</span> <span class="p">(</span><span class="n">structure</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_THUNK_DATA&#39;</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="n">imports_start_index</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">imports_end_index</span> <span class="o">=</span> <span class="n">index</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">imports_start_index</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">imports_start_index</span> <span class="o">=</span> <span class="n">index</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__structures__</span><span class="p">[</span><span class="n">imports_start_index</span><span class="p">:</span><span class="n">imports_end_index</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="PEManager.get_imports_range_in_structures"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.get_imports_range_in_structures">[docs]</a>    <span class="k">def</span> <span class="nf">get_imports_range_in_structures</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        start and end index of import at structures.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (tuple): tuple containing:</span>
+<span class="sd">                start_index (int) : start index of import at structures.</span>
+<span class="sd">                end_index (int) : last index of import at structures.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">imports_start_index</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">imports_end_index</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">structure</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__structures__</span><span class="p">):</span>
+            <span class="k">if</span> <span class="p">((</span><span class="n">structure</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_IMPORT_DESCRIPTOR&#39;</span><span class="p">)</span>
+                    <span class="o">==</span> <span class="p">(</span><span class="n">structure</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_THUNK_DATA&#39;</span><span class="p">)):</span>
+                <span class="k">if</span> <span class="n">imports_start_index</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">imports_end_index</span> <span class="o">=</span> <span class="n">index</span>
+                    <span class="k">break</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">imports_start_index</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">imports_start_index</span> <span class="o">=</span> <span class="n">index</span>
+        <span class="k">return</span> <span class="n">imports_start_index</span><span class="p">,</span> <span class="n">imports_end_index</span></div>
+
 <div class="viewcode-block" id="PEManager.is_possible_relocation"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.is_possible_relocation">[docs]</a>    <span class="k">def</span> <span class="nf">is_possible_relocation</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Verify that the file can be relocated.</span>
@@ -383,6 +450,7 @@
 <span class="sd">        as a result, section&#39;s area can overlapped.</span>
 <span class="sd">        that is why we need to relocate section without overlapped area.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">section_prev_adjust</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">sections</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">sections</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
             <span class="n">src_section</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">sections</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
             <span class="n">virtual_size</span> <span class="o">=</span> <span class="n">src_section</span><span class="o">.</span><span class="n">Misc_VirtualSize</span>
@@ -450,22 +518,38 @@
 <span class="sd">        adjust element of data directories.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">sections</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">sections</span>
-        <span class="n">origin_sections</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PEOrigin</span><span class="o">.</span><span class="n">sections</span>
+        <span class="n">origin_sections</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">section_prev_adjust</span>
         <span class="n">data_directories</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">OPTIONAL_HEADER</span><span class="o">.</span><span class="n">DATA_DIRECTORY</span>
 
         <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">origin_sections</span><span class="p">)):</span>
             <span class="n">section</span> <span class="o">=</span> <span class="n">sections</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
             <span class="n">origin_section</span> <span class="o">=</span> <span class="n">origin_sections</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+            <span class="n">origin_section_start</span> <span class="o">=</span> <span class="n">origin_section</span><span class="o">.</span><span class="n">VirtualAddress</span>
+            <span class="k">if</span> <span class="n">index</span> <span class="o">+</span> <span class="mi">1</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">origin_sections</span><span class="p">):</span>
+                <span class="n">origin_section_end</span> <span class="o">=</span> <span class="n">origin_sections</span><span class="p">[</span><span class="n">index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">VirtualAddress</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">origin_section_end</span> <span class="o">=</span> <span class="n">origin_section</span><span class="o">.</span><span class="n">VirtualAddress</span> <span class="o">+</span> \
+                                     <span class="n">origin_section</span><span class="o">.</span><span class="n">Misc_VirtualSize</span>
             <span class="n">data_directories</span> <span class="o">=</span> \
                 <span class="bp">self</span><span class="o">.</span><span class="n">adjust_directories</span><span class="p">(</span><span class="n">data_directories</span><span class="p">,</span>
-                                        <span class="n">origin_section</span><span class="o">.</span><span class="n">VirtualAddress</span><span class="p">,</span>
+                                        <span class="n">origin_section_start</span><span class="p">,</span>
                                         <span class="n">section</span><span class="o">.</span><span class="n">VirtualAddress</span><span class="p">,</span>
-                                        <span class="n">origin_section</span><span class="o">.</span><span class="n">Misc_VirtualSize</span><span class="p">,</span>
+                                        <span class="n">origin_section_end</span><span class="p">,</span>
                                         <span class="n">section</span><span class="o">.</span><span class="n">Misc_VirtualSize</span><span class="p">)</span>
 
-<div class="viewcode-block" id="PEManager.adjust_directories"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.adjust_directories">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_directories</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_directories</span><span class="p">,</span> <span class="n">section_origin_va</span><span class="p">,</span>
-                           <span class="n">section_adjusted_va</span><span class="p">,</span> <span class="n">origin_section_size</span><span class="p">,</span>
+<div class="viewcode-block" id="PEManager.adjust_directories"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.adjust_directories">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_directories</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_directories</span><span class="p">,</span> <span class="n">origin_section_start</span><span class="p">,</span>
+                           <span class="n">section_adjusted_va</span><span class="p">,</span> <span class="n">origin_section_end</span><span class="p">,</span>
                            <span class="n">adjusted_section_size</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        adjust directories Virtual address.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data_directories:</span>
+<span class="sd">            origin_section_start:</span>
+<span class="sd">            section_adjusted_va:</span>
+<span class="sd">            origin_section_end:</span>
+<span class="sd">            adjusted_section_size:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">directory_adjust</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s1">&#39;IMAGE_DIRECTORY_ENTRY_IMPORT&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust_import</span><span class="p">,</span>
             <span class="c1"># &#39;IMAGE_DIRECTORY_ENTRY_DEBUG&#39;: self.adjustDebug,</span>
@@ -475,15 +559,21 @@
             <span class="s1">&#39;IMAGE_DIRECTORY_ENTRY_RESOURCE&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust_resource</span><span class="p">,</span>
             <span class="s1">&#39;IMAGE_DIRECTORY_ENTRY_BASERELOC&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust_relocation</span><span class="p">,</span>
             <span class="s1">&#39;IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust_delay_import</span><span class="p">,</span>
-            <span class="s1">&#39;IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust_bound_imports</span>
+            <span class="s1">&#39;IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust_bound_imports</span><span class="p">,</span>
+            <span class="s1">&#39;IMAGE_DIRECTORY_ENTRY_IAT&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust_iat</span><span class="p">,</span>
         <span class="p">}</span>
 
         <span class="n">remove_list</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">increased_size</span> <span class="o">=</span> <span class="n">section_adjusted_va</span> <span class="o">-</span> <span class="n">section_origin_va</span>
+        <span class="n">increased_size</span> <span class="o">=</span> <span class="n">section_adjusted_va</span> <span class="o">-</span> <span class="n">origin_section_start</span>
         <span class="k">for</span> <span class="n">directory</span> <span class="ow">in</span> <span class="n">data_directories</span><span class="p">:</span>
-            <span class="k">if</span> <span class="p">(</span><span class="n">section_origin_va</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">origin_section_start</span>
                     <span class="o">&lt;=</span> <span class="n">directory</span><span class="o">.</span><span class="n">VirtualAddress</span>
-                    <span class="o">&lt;</span> <span class="p">(</span><span class="n">section_origin_va</span> <span class="o">+</span> <span class="n">origin_section_size</span><span class="p">)):</span>
+                    <span class="o">&lt;</span> <span class="n">origin_section_end</span><span class="p">):</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> &lt;= </span><span class="si">{}</span><span class="s2"> &lt; </span><span class="si">{}</span><span class="s2">, </span><span class="si">{}</span><span class="s2">&quot;</span>
+                      <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">origin_section_start</span><span class="p">,</span>
+                              <span class="n">directory</span><span class="o">.</span><span class="n">VirtualAddress</span><span class="p">,</span>
+                              <span class="n">origin_section_end</span><span class="p">,</span>
+                              <span class="n">directory</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
                 <span class="n">index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">OPTIONAL_HEADER</span><span class="o">.</span><span class="n">DATA_DIRECTORY</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">OPTIONAL_HEADER</span><span class="o">.</span><span class="n">DATA_DIRECTORY</span><span class="p">[</span><span class="n">index</span><span class="p">]</span><span class="o">.</span><span class="n">VirtualAddress</span> \
                     <span class="o">=</span> <span class="n">directory</span><span class="o">.</span><span class="n">VirtualAddress</span> <span class="o">+</span> <span class="n">increased_size</span>
@@ -492,6 +582,9 @@
                         <span class="n">entry</span> <span class="o">=</span> <span class="n">directory_adjust</span><span class="p">[</span><span class="n">directory</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
                         <span class="n">entry</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">directory</span><span class="o">.</span><span class="n">VirtualAddress</span><span class="p">,</span>
                               <span class="n">directory</span><span class="o">.</span><span class="n">Size</span><span class="p">,</span> <span class="n">increased_size</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">directory</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG&#39;</span><span class="p">:</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">increased_size</span><span class="p">))</span>
+
                 <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
                     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;===== [INDEX ERROR] =====&quot;</span><span class="p">)</span>
                     <span class="k">return</span> <span class="kc">False</span>
@@ -693,6 +786,9 @@
             <span class="n">directory_tls</span><span class="o">.</span><span class="n">struct</span><span class="o">.</span><span class="n">StartAddressOfRawData</span> <span class="o">+=</span> <span class="n">increase_size</span>
         <span class="k">return</span> <span class="mi">0</span></div>
 
+<div class="viewcode-block" id="PEManager.adjust_iat"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.adjust_iat">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_iat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">directory</span><span class="p">,</span> <span class="n">rva</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">increase_size</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
 <div class="viewcode-block" id="PEManager.adjust_bound_imports"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.adjust_bound_imports">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_bound_imports</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">directory</span><span class="p">,</span> <span class="n">rva</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">increase_size</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        adjust relocation directory&#39;s elements.</span>
@@ -754,50 +850,28 @@
 <span class="sd">            size: current directory size</span>
 <span class="sd">            increase_size: increased size of section that directory included</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">for</span> <span class="n">importIndex</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">DIRECTORY_ENTRY_IMPORT</span><span class="p">)):</span>
-            <span class="n">import_entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">DIRECTORY_ENTRY_IMPORT</span><span class="p">[</span><span class="n">importIndex</span><span class="p">]</span>
-            <span class="n">import_entry</span><span class="o">.</span><span class="n">struct</span><span class="o">.</span><span class="n">Characteristics</span> <span class="o">+=</span> <span class="n">increase_size</span>
-            <span class="n">import_entry</span><span class="o">.</span><span class="n">struct</span><span class="o">.</span><span class="n">FirstThunk</span> <span class="o">+=</span> <span class="n">increase_size</span>
-            <span class="n">import_entry</span><span class="o">.</span><span class="n">struct</span><span class="o">.</span><span class="n">Name</span> <span class="o">+=</span> <span class="n">increase_size</span>
-            <span class="n">import_entry</span><span class="o">.</span><span class="n">struct</span><span class="o">.</span><span class="n">OriginalFirstThunk</span> <span class="o">+=</span> <span class="n">increase_size</span>
-            <span class="k">for</span> <span class="n">entry_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">import_entry</span><span class="o">.</span><span class="n">imports</span><span class="p">)):</span>
-                <span class="n">import_entry_element</span> <span class="o">=</span> <span class="n">import_entry</span><span class="o">.</span><span class="n">imports</span><span class="p">[</span><span class="n">entry_index</span><span class="p">]</span>
-                <span class="k">if</span> <span class="n">import_entry_element</span><span class="o">.</span><span class="n">import_by_ordinal</span><span class="p">:</span>
-                    <span class="k">continue</span>
-                <span class="n">iat</span> <span class="o">=</span> <span class="n">import_entry_element</span><span class="o">.</span><span class="n">struct_iat</span>
-                <span class="n">import_entry_element</span><span class="o">.</span><span class="n">struct_table</span><span class="o">.</span><span class="n">AddressOfData</span> <span class="o">+=</span> <span class="n">increase_size</span>
-                <span class="n">import_entry_element</span><span class="o">.</span><span class="n">struct_table</span><span class="o">.</span><span class="n">ForwarderString</span> \
-                    <span class="o">+=</span> <span class="n">increase_size</span>
-                <span class="n">import_entry_element</span><span class="o">.</span><span class="n">struct_table</span><span class="o">.</span><span class="n">Function</span> <span class="o">+=</span> <span class="n">increase_size</span>
-                <span class="n">import_entry_element</span><span class="o">.</span><span class="n">struct_table</span><span class="o">.</span><span class="n">Ordinal</span> <span class="o">+=</span> <span class="n">increase_size</span>
-                <span class="k">if</span> <span class="n">iat</span><span class="p">:</span>
-                    <span class="c1"># if import entry element has IAT then just adjusting.</span>
-                    <span class="n">import_entry_element</span><span class="o">.</span><span class="n">struct_iat</span><span class="o">.</span><span class="n">AddressOfData</span> \
-                        <span class="o">+=</span> <span class="n">increase_size</span>
-                    <span class="n">import_entry_element</span><span class="o">.</span><span class="n">struct_iat</span><span class="o">.</span><span class="n">ForwarderString</span> \
-                        <span class="o">+=</span> <span class="n">increase_size</span>
-                    <span class="n">import_entry_element</span><span class="o">.</span><span class="n">struct_iat</span><span class="o">.</span><span class="n">Function</span> <span class="o">+=</span> <span class="n">increase_size</span>
-                    <span class="n">import_entry_element</span><span class="o">.</span><span class="n">struct_iat</span><span class="o">.</span><span class="n">Ordinal</span> <span class="o">+=</span> <span class="n">increase_size</span>
+        <span class="n">import_structures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_import_structures</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">import_structures</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_IMPORT_DESCRIPTOR&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">OriginalFirstThunk</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">entry</span><span class="o">.</span><span class="n">OriginalFirstThunk</span> <span class="o">+=</span> <span class="n">increase_size</span>
+                <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">Characteristics</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">entry</span><span class="o">.</span><span class="n">Characteristics</span> <span class="o">+=</span> <span class="n">increase_size</span>
+                <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">FirstThunk</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">entry</span><span class="o">.</span><span class="n">FirstThunk</span> <span class="o">+=</span> <span class="n">increase_size</span>
+                <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">Name</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">entry</span><span class="o">.</span><span class="n">Name</span> <span class="o">+=</span> <span class="n">increase_size</span>
+            <span class="k">elif</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_THUNK_DATA&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">Ordinal</span> <span class="o">&amp;</span> <span class="mh">0x80000000</span><span class="p">:</span>
+                    <span class="c1"># This is Ordinal import</span>
+                    <span class="k">pass</span>
                 <span class="k">else</span><span class="p">:</span>
-                    <span class="c1"># if import entry element has not IAT, create new iat.</span>
-                    <span class="n">iat_va</span> <span class="o">=</span> <span class="n">import_entry_element</span><span class="o">.</span><span class="n">address</span> \
-                             <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">OPTIONAL_HEADER</span><span class="o">.</span><span class="n">ImageBase</span> \
-                             <span class="o">+</span> <span class="n">increase_size</span>
-                    <span class="n">iat_size</span> <span class="o">=</span> \
-                        <span class="n">Structure</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__IMAGE_THUNK_DATA_format__</span><span class="p">)</span><span class="o">.</span><span class="n">sizeof</span><span class="p">()</span>
-                    <span class="c1"># read data from import entry element</span>
-                    <span class="n">thunk_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_data</span><span class="p">(</span><span class="n">iat_va</span><span class="p">,</span> <span class="n">iat_size</span><span class="p">)</span>
-                    <span class="c1"># create new IAT from data that import entry element&#39;s</span>
-                    <span class="n">new_iat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__unpack_data__</span><span class="p">(</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__IMAGE_THUNK_DATA_format__</span><span class="p">,</span> <span class="n">thunk_data</span><span class="p">,</span>
-                        <span class="n">file_offset</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_offset_from_rva</span><span class="p">(</span><span class="n">iat_va</span><span class="p">))</span>
-                    <span class="c1"># adjust new entry</span>
-                    <span class="n">new_iat</span><span class="o">.</span><span class="n">AddressOfData</span> <span class="o">+=</span> <span class="n">increase_size</span>
-                    <span class="n">new_iat</span><span class="o">.</span><span class="n">ForwarderString</span> <span class="o">+=</span> <span class="n">increase_size</span>
-                    <span class="n">new_iat</span><span class="o">.</span><span class="n">Function</span> <span class="o">+=</span> <span class="n">increase_size</span>
-                    <span class="n">new_iat</span><span class="o">.</span><span class="n">Ordinal</span> <span class="o">+=</span> <span class="n">increase_size</span>
-                    <span class="c1"># set new IAT to import entry element.</span>
-                    <span class="n">import_entry_element</span><span class="o">.</span><span class="n">struct_iat</span> <span class="o">=</span> <span class="n">new_iat</span></div>
+                    <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">AddressOfData</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">entry</span><span class="o">.</span><span class="n">AddressOfData</span> <span class="o">+=</span> <span class="n">increase_size</span>
+                    <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">ForwarderString</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">entry</span><span class="o">.</span><span class="n">ForwarderString</span> <span class="o">+=</span> <span class="n">increase_size</span>
+                    <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">Function</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">entry</span><span class="o">.</span><span class="n">Function</span> <span class="o">+=</span> <span class="n">increase_size</span></div>
 
 <div class="viewcode-block" id="PEManager.adjust_export"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.adjust_export">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_export</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">directory</span><span class="p">,</span> <span class="n">rva</span><span class="p">,</span> <span class="n">size</span><span class="p">,</span> <span class="n">increase_size</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
@@ -858,12 +932,24 @@
                     <span class="n">rsrc_directory_el</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">struct</span><span class="o">.</span><span class="n">OffsetToData</span> <span class="o">+=</span> <span class="n">increase_size</span></div>
 
 <div class="viewcode-block" id="PEManager.set_dword_at_rva"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.set_dword_at_rva">[docs]</a>    <span class="k">def</span> <span class="nf">set_dword_at_rva</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rva</span><span class="p">,</span> <span class="n">dword</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        set dword at rva.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            rva(int) : relative address.</span>
+<span class="sd">            dword:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">set_dword_at_rva</span><span class="p">(</span><span class="n">rva</span><span class="p">,</span> <span class="n">dword</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="PEManager.get_data_section"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.get_data_section">[docs]</a>    <span class="k">def</span> <span class="nf">get_data_section</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        get data section of PE.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (section) : data section of PE.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">data_section</span> <span class="o">=</span> \
-            <span class="bp">self</span><span class="o">.</span><span class="n">get_section_belong_rva</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">sections</span><span class="p">,</span>
-                                        <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">OPTIONAL_HEADER</span><span class="o">.</span><span class="n">BaseOfData</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_section_belong_rva</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">OPTIONAL_HEADER</span><span class="o">.</span><span class="n">BaseOfData</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">data_section</span></div>
 
     <span class="k">def</span> <span class="nf">_adjust_entry_point</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -925,6 +1011,15 @@
                 <span class="s1">&#39;DIRECTORY_ENTRY_BASERELOC&#39;</span></div>
 
 <div class="viewcode-block" id="PEManager.get_abs_va_from_offset"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.get_abs_va_from_offset">[docs]</a>    <span class="k">def</span> <span class="nf">get_abs_va_from_offset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">offset</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        calculate absolute virtual address from offset.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            offset(int) : offset of file.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (int) : absolute address to match offset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">rva</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_rva_from_offset</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_abs_va_from_rva</span><span class="p">(</span><span class="n">rva</span><span class="p">)</span></div>
 
@@ -940,7 +1035,25 @@
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">OPTIONAL_HEADER</span><span class="o">.</span><span class="n">ImageBase</span> <span class="o">+</span> <span class="n">rva</span></div>
 
+<div class="viewcode-block" id="PEManager.get_image_base"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.get_image_base">[docs]</a>    <span class="k">def</span> <span class="nf">get_image_base</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        get address of image base.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (int) : virtual address of image base.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">OPTIONAL_HEADER</span><span class="o">.</span><span class="n">ImageBase</span></div>
+
 <div class="viewcode-block" id="PEManager.get_structure_from_rva"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.get_structure_from_rva">[docs]</a>    <span class="k">def</span> <span class="nf">get_structure_from_rva</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rva</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Find the structure located in rva.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            rva(int) : relative address.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (Structure) : structure that has located in rva.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_physical_by_rva</span><span class="p">(</span><span class="n">rva</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">offset</span><span class="p">:</span>
@@ -950,6 +1063,7 @@
             <span class="n">structure_offset</span> <span class="o">=</span> <span class="n">structure</span><span class="o">.</span><span class="n">get_file_offset</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">offset</span> <span class="o">==</span> <span class="n">structure_offset</span><span class="p">:</span>
                 <span class="n">result</span> <span class="o">=</span> <span class="n">structure</span>
+                <span class="k">break</span>
         <span class="k">return</span> <span class="n">result</span></div>
 
 <div class="viewcode-block" id="PEManager.get_bytes_at_offset"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.get_bytes_at_offset">[docs]</a>    <span class="k">def</span> <span class="nf">get_bytes_at_offset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">offset_start</span><span class="p">,</span> <span class="n">offset_stop</span><span class="p">):</span>
@@ -974,6 +1088,14 @@
 
 <div class="viewcode-block" id="PEManager.relocation_entry_move_to_appropriate_block"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.relocation_entry_move_to_appropriate_block">[docs]</a>    <span class="k">def</span> <span class="nf">relocation_entry_move_to_appropriate_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">,</span> <span class="n">block</span><span class="p">,</span>
                                                    <span class="n">increase_size</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        move relocation entry to appropriate relocation block.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            entry:</span>
+<span class="sd">            block:</span>
+<span class="sd">            increase_size:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">pe_structure</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__structures__</span>
         <span class="c1"># we assume first section is text section.</span>
         <span class="c1"># code section&#39;s address end that increased by instrument.</span>
@@ -1038,6 +1160,14 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">append_relocation_entry_to_block</span><span class="p">(</span><span class="n">entry</span><span class="p">,</span> <span class="n">block_index</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="PEManager.gen_new_relocation_block"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.gen_new_relocation_block">[docs]</a>    <span class="k">def</span> <span class="nf">gen_new_relocation_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">block_rva</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        generate new relocation block that cover rva.</span>
+<span class="sd">        Args:</span>
+<span class="sd">            block_rva: relative address that has covered by new block.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (int) : index of generated block.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">pe_structure</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__structures__</span>
         <span class="p">(</span><span class="n">relocation_blocks</span><span class="p">,</span> <span class="n">relocation_entries</span><span class="p">)</span> \
             <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_relocation_directories</span><span class="p">()</span>
@@ -1055,12 +1185,58 @@
         <span class="n">pe_structure</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">block_index</span><span class="p">,</span> <span class="n">new_block</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">block_index</span></div>
 
+<div class="viewcode-block" id="PEManager.gen_new_empty_import_descriptor"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.gen_new_empty_import_descriptor">[docs]</a>    <span class="k">def</span> <span class="nf">gen_new_empty_import_descriptor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        generate new import descriptor that has empty.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (Structure) : IMPORT_DESCRIPTOR format</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">structure</span> <span class="o">=</span> <span class="n">Structure</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__IMAGE_IMPORT_DESCRIPTOR_format__</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">structure</span></div>
+
+<div class="viewcode-block" id="PEManager.gen_new_empty_import_thunk"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.gen_new_empty_import_thunk">[docs]</a>    <span class="k">def</span> <span class="nf">gen_new_empty_import_thunk</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        generate new import descriptor that has empty.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (Structure) : IMPORT_THUNK format</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">structure</span> <span class="o">=</span> <span class="n">Structure</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__IMAGE_THUNK_DATA_format__</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">structure</span></div>
+
+<div class="viewcode-block" id="PEManager.get_new_empty_thunk"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.get_new_empty_thunk">[docs]</a>    <span class="k">def</span> <span class="nf">get_new_empty_thunk</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        generate new empty thunk.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (Structure) : IMPORT_THUNK format</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">structure</span> <span class="o">=</span> <span class="n">Structure</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__IMAGE_THUNK_DATA_format__</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">structure</span></div>
+
 <div class="viewcode-block" id="PEManager.gen_new_relocation_entry"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.gen_new_relocation_entry">[docs]</a>    <span class="k">def</span> <span class="nf">gen_new_relocation_entry</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rva</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Create a relocation entry for rva.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            rva(int) : relative address.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (Structure) : relocation entry.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">structure</span> <span class="o">=</span> <span class="n">Structure</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__IMAGE_BASE_RELOCATION_ENTRY_format__</span><span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="s2">&quot;Data&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">rva</span> <span class="o">&amp;</span> <span class="mh">0xfff</span><span class="p">)</span> <span class="o">+</span> <span class="mh">0x3000</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">structure</span></div>
 
 <div class="viewcode-block" id="PEManager.append_relocation_entry_to_block"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.append_relocation_entry_to_block">[docs]</a>    <span class="k">def</span> <span class="nf">append_relocation_entry_to_block</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry</span><span class="p">,</span> <span class="n">block_index</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        append relocation entry to appropriate relocation block.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            entry(Structure) : entry to be append.</span>
+<span class="sd">            block_index(int) : index of block.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">pe_structure</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__structures__</span>
         <span class="n">_block_size</span> <span class="o">=</span> <span class="n">pe_structure</span><span class="p">[</span><span class="n">block_index</span><span class="p">]</span><span class="o">.</span><span class="n">SizeOfBlock</span>
         <span class="k">if</span> <span class="p">(</span><span class="n">_block_size</span> <span class="o">-</span> <span class="mi">8</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -1070,14 +1246,61 @@
             <span class="n">pe_structure</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">block_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">entry</span><span class="p">)</span>
         <span class="n">pe_structure</span><span class="p">[</span><span class="n">block_index</span><span class="p">]</span><span class="o">.</span><span class="n">SizeOfBlock</span> <span class="o">+=</span> <span class="mi">2</span></div>
 
-<div class="viewcode-block" id="PEManager.get_section_belong_rva"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.get_section_belong_rva">[docs]</a>    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">get_section_belong_rva</span><span class="p">(</span><span class="n">sections</span><span class="p">,</span> <span class="n">rva</span><span class="p">):</span>
+<div class="viewcode-block" id="PEManager.get_section_belong_rva"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.get_section_belong_rva">[docs]</a>    <span class="k">def</span> <span class="nf">get_section_belong_rva</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rva</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Find the section containing rva.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            rva(int) : rva for find section.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (Section)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">sections</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">sections</span>
         <span class="k">for</span> <span class="n">section</span> <span class="ow">in</span> <span class="n">sections</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">section</span><span class="o">.</span><span class="n">VirtualAddress</span> \
                     <span class="o">&lt;=</span> <span class="n">rva</span> \
                     <span class="o">&lt;</span> <span class="n">section</span><span class="o">.</span><span class="n">VirtualAddress</span> <span class="o">+</span> <span class="n">section</span><span class="o">.</span><span class="n">Misc_VirtualSize</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">section</span>
         <span class="k">return</span> <span class="kc">None</span></div>
+
+<div class="viewcode-block" id="PEManager.get_data_directory_address_range"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.get_data_directory_address_range">[docs]</a>    <span class="k">def</span> <span class="nf">get_data_directory_address_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">entry_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets the scope of the data directory with the given name as an argument.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            entry_name(str) : name of data directory to find.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (tuple) :</span>
+<span class="sd">                (int) : Virtual address of data directory.</span>
+<span class="sd">                (int) : Size of data directory.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">OPTIONAL_HEADER</span><span class="o">.</span><span class="n">DATA_DIRECTORY</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">entry_name</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">entry</span><span class="o">.</span><span class="n">VirtualAddress</span><span class="p">,</span> <span class="n">entry</span><span class="o">.</span><span class="n">Size</span></div>
+
+<div class="viewcode-block" id="PEManager.get_import_descriptor_address_range"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.get_import_descriptor_address_range">[docs]</a>    <span class="k">def</span> <span class="nf">get_import_descriptor_address_range</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets the scope of the import descriptor.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (tuple) :</span>
+<span class="sd">                (int) : Virtual address of import descriptor.</span>
+<span class="sd">                (int) : Size of import data descriptor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data_directory_address_range</span><span class="p">(</span><span class="s1">&#39;IMAGE_DIRECTORY_ENTRY_IMPORT&#39;</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="PEManager.get_import_address_table_address_range"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.get_import_address_table_address_range">[docs]</a>    <span class="k">def</span> <span class="nf">get_import_address_table_address_range</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Gets the scope of the import address table.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (tuple) :</span>
+<span class="sd">                (int) : Virtual address of import address table.</span>
+<span class="sd">                (int) : Size of import data address table.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data_directory_address_range</span><span class="p">(</span><span class="s1">&#39;IMAGE_DIRECTORY_ENTRY_IAT&#39;</span><span class="p">)</span></div>
 
 <div class="viewcode-block" id="PEManager.is_executable_section"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.is_executable_section">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">is_executable_section</span><span class="p">(</span><span class="n">section</span><span class="p">):</span>
@@ -1106,7 +1329,32 @@
 <span class="sd">            (section) : cloned section from argument</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">clone_section</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">section</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">clone_section</span></div></div>
+        <span class="k">return</span> <span class="n">clone_section</span></div>
+
+<div class="viewcode-block" id="PEManager.adjust_data_in_range"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.adjust_data_in_range">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_data_in_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">increase_size</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adjust the values of data belonging to a specific range.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            start(int) : start of range.</span>
+<span class="sd">            end(int) : end of range.</span>
+<span class="sd">            increase_size(int): the size to be adjust.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">relocation_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_relocation_from_structures</span><span class="p">()</span>
+        <span class="n">sorted_relocation_dict</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">relocation_dict</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
+                                        <span class="n">key</span><span class="o">=</span><span class="n">operator</span><span class="o">.</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="k">for</span> <span class="n">block_va</span><span class="p">,</span> <span class="n">entries</span> <span class="ow">in</span> <span class="n">sorted_relocation_dict</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">entries</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">Data</span> <span class="o">==</span> <span class="mh">0x0</span><span class="p">:</span>
+                    <span class="k">continue</span>
+                <span class="n">relocation_rva</span> <span class="o">=</span> <span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">Data</span> <span class="o">&amp;</span> <span class="mh">0xfff</span><span class="p">)</span> <span class="o">+</span> <span class="n">block_va</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_dword_at_rva</span><span class="p">(</span><span class="n">relocation_rva</span><span class="p">)</span>
+                <span class="k">if</span> <span class="p">((</span><span class="n">start</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_IMAGE_BASE_</span><span class="p">)</span>
+                        <span class="o">&lt;=</span> <span class="n">value</span>
+                        <span class="o">&lt;</span> <span class="p">(</span><span class="n">end</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_IMAGE_BASE_</span><span class="p">)):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">set_dword_at_rva</span><span class="p">(</span><span class="n">relocation_rva</span><span class="p">,</span> <span class="n">value</span> <span class="o">+</span> <span class="n">increase_size</span><span class="p">)</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:x}</span><span class="se">\t</span><span class="si">{:x}</span><span class="se">\t</span><span class="si">{:x}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">relocation_rva</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span>
+                                                    <span class="n">increase_size</span><span class="p">))</span></div></div>
 </pre></div>
 
           </div>

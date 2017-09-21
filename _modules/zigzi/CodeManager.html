@@ -129,7 +129,7 @@
 <div class="viewcode-block" id="CodeManager.get_format_from_size"><a class="viewcode-back" href="../../zigzi.html#zigzi.CodeManager.CodeManager.get_format_from_size">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">get_format_from_size</span><span class="p">(</span><span class="n">size</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">size</span> <span class="o">==</span> <span class="mi">8</span><span class="p">:</span>
-            <span class="n">fmt</span> <span class="o">=</span> <span class="s1">&#39;l&#39;</span>
+            <span class="n">fmt</span> <span class="o">=</span> <span class="s1">&#39;q&#39;</span>
         <span class="k">elif</span> <span class="n">size</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
             <span class="n">fmt</span> <span class="o">=</span> <span class="s1">&#39;i&#39;</span>
         <span class="k">elif</span> <span class="n">size</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
@@ -138,8 +138,6 @@
             <span class="n">fmt</span> <span class="o">=</span> <span class="s1">&#39;b&#39;</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="n">fmt</span> <span class="o">=</span> <span class="kc">None</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR&quot;</span><span class="p">)</span>
-            <span class="n">exit</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">fmt</span></div>
 
 <div class="viewcode-block" id="CodeManager.get_format_from_size_little_endian"><a class="viewcode-back" href="../../zigzi.html#zigzi.CodeManager.CodeManager.get_format_from_size_little_endian">[docs]</a>    <span class="nd">@staticmethod</span>

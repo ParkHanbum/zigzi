@@ -1,0 +1,706 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>zigzi.WindowAPIHelper &#8212; zigzi  documentation</title>
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for zigzi.WindowAPIHelper</h1><div class="highlight"><pre>
+<span></span>
+<span class="kn">from</span> <span class="nn">PEManager</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">pefile</span> <span class="k">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">operator</span>
+
+
+<div class="viewcode-block" id="WindowAPIHelper"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper">[docs]</a><span class="k">class</span> <span class="nc">WindowAPIHelper</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="n">_ORDINAL_MASK_</span> <span class="o">=</span> <span class="mh">0x80000000</span>
+    <span class="n">_COMMON_FUNCTIONS_</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;USER32.DLL&#39;</span><span class="p">:</span> <span class="p">{</span>
+            <span class="s1">&#39;MessageBoxA&#39;</span><span class="p">:</span> <span class="mh">0x085A</span>
+        <span class="p">}</span>
+    <span class="p">}</span>
+
+    <span class="n">_IMPORT_ADDRESS_TABLE_RVA_</span> <span class="o">=</span> <span class="mh">0x0</span>
+    <span class="n">_IMPORT_LOOKUP_TABLE_RVA_</span> <span class="o">=</span> <span class="mh">0x1000</span>
+    <span class="n">_IMPORT_DESCRIPTOR_TABLE_RVA_</span> <span class="o">=</span> <span class="mh">0x2000</span>
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pe_manager</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        A class to help instrument the API provided by Windows.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            pe_manager(PEManager) : target PEManager to append new imports.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PE</span> <span class="o">=</span> <span class="n">pe_manager</span><span class="o">.</span><span class="n">PE</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">structures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__structures__</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pe_manager</span> <span class="o">=</span> <span class="n">pe_manager</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">import_entries</span> <span class="o">=</span> <span class="n">pe_manager</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">DIRECTORY_ENTRY_IMPORT</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">import_structures</span> <span class="o">=</span> <span class="n">pe_manager</span><span class="o">.</span><span class="n">get_import_structures</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_origin_import_section</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_new_import_section</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">count_of_additional_fn</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count_of_additional_dll</span> <span class="o">=</span> <span class="mi">0</span>
+
+    <span class="k">def</span> <span class="nf">_get_gap_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_origin_import_section</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+            <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">_new_import_section</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_new_import_section</span><span class="o">.</span><span class="n">VirtualAddress</span> \
+                     <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">_origin_import_section</span><span class="o">.</span><span class="n">VirtualAddress</span>
+        <span class="k">return</span> <span class="n">result</span>
+
+<div class="viewcode-block" id="WindowAPIHelper.move_imports_offset_to_new_section"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.move_imports_offset_to_new_section">[docs]</a>    <span class="k">def</span> <span class="nf">move_imports_offset_to_new_section</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Move the import descriptor and related structures</span>
+<span class="sd">        to the new aligned address located at new section.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">print_imports_offset</span><span class="p">()</span>
+        <span class="p">(</span><span class="n">entry_rva</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pe_manager</span><span class="o">.</span><span class="n">get_import_descriptor_address_range</span><span class="p">()</span>
+        <span class="n">section</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pe_manager</span><span class="o">.</span><span class="n">get_section_belong_rva</span><span class="p">(</span><span class="n">entry_rva</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pe_manager</span><span class="o">.</span><span class="n">get_section_raw_data</span><span class="p">(</span><span class="n">section</span><span class="p">)</span>
+        <span class="c1"># append free space that to use be import descriptor.</span>
+        <span class="n">import_free_space</span> <span class="o">=</span> <span class="mh">0x3000</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span> <span class="o">+</span> <span class="nb">bytearray</span><span class="p">(</span><span class="n">import_free_space</span><span class="p">)</span>
+        <span class="n">new_section</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pe_manager</span><span class="o">.</span><span class="n">create_new_data_section</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="s2">&quot;.newdata&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_origin_import_section</span> <span class="o">=</span> <span class="n">section</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_new_import_section</span> <span class="o">=</span> <span class="n">new_section</span>
+
+        <span class="n">rva_gap_size</span> <span class="o">=</span> <span class="n">new_section</span><span class="o">.</span><span class="n">VirtualAddress</span> <span class="o">-</span> <span class="n">section</span><span class="o">.</span><span class="n">VirtualAddress</span>
+        <span class="n">offset_gap_size</span> <span class="o">=</span> <span class="n">new_section</span><span class="o">.</span><span class="n">PointerToRawData</span> \
+                          <span class="o">-</span> <span class="n">section</span><span class="o">.</span><span class="n">PointerToRawData</span>
+
+        <span class="n">origin_iat_rva</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">origin_iat_size</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">OPTIONAL_HEADER</span><span class="o">.</span><span class="n">DATA_DIRECTORY</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_DIRECTORY_ENTRY_IMPORT&#39;</span><span class="p">:</span>
+                <span class="n">entry</span><span class="o">.</span><span class="n">VirtualAddress</span> <span class="o">+=</span> <span class="p">(</span><span class="n">rva_gap_size</span>
+                                         <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_IMPORT_DESCRIPTOR_TABLE_RVA_</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_DIRECTORY_ENTRY_IAT&#39;</span><span class="p">:</span>
+                <span class="n">origin_iat_rva</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">VirtualAddress</span>
+                <span class="n">origin_iat_size</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">Size</span>
+                <span class="n">entry</span><span class="o">.</span><span class="n">VirtualAddress</span> <span class="o">+=</span> <span class="n">rva_gap_size</span>
+
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_structures</span><span class="p">:</span>
+            <span class="n">entry_rva</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_rva_from_offset</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">get_file_offset</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_IMPORT_DESCRIPTOR&#39;</span><span class="p">:</span>
+                <span class="n">entry</span><span class="o">.</span><span class="n">set_file_offset</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_offset_from_rva</span><span class="p">(</span><span class="n">entry_rva</span> <span class="o">+</span> <span class="n">rva_gap_size</span>
+                                                <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_IMPORT_DESCRIPTOR_TABLE_RVA_</span><span class="p">)</span>
+                <span class="p">)</span>
+                <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">OriginalFirstThunk</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">entry</span><span class="o">.</span><span class="n">OriginalFirstThunk</span> <span class="o">+=</span> <span class="p">(</span><span class="n">rva_gap_size</span>
+                                                 <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_IMPORT_LOOKUP_TABLE_RVA_</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">Characteristics</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">entry</span><span class="o">.</span><span class="n">Characteristics</span> <span class="o">+=</span> <span class="p">(</span><span class="n">rva_gap_size</span>
+                                              <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_IMPORT_LOOKUP_TABLE_RVA_</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">FirstThunk</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="c1"># FirstThunk point to _IMPORT_ADDRESS_TABLE_</span>
+                    <span class="n">entry</span><span class="o">.</span><span class="n">FirstThunk</span> <span class="o">+=</span> <span class="p">(</span><span class="n">rva_gap_size</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_IMPORT_ADDRESS_TABLE_RVA_</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">Name</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">entry</span><span class="o">.</span><span class="n">Name</span> <span class="o">+=</span> <span class="n">rva_gap_size</span>
+            <span class="k">elif</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_THUNK_DATA&#39;</span><span class="p">:</span>
+                <span class="n">entry_rva</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_rva_from_offset</span><span class="p">(</span><span class="n">entry</span><span class="o">.</span><span class="n">get_file_offset</span><span class="p">())</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">origin_iat_rva</span>
+                        <span class="o">&lt;=</span> <span class="n">entry_rva</span>
+                        <span class="o">&lt;=</span> <span class="n">origin_iat_rva</span> <span class="o">+</span> <span class="n">origin_iat_size</span><span class="p">):</span>
+                    <span class="c1"># this entry is located at import address table</span>
+                    <span class="n">entry</span><span class="o">.</span><span class="n">set_file_offset</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_offset_from_rva</span><span class="p">(</span>
+                            <span class="n">entry_rva</span> <span class="o">+</span> <span class="n">rva_gap_size</span>
+                            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_IMPORT_ADDRESS_TABLE_RVA_</span><span class="p">)</span>
+                    <span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># this entry is located at import lookup table</span>
+                    <span class="n">entry</span><span class="o">.</span><span class="n">set_file_offset</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_offset_from_rva</span><span class="p">(</span>
+                            <span class="n">entry_rva</span> <span class="o">+</span> <span class="n">rva_gap_size</span>
+                            <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_IMPORT_LOOKUP_TABLE_RVA_</span><span class="p">)</span>
+                    <span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">Ordinal</span> <span class="o">&amp;</span> <span class="mh">0x80000000</span><span class="p">:</span>
+                    <span class="c1"># This is Ordinal import</span>
+                    <span class="k">pass</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># IMPORT_THUNK_DATA is not moving.</span>
+                    <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">Ordinal</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">entry</span><span class="o">.</span><span class="n">Ordinal</span> <span class="o">+=</span> <span class="n">rva_gap_size</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_IMPORT_ADDRESS_TABLE_RVA_</span>
+                    <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">AddressOfData</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">entry</span><span class="o">.</span><span class="n">AddressOfData</span> <span class="o">+=</span> <span class="n">rva_gap_size</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_IMPORT_ADDRESS_TABLE_RVA_</span>
+                    <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">ForwarderString</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">entry</span><span class="o">.</span><span class="n">ForwarderString</span> <span class="o">+=</span> <span class="n">rva_gap_size</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_IMPORT_ADDRESS_TABLE_RVA_</span>
+                    <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">Function</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">entry</span><span class="o">.</span><span class="n">Function</span> <span class="o">+=</span> <span class="n">rva_gap_size</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_IMPORT_ADDRESS_TABLE_RVA_</span>
+
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_structures</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_IMPORT_DESCRIPTOR&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">OriginalFirstThunk</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">pass</span>
+                <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">FirstThunk</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">pass</span>
+            <span class="k">elif</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_THUNK_DATA&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">Ordinal</span> <span class="o">&amp;</span> <span class="mh">0x80000000</span><span class="p">:</span>
+                    <span class="c1"># This is Ordinal import</span>
+                    <span class="k">pass</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">adjust_references_of_iat</span><span class="p">(</span><span class="n">origin_iat_rva</span><span class="p">,</span>
+                                      <span class="n">origin_iat_rva</span> <span class="o">+</span> <span class="n">origin_iat_size</span><span class="p">,</span>
+                                      <span class="n">rva_gap_size</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.adjust_references_of_iat"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.adjust_references_of_iat">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_references_of_iat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">gap_size</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        adjust a relocation element that references the import address table.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            start(int) : start of range.</span>
+<span class="sd">            end(int) : end of range.</span>
+<span class="sd">            gap_size(int) : size to adjust.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">pe_manager</span><span class="o">.</span><span class="n">adjust_data_in_range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">end</span><span class="p">,</span> <span class="n">gap_size</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.get_iat_rva_with_size"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.get_iat_rva_with_size">[docs]</a>    <span class="k">def</span> <span class="nf">get_iat_rva_with_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        get import address relative address and its size.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (tuple) :</span>
+<span class="sd">                rva(int) : relative address of import address table.</span>
+<span class="sd">                size(int) : size of import address table.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">rva</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">size</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">OPTIONAL_HEADER</span><span class="o">.</span><span class="n">DATA_DIRECTORY</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_DIRECTORY_ENTRY_IAT&#39;</span><span class="p">:</span>
+                <span class="n">rva</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">VirtualAddress</span>
+                <span class="n">size</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">Size</span>
+        <span class="k">return</span> <span class="n">rva</span><span class="p">,</span> <span class="n">size</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.gen_new_thunk"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.gen_new_thunk">[docs]</a>    <span class="k">def</span> <span class="nf">gen_new_thunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">attr_data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a new thunk filled with the attribute value given as an argument.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            attr_data(int) : attribute value that to be filled.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (Structure) : import thunk structure.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">new_thunk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pe_manager</span><span class="o">.</span><span class="n">gen_new_empty_import_thunk</span><span class="p">()</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">new_thunk</span><span class="p">,</span> <span class="s2">&quot;AddressOfData&quot;</span><span class="p">,</span> <span class="n">attr_data</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">new_thunk</span><span class="p">,</span> <span class="s2">&quot;ForwarderString&quot;</span><span class="p">,</span> <span class="n">attr_data</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">new_thunk</span><span class="p">,</span> <span class="s2">&quot;Function&quot;</span><span class="p">,</span> <span class="n">attr_data</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">new_thunk</span><span class="p">,</span> <span class="s2">&quot;Ordinal&quot;</span><span class="p">,</span> <span class="n">attr_data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">new_thunk</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.gen_separator_thunk"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.gen_separator_thunk">[docs]</a>    <span class="k">def</span> <span class="nf">gen_separator_thunk</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a new thunk filled with zero that mean separator.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (Structure) : import thunk structure that has filled zero.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">separator_thunk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_new_thunk</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">separator_thunk</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.gen_new_import_thunk"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.gen_new_import_thunk">[docs]</a>    <span class="k">def</span> <span class="nf">gen_new_import_thunk</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ordinal</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        create the new import thunk with given ordinal as argument.</span>
+<span class="sd">        and append it to structure.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            ordinal(int) : Ordinal to be assigned to a new import thunk.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (tuple) :</span>
+<span class="sd">                import_thunk(Structure) : created import thunk.</span>
+<span class="sd">                rva(int) : rva of ordinal located in import address table.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">separator_thunk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_separator_thunk</span><span class="p">()</span>
+        <span class="n">empty_thunk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_new_thunk</span><span class="p">(</span><span class="n">ordinal</span><span class="p">)</span>
+
+        <span class="n">last_import_lookup_thunk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_last_import_lookup_thunk</span><span class="p">()</span>
+        <span class="n">last_import_lookup_thunk_offset</span> <span class="o">=</span> \
+            <span class="n">last_import_lookup_thunk</span><span class="o">.</span><span class="n">get_file_offset</span><span class="p">()</span>
+        <span class="n">separator_thunk</span><span class="o">.</span><span class="n">set_file_offset</span><span class="p">(</span><span class="n">last_import_lookup_thunk_offset</span> <span class="o">+</span><span class="mi">4</span><span class="p">)</span>
+        <span class="n">empty_thunk</span><span class="o">.</span><span class="n">set_file_offset</span><span class="p">(</span><span class="n">last_import_lookup_thunk_offset</span> <span class="o">+</span> <span class="mi">8</span><span class="p">)</span>
+
+        <span class="n">rva_at_iat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">append_to_iat</span><span class="p">(</span><span class="n">ordinal</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count_of_additional_fn</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">empty_thunk</span><span class="p">,</span> <span class="n">rva_at_iat</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.append_to_iat"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.append_to_iat">[docs]</a>    <span class="k">def</span> <span class="nf">append_to_iat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ordinal</span><span class="p">):</span>
+        <span class="c1"># TODO : Change the way of editing iat to use import thunk.</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">OPTIONAL_HEADER</span><span class="o">.</span><span class="n">DATA_DIRECTORY</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_DIRECTORY_ENTRY_IAT&#39;</span><span class="p">:</span>
+                <span class="n">iat_rva</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">VirtualAddress</span>
+                <span class="n">iat_size</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">Size</span>
+                <span class="k">break</span>
+        <span class="n">entry</span><span class="o">.</span><span class="n">Size</span> <span class="o">+=</span> <span class="mi">4</span>
+        <span class="n">rva_at_iat</span> <span class="o">=</span> <span class="n">iat_rva</span> <span class="o">+</span> <span class="n">iat_size</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">set_dword_at_rva</span><span class="p">(</span><span class="n">iat_rva</span> <span class="o">+</span> <span class="n">iat_size</span><span class="p">,</span> <span class="n">ordinal</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">rva_at_iat</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.add_message_box"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.add_message_box">[docs]</a>    <span class="k">def</span> <span class="nf">add_message_box</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        add MessageBoxA window API to PE File.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            rva(int) : relative address of message box Api located in iat.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">dll_import_descriptor</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_already_import_function</span><span class="p">(</span><span class="s1">&#39;MessageBoxA&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_already_import_dll</span><span class="p">(</span><span class="s1">&#39;USER32.DLL&#39;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">move_imports_offset_to_new_section</span><span class="p">()</span>
+
+        <span class="n">ordinal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_ordinal_from_common_library</span><span class="p">(</span><span class="s1">&#39;USER32.DLL&#39;</span><span class="p">,</span>
+                                                       <span class="s1">&#39;MessageBoxA&#39;</span><span class="p">)</span>
+        <span class="n">import_thunk</span><span class="p">,</span> <span class="n">rva_at_iat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_new_import_thunk</span><span class="p">(</span><span class="n">ordinal</span><span class="p">)</span>
+        <span class="n">ilt_rva</span><span class="p">,</span> <span class="n">dll_name_rva</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gen_new_import_lookup_table</span><span class="p">(</span><span class="s1">&#39;MessageBoxA&#39;</span><span class="p">,</span>
+                                                                 <span class="s1">&#39;USER32.DLL&#39;</span><span class="p">)</span>
+
+        <span class="n">import_thunk_rva</span> <span class="o">=</span> \
+            <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_rva_from_offset</span><span class="p">(</span><span class="n">import_thunk</span><span class="o">.</span><span class="n">get_file_offset</span><span class="p">())</span>
+        <span class="n">dll_import_descriptor</span> <span class="o">=</span> \
+            <span class="bp">self</span><span class="o">.</span><span class="n">add_dll_to_import_descriptor</span><span class="p">(</span><span class="n">import_thunk_rva</span><span class="p">,</span> <span class="n">dll_name_rva</span><span class="p">,</span>
+                                              <span class="n">rva_at_iat</span><span class="p">)</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">dll_import_descriptor</span><span class="p">,</span> <span class="n">Structure</span><span class="p">):</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;THIS IS WRONG&quot;</span><span class="p">)</span>
+            <span class="n">exit</span><span class="p">()</span>
+
+            <span class="c1"># self.add_function_to_import(dll_import_descriptor,</span>
+            <span class="c1">#                            &#39;USER32.DLL&#39;, &#39;MessageBoxA&#39;)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">append_import_thunk_to_next_of_descriptor</span><span class="p">(</span><span class="n">import_thunk</span><span class="p">,</span>
+                                                       <span class="n">dll_import_descriptor</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">print_imports_offset</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">save_modified_imports</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">adjust_data_directory_size</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">rva_at_iat</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.print_imports_offset"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.print_imports_offset">[docs]</a>    <span class="k">def</span> <span class="nf">print_imports_offset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        for debugging.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">descriptor</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">thunks</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_structures</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_IMPORT_DESCRIPTOR&#39;</span><span class="p">:</span>
+                <span class="n">offset</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">get_file_offset</span><span class="p">()</span>
+                <span class="n">rva</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_rva_from_offset</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
+                <span class="n">descriptor</span><span class="p">[</span><span class="n">rva</span><span class="p">]</span> <span class="o">=</span> <span class="n">entry</span>
+            <span class="k">elif</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_THUNK_DATA&#39;</span><span class="p">:</span>
+                <span class="n">offset</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">get_file_offset</span><span class="p">()</span>
+                <span class="n">rva</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_rva_from_offset</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
+                <span class="n">thunks</span><span class="p">[</span><span class="n">rva</span><span class="p">]</span> <span class="o">=</span> <span class="n">entry</span>
+
+        <span class="n">sorted_descriptor</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">descriptor</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
+                                   <span class="n">key</span><span class="o">=</span><span class="n">operator</span><span class="o">.</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+        <span class="n">sorted_thunks</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">thunks</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
+                               <span class="n">key</span><span class="o">=</span><span class="n">operator</span><span class="o">.</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">))</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;============[IMAGE_IMPORT_DESCRIPTOR]=============&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">rva</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">sorted_descriptor</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:x}</span><span class="s2"> - </span><span class="si">{:x}</span><span class="se">\t</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rva</span><span class="p">,</span> <span class="n">rva</span> <span class="o">+</span> <span class="mi">20</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;============[IMAGE_IMPORT_THUNK]=============&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">rva</span><span class="p">,</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">sorted_thunks</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:x}</span><span class="s2"> - </span><span class="si">{:x}</span><span class="se">\t</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rva</span><span class="p">,</span> <span class="n">rva</span> <span class="o">+</span> <span class="mi">4</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.append_import_thunk_to_next_of_descriptor"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.append_import_thunk_to_next_of_descriptor">[docs]</a>    <span class="k">def</span> <span class="nf">append_import_thunk_to_next_of_descriptor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">import_thunk</span><span class="p">,</span>
+                                                  <span class="n">descriptor</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        append import thunk to the next index of given descriptor as an argument.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            import_thunk(Structure) : import thunk</span>
+<span class="sd">            descriptor(Structure): import descriptor</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">descriptor_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_structures</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">descriptor</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">import_structures</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">descriptor_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">import_thunk</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.adjust_data_directory_size"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.adjust_data_directory_size">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_data_directory_size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Increase the size of the import directory and import address table</span>
+<span class="sd">        by the number of import descriptors and import thunks added.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">OPTIONAL_HEADER</span><span class="o">.</span><span class="n">DATA_DIRECTORY</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_DIRECTORY_ENTRY_IMPORT&#39;</span><span class="p">:</span>
+                <span class="c1"># TODO : modify this.</span>
+                <span class="n">entry</span><span class="o">.</span><span class="n">Size</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">count_of_additional_dll</span> <span class="o">*</span> <span class="mi">20</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_DIRECTORY_ENTRY_IAT&#39;</span><span class="p">:</span>
+                <span class="n">entry</span><span class="o">.</span><span class="n">Size</span> <span class="o">+=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">count_of_additional_fn</span> <span class="o">*</span> <span class="mi">4</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.save_modified_imports"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.save_modified_imports">[docs]</a>    <span class="k">def</span> <span class="nf">save_modified_imports</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        reflect modified import structure to origin.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># apply changed imports.</span>
+        <span class="n">imports_range</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pe_manager</span><span class="o">.</span><span class="n">get_imports_range_in_structures</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__structures__</span><span class="p">[</span><span class="n">imports_range</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span><span class="n">imports_range</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> \
+            <span class="bp">self</span><span class="o">.</span><span class="n">import_structures</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.add_dll_to_import_descriptor"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.add_dll_to_import_descriptor">[docs]</a>    <span class="k">def</span> <span class="nf">add_dll_to_import_descriptor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">first_thunk_rva</span><span class="p">,</span> <span class="n">dll_name_rva</span><span class="p">,</span>
+                                     <span class="n">iat_rva</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        create import descriptor with given argument and append it to structure.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            first_thunk_rva(int) : relative address of first thunk.</span>
+<span class="sd">            dll_name_rva(int) : relative address of dll name string.</span>
+<span class="sd">            iat_rva(int) : the relative address of import thunk located at</span>
+<span class="sd">            import address table.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (Structure) : a new import descriptor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">empty_import_descriptor</span> <span class="o">=</span> \
+            <span class="bp">self</span><span class="o">.</span><span class="n">pe_manager</span><span class="o">.</span><span class="n">gen_new_empty_import_descriptor</span><span class="p">()</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">empty_import_descriptor</span><span class="p">,</span> <span class="s2">&quot;Characteristics&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">empty_import_descriptor</span><span class="p">,</span> <span class="s2">&quot;FirstThunk&quot;</span><span class="p">,</span> <span class="n">iat_rva</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">empty_import_descriptor</span><span class="p">,</span> <span class="s2">&quot;ForwarderChain&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">empty_import_descriptor</span><span class="p">,</span> <span class="s2">&quot;Name&quot;</span><span class="p">,</span> <span class="n">dll_name_rva</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">empty_import_descriptor</span><span class="p">,</span> <span class="s2">&quot;OriginalFirstThunk&quot;</span><span class="p">,</span> <span class="n">first_thunk_rva</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">empty_import_descriptor</span><span class="p">,</span> <span class="s2">&quot;TimeDateStamp&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
+        <span class="c1"># TODO : inject dll_name and get its rva for set name</span>
+
+        <span class="n">last_descriptor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_structures</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">last_descriptor</span><span class="o">.</span><span class="n">name</span> <span class="o">!=</span> <span class="s1">&#39;IMAGE_IMPORT_DESCRIPTOR&#39;</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;something wrong&quot;</span><span class="p">)</span>
+            <span class="n">exit</span>
+
+        <span class="n">last_descriptor_offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_last_import_descriptor_offset</span><span class="p">()</span>
+        <span class="n">last_descriptor</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_last_import_descriptor</span><span class="p">()</span>
+        <span class="n">last_descriptor_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_structures</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">last_descriptor</span><span class="p">)</span>
+
+        <span class="n">empty_import_descriptor</span><span class="o">.</span><span class="n">set_file_offset</span><span class="p">(</span><span class="n">last_descriptor_offset</span><span class="p">)</span>
+        <span class="n">last_descriptor</span><span class="o">.</span><span class="n">set_file_offset</span><span class="p">(</span><span class="n">last_descriptor_offset</span>
+                                        <span class="o">+</span> <span class="n">empty_import_descriptor</span><span class="o">.</span><span class="n">sizeof</span><span class="p">())</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">import_structures</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">last_descriptor_index</span><span class="p">,</span>
+                                      <span class="n">empty_import_descriptor</span><span class="p">)</span>
+        <span class="c1"># print(&quot;OFFSET : {:x}&quot;.format(last_descriptor_offset))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">count_of_additional_dll</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">empty_import_descriptor</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.get_ordinal_from_common_library"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.get_ordinal_from_common_library">[docs]</a>    <span class="k">def</span> <span class="nf">get_ordinal_from_common_library</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dll_name</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        get the ordinal from common libraries with given dll</span>
+<span class="sd">        and function name as argument.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            dll_name(str) : dll name.</span>
+<span class="sd">            fn_name(str) : function name.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ordinal(int) : ordinal of matched.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">ordinal</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span> <span class="n">dll_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_COMMON_FUNCTIONS_</span><span class="p">:</span>
+            <span class="n">functions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_COMMON_FUNCTIONS_</span><span class="p">[</span><span class="n">dll_name</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">fn_name</span> <span class="ow">in</span> <span class="n">functions</span><span class="p">:</span>
+                <span class="n">ordinal</span> <span class="o">=</span> <span class="n">functions</span><span class="p">[</span><span class="n">fn_name</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">ordinal</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ORDINAL_MASK_</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.append_import_thunk_to_descriptor"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.append_import_thunk_to_descriptor">[docs]</a>    <span class="k">def</span> <span class="nf">append_import_thunk_to_descriptor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">descriptor</span><span class="p">,</span> <span class="n">thunk</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        add import thunk at the following index of the descriptor in structures.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            descriptor(Structure) : descriptor</span>
+<span class="sd">            thunk(Structure) : import thunk to append.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># TODO : now, this method only support 1 import thunk. must need enhance.</span>
+        <span class="n">descriptor_index</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_structures</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">descriptor</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">import_structures</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="n">descriptor_index</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">thunk</span><span class="p">)</span>
+        <span class="n">rva</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_rva_from_offset</span><span class="p">(</span><span class="n">thunk</span><span class="o">.</span><span class="n">get_file_offset</span><span class="p">())</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;RVA : </span><span class="si">{:x}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">rva</span><span class="p">))</span>
+        <span class="n">descriptor</span><span class="o">.</span><span class="n">Characteristics</span> <span class="o">=</span> <span class="n">rva</span>
+        <span class="n">descriptor</span><span class="o">.</span><span class="n">FirstThunk</span> <span class="o">=</span> <span class="n">rva</span>
+        <span class="n">descriptor</span><span class="o">.</span><span class="n">ForwarderChain</span> <span class="o">=</span> <span class="n">rva</span>
+        <span class="n">descriptor</span><span class="o">.</span><span class="n">Name</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">descriptor</span><span class="o">.</span><span class="n">OriginalFirstThunk</span> <span class="o">=</span> <span class="n">rva</span>
+        <span class="n">descriptor</span><span class="o">.</span><span class="n">TimeDateStamp</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">count_of_additional_fn</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.add_function_to_import"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.add_function_to_import">[docs]</a>    <span class="k">def</span> <span class="nf">add_function_to_import</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dll_import_descriptor</span><span class="p">,</span> <span class="n">dll_name</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        create import thunk by given argument dll and function name.</span>
+<span class="sd">        and append it to structures.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            dll_import_descriptor(Structure) : The generated import thunk is</span>
+<span class="sd">            appended to the following index of this descriptor in structures.</span>
+<span class="sd">            dll_name(str) : dll name.</span>
+<span class="sd">            fn_name(str) : function name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># TODO : Currently, only the functions in the list are supported.</span>
+        <span class="n">ordinal</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_ordinal_from_common_library</span><span class="p">(</span><span class="n">dll_name</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">ordinal</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;not supported yet.&quot;</span><span class="p">)</span>
+            <span class="n">exit</span><span class="p">()</span>
+
+        <span class="n">ordinal</span> <span class="o">+=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ORDINAL_MASK_</span>
+        <span class="n">thunk</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pe_manager</span><span class="o">.</span><span class="n">gen_new_thunk</span><span class="p">(</span><span class="n">ordinal</span><span class="p">)</span>
+        <span class="n">last_import_thunk_offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_last_import_thunk_offset</span><span class="p">()</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;IMPORT THUNK OFFSET : </span><span class="si">{:x}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">last_import_thunk_offset</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;IMPORT THUNK RVA : </span><span class="si">{:x}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_rva_from_offset</span><span class="p">(</span><span class="n">last_import_thunk_offset</span><span class="p">)</span>
+        <span class="p">))</span>
+        <span class="n">thunk</span><span class="o">.</span><span class="n">set_file_offset</span><span class="p">(</span><span class="n">last_import_thunk_offset</span> <span class="o">+</span> <span class="mi">4</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">append_import_thunk_to_descriptor</span><span class="p">(</span><span class="n">dll_import_descriptor</span><span class="p">,</span> <span class="n">thunk</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.is_already_import_dll"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.is_already_import_dll">[docs]</a>    <span class="k">def</span> <span class="nf">is_already_import_dll</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">dll_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks whether an import descriptor with the given dll name exists.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            dll_name(str) : dll name.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (bool) : True, if dll name exist in import descriptor.</span>
+<span class="sd">                    False, if dll name doesn&#39;t exist in import descriptor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">descriptor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_entries</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">descriptor</span><span class="o">.</span><span class="n">dll</span> <span class="o">==</span> <span class="n">dll_name</span><span class="p">:</span>
+                <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.is_already_import_function"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.is_already_import_function">[docs]</a>    <span class="k">def</span> <span class="nf">is_already_import_function</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        check whether an import thunk with the given function name.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            fn(str) : function name.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (bool) : True, if function name exist in import thunk.</span>
+<span class="sd">                    False, if function name doesn&#39;t exist in import thunk.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="n">basestring</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">descriptor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_entries</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">import_element</span> <span class="ow">in</span> <span class="n">descriptor</span><span class="o">.</span><span class="n">imports</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">import_element</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">fn</span><span class="p">:</span>
+                        <span class="k">return</span> <span class="kc">True</span>
+
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fn</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="c1"># TODO : add ordinary import</span>
+            <span class="k">pass</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.get_last_import_thunk_offset"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.get_last_import_thunk_offset">[docs]</a>    <span class="k">def</span> <span class="nf">get_last_import_thunk_offset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        get the import thunk offset that located last offset.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (int) : the offset of the import thunk at the last offset.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_structures</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_THUNK_DATA&#39;</span><span class="p">:</span>
+                <span class="n">entry_offset</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">get_file_offset</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">entry_offset</span> <span class="o">&gt;</span> <span class="n">offset</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">AddressOfData</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">offset</span> <span class="o">=</span> <span class="n">entry_offset</span>
+        <span class="k">return</span> <span class="n">offset</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.get_last_import_lookup_thunk"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.get_last_import_lookup_thunk">[docs]</a>    <span class="k">def</span> <span class="nf">get_last_import_lookup_thunk</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        get the import lookup thunk that located last offset.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (Structure) : import lookup thunk</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="p">(</span><span class="n">import_address_table_rva</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span> <span class="o">=</span> \
+            <span class="bp">self</span><span class="o">.</span><span class="n">pe_manager</span><span class="o">.</span><span class="n">get_import_address_table_address_range</span><span class="p">()</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">import_lookup_thunk</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_structures</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_THUNK_DATA&#39;</span><span class="p">:</span>
+                <span class="n">entry_offset</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">get_file_offset</span><span class="p">()</span>
+                <span class="n">entry_rva</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_rva_from_offset</span><span class="p">(</span><span class="n">entry_offset</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">entry_offset</span> <span class="o">&gt;</span> <span class="n">offset</span> \
+                        <span class="ow">and</span> <span class="ow">not</span> <span class="p">(</span><span class="n">import_address_table_rva</span>
+                                 <span class="o">&lt;=</span> <span class="n">entry_rva</span>
+                                 <span class="o">&lt;=</span> <span class="n">import_address_table_rva</span> <span class="o">+</span> <span class="n">size</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">AddressOfData</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">offset</span> <span class="o">=</span> <span class="n">entry_offset</span>
+                        <span class="n">import_lookup_thunk</span> <span class="o">=</span> <span class="n">entry</span>
+        <span class="k">return</span> <span class="n">import_lookup_thunk</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.get_last_import_address_thunk"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.get_last_import_address_thunk">[docs]</a>    <span class="k">def</span> <span class="nf">get_last_import_address_thunk</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        get the import address thunk that located last offset.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (Structure) : import thunk</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="p">(</span><span class="n">import_address_table_rva</span><span class="p">,</span> <span class="n">size</span><span class="p">)</span> <span class="o">=</span> \
+            <span class="bp">self</span><span class="o">.</span><span class="n">pe_manager</span><span class="o">.</span><span class="n">get_import_address_table_address_range</span><span class="p">()</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">import_address_thunk</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_structures</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_THUNK_DATA&#39;</span><span class="p">:</span>
+                <span class="n">entry_offset</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">get_file_offset</span><span class="p">()</span>
+                <span class="n">entry_rva</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_rva_from_offset</span><span class="p">(</span><span class="n">entry_offset</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">entry_offset</span> <span class="o">&gt;</span> <span class="n">offset</span> \
+                        <span class="ow">and</span> <span class="p">(</span><span class="n">import_address_table_rva</span>
+                                 <span class="o">&lt;=</span> <span class="n">entry_rva</span>
+                                 <span class="o">&lt;=</span> <span class="n">import_address_table_rva</span> <span class="o">+</span> <span class="n">size</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">AddressOfData</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="n">offset</span> <span class="o">=</span> <span class="n">entry_offset</span>
+                        <span class="n">import_address_thunk</span> <span class="o">=</span> <span class="n">entry</span>
+        <span class="k">return</span> <span class="n">import_address_thunk</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.get_last_import_descriptor_offset"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.get_last_import_descriptor_offset">[docs]</a>    <span class="k">def</span> <span class="nf">get_last_import_descriptor_offset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        get offset of the import descriptor that located last offset.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (int) : offset of the last import descriptor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_structures</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_IMPORT_DESCRIPTOR&#39;</span><span class="p">:</span>
+                <span class="n">entry_offset</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">get_file_offset</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">entry_offset</span> <span class="o">&gt;</span> <span class="n">offset</span><span class="p">:</span>
+                    <span class="n">offset</span> <span class="o">=</span> <span class="n">entry_offset</span>
+        <span class="k">return</span> <span class="n">offset</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.get_last_import_descriptor"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.get_last_import_descriptor">[docs]</a>    <span class="k">def</span> <span class="nf">get_last_import_descriptor</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        get the import descriptor that located last offset.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (Structure) : the last import descriptor.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">descriptor</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">offset</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_structures</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_IMPORT_DESCRIPTOR&#39;</span><span class="p">:</span>
+                <span class="n">entry_offset</span> <span class="o">=</span> <span class="n">entry</span><span class="o">.</span><span class="n">get_file_offset</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">entry_offset</span> <span class="o">&gt;</span> <span class="n">offset</span><span class="p">:</span>
+                    <span class="n">offset</span> <span class="o">=</span> <span class="n">entry_offset</span>
+                    <span class="n">descriptor</span> <span class="o">=</span> <span class="n">entry</span>
+        <span class="k">return</span> <span class="n">descriptor</span></div>
+
+<div class="viewcode-block" id="WindowAPIHelper.gen_new_import_lookup_table"><a class="viewcode-back" href="../../zigzi.html#zigzi.WindowAPIHelper.WindowAPIHelper.gen_new_import_lookup_table">[docs]</a>    <span class="k">def</span> <span class="nf">gen_new_import_lookup_table</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">,</span> <span class="n">dll_name</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        create import lookup table.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            fn_name(str) : name of function.</span>
+<span class="sd">            dll_name(str) : name of dll.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            (tuple):</span>
+<span class="sd">                next_ilt_rva (int) : relative address of generated ilt table.</span>
+<span class="sd">                dll_name_rva (int) : relative address of name.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># TODO : currently, this method modify import lookup table directly,</span>
+        <span class="c1"># it must be abstract.</span>
+        <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_entries</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">dll</span>
+        <span class="n">name_rva</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">import_entries</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">struct</span><span class="o">.</span><span class="n">Name</span>
+        <span class="n">next_ilt_rva</span> <span class="o">=</span> <span class="n">name_rva</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">fn_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\x00</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">fn_name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">set_bytes_at_rva</span><span class="p">(</span><span class="n">next_ilt_rva</span><span class="p">,</span> <span class="n">fn_name</span><span class="p">)</span>
+        <span class="n">dll_name</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\x00</span><span class="s1">&#39;</span> <span class="o">+</span> <span class="n">dll_name</span> <span class="o">+</span> <span class="s1">&#39;</span><span class="se">\x00</span><span class="s1">&#39;</span>
+        <span class="n">dll_rva</span> <span class="o">=</span> <span class="n">next_ilt_rva</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">dll_name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">set_bytes_at_rva</span><span class="p">(</span><span class="n">dll_rva</span><span class="p">,</span> <span class="n">dll_name</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">next_ilt_rva</span><span class="p">,</span> <span class="n">dll_rva</span> <span class="o">+</span> <span class="mi">1</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">zigzi</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../zigzi.html">zigzi package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  <li><a href="../zigzi.html">zigzi</a><ul>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Author.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
