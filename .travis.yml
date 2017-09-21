@@ -22,7 +22,7 @@ before_install:
     - sudo make install
     - sudo ldconfig
     - popd
-    - git clone https://github.com/ParkHanbum/capstone.git -b 0912
+    - git clone https://github.com/ParkHanbum/capstone.git -b 0921
     - pushd capstone
     - ./make.sh
     - sudo make install
