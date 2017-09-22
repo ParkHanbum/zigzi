@@ -68,21 +68,25 @@ class Tests(unittest.TestCase):
         path = os.getcwd()
         cls.code_log = open(os.path.join(path, "tests", "codelog.log"), 'w')
         cls.reloc_log = open(os.path.join(path, "tests", "reloclog.log"), 'w')
+        # cls.src_filename = os.path.join(path, "tests", "firefox.exe")
+        # cls.dst_filename = os.path.join(path, "tests", "firefox_test.exe")
         cls.src_filename = os.path.join(path, "tests", "sample.exe")
         cls.dst_filename = os.path.join(path, "tests", "sample_test.exe")
-        cls.src_filename = os.path.join(path, "tests", "firefox.exe")
-        cls.dst_filename = os.path.join(path, "tests", "firefox_test.exe")
+        # cls.src_filename = os.path.join(path, "tests", "simple_echo_server.exe")
+        # cls.dst_filename = os.path.join(path, "tests", "simple_echo_server_test.exe")
         src_instrument = PEInstrument.from_filename(cls.src_filename)
-        src_instrument.instrument_pre_indirect_branch(instrument_test)
+        src_instrument.register_pre_indirect_branch(instrument_test)
+        src_instrument.do_instrument()
         src_instrument.writefile(cls.dst_filename)
         cls.instrumented_dict = src_instrument.get_instrumented_pos()
 
-        cls.src_peutil = PEManager(cls.src_filename)
-        cls.dst_peutil = PEManager(cls.dst_filename)
-        dst_data_section = cls.dst_peutil.get_data_section()
-        src_data_section = cls.src_peutil.get_data_section()
+        src_pe_manager = PEManager(cls.src_filename)
+        dst_pe_manager = PEManager(cls.dst_filename)
+        dst_data_section = dst_pe_manager.get_data_section()
+        src_data_section = src_pe_manager.get_data_section()
         cls._Adjust_Size_ = dst_data_section.VirtualAddress \
                             - src_data_section.VirtualAddress
+        cls._Image_Base_ = src_pe_manager.PE.OPTIONAL_HEADER.ImageBase
 
     @classmethod
     def tearDownClass(cls):
@@ -98,8 +102,8 @@ class Tests(unittest.TestCase):
         log = ""
         src_instrument = self.src_instrument
         dst_instrument = self.dst_instrument
-        src_util = src_instrument.get_peutil()
-        dst_util = dst_instrument.get_peutil()
+        src_util = src_instrument.get_pe_manager()
+        dst_util = dst_instrument.get_pe_manager()
         if not hasattr(src_util.PE, "DIRECTORY_ENTRY_EXPORT"):
             print("THIS BINARY HAS NOT EXPORT.")
             return True
@@ -139,15 +143,15 @@ class Tests(unittest.TestCase):
         test_fail_flag = False
         src_instrument = self.src_instrument
         dst_instrument = self.dst_instrument
-        src_util = src_instrument.get_peutil()
-        dst_util = dst_instrument.get_peutil()
-        src_relocation_dict = src_util.get_relocation()
-        dst_relocation_dict = dst_util.get_relocation()
+        src_manager = src_instrument.get_pe_manager()
+        dst_manager = dst_instrument.get_pe_manager()
+        src_relocation_dict = src_manager.get_relocation()
+        dst_relocation_dict = dst_manager.get_relocation()
 
         src_execute_start, src_execute_end = \
-            src_util.get_text_section_virtual_address_range()
+            src_manager.get_text_section_virtual_address_range()
         dst_execute_start, dst_execute_end = \
-            dst_util.get_text_section_virtual_address_range()
+            dst_manager.get_text_section_virtual_address_range()
         src_execute_start += self._Image_Base_
         src_execute_end += self._Image_Base_
         dst_execute_start += self._Image_Base_
@@ -171,8 +175,8 @@ class Tests(unittest.TestCase):
             src_reloc = src_reloc_el[1]
             dst_reloc_address = int(dst_reloc_el[0])
             dst_reloc = dst_reloc_el[1]
-            src_reloc_data = int(src_util.PE.get_dword_at_rva(src_reloc_address))
-            dst_reloc_data = int(dst_util.PE.get_dword_at_rva(dst_reloc_address))
+            src_reloc_data = int(src_manager.PE.get_dword_at_rva(src_reloc_address))
+            dst_reloc_data = int(dst_manager.PE.get_dword_at_rva(dst_reloc_address))
 
             self.reloc_log.write(
                 "[{:04x}]\t[0x{:x}][0x{:x}][{}]\t[0x{:x}][0x{:x}][{}]\n"
@@ -208,10 +212,12 @@ class Tests(unittest.TestCase):
         src_disassemble = src_instrument.get_instructions()
         dst_disassemble = dst_instrument.get_instructions()
         execute_start, execute_end = \
-            src_instrument.peutil.get_text_section_virtual_address_range()
+            src_instrument.get_pe_manager()\
+            .get_text_section_virtual_address_range()
         src_size = execute_end - execute_start
         execute_start, execute_end = \
-            dst_instrument.peutil.get_text_section_virtual_address_range()
+            dst_instrument.get_pe_manager()\
+            .get_text_section_virtual_address_range()
         dst_size = execute_end - execute_start
 
         dst_index = 0
@@ -407,7 +413,7 @@ class Tests(unittest.TestCase):
                 and dst_inst.op_str == src_inst.op_str:
             result = True
         elif dst_inst.groups == src_inst.groups:
-            if self.dst_instrument.disassembler.is_direct_branch(dst_inst):
+            if self.dst_instrument.disassembler.is_relative_branch(dst_inst):
                 result = self.checkDirectJmp(dst_inst, src_inst)
             elif self.dst_instrument.disassembler.is_indirect_branch(dst_inst):
                 result = self.checkIndirectJmp(dst_inst, src_inst)
