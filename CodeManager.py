@@ -102,7 +102,7 @@ class CodeManager(object):
     @staticmethod
     def get_format_from_size_little_endian(size):
         if size == 8:
-            fmt = '<l'
+            fmt = '<q'
         elif size == 4:
             fmt = '<i'
         elif size == 2:

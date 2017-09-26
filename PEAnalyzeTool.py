@@ -32,8 +32,7 @@ class PEAnalyzer(object):
 
     def handle_FC_CALL(self, basic_block_size, inst):
         """
-        handle kinds of CALL instruction.
-        ex) CALL, CALL FAR.
+        handle kinds of CALL instruction.   ex) CALL, CALL FAR.
         :param BasicBlock: @type BasicBlock
         :return:
         """

@@ -57,6 +57,13 @@ class Disassembler(object):
         return self.instructions_dict
 
     def get_disassemble_list(self):
+        """
+        get instructions sorted by address.
+
+        Returns:
+            :obj:`list` : list containing:
+                - :obj:`instruction` : instruction.
+        """
         if self.is_need_handle_disassemble_list():
             disassemble_dict = self.get_disassemble_dict()
             sorted_instructions = sorted(disassemble_dict.items(),
@@ -65,6 +72,14 @@ class Disassembler(object):
         return self.instructions_list
 
     def disassemble(self):
+        """
+        Disassemble.
+
+        Returns:
+            :obj:`dict`: Dict containing:
+                - int : address of instruction.
+                - :obj:`instruction` : instruction.
+        """
         if not self.code_manager:
             return 0
         self.instructions_dict.clear()
@@ -129,6 +144,14 @@ class Disassembler(object):
 
     @staticmethod
     def is_call(instruction):
+        """
+        Check whether it is a call instruction.
+
+        Args:
+            instruction(instruction): instruction for check.
+        Returns:
+            bool : True if instruction is call, False otherwise.
+        """
         if instruction.mnemonic == 'call':
             return True
         return False
@@ -150,7 +173,16 @@ class Disassembler(object):
         return False
 
     @staticmethod
-    def get_instruction_length(instruction):
+    def get_opcode_length(instruction):
+        """
+        calculate opcode length from instruction.
+
+        Args:
+            instruction(instruction) : target instruction.
+
+        Returns:
+            int : length of opcode.
+        """
         opcode = instruction.opcode
         length = 0
         for index, el in enumerate(opcode):

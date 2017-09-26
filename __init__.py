@@ -25,24 +25,6 @@ from WindowAPIHelper import *
 code_rva = 0
 
 
-def simple_return_address_save_function_call_instrument(instruction):
-    global code_rva
-    code_zero_rva = code_rva - 0x1000
-    instruction_zero_rva = instruction.address
-    instruction_end_rva = instruction_zero_rva + instruction.size
-    # 5 mean instrumented code size.
-    code = "CALL {:d}".format(code_zero_rva - instruction_end_rva + 5)
-    hex_code = binascii.hexlify(code).decode('hex')
-    try:
-        # Initialize engine in X86-32bit mode
-        ks = Ks(KS_ARCH_X86, KS_MODE_32)
-        encoding, count = ks.asm(hex_code)
-        return encoding, count
-    except KsError as ex:
-        print("ERROR: %s" % ex)
-    return None, 0
-
-
 def simple_return_address_save_function():
     global code_rva
     allocation = pe_instrument.falloc(0x1000)
@@ -103,10 +85,6 @@ def do_indirect_branch_counting():
 
     pe_instrument.register_pre_indirect_branch(
         simple_indirect_branch_counting_function_call_instrument
-    )
-
-    pe_instrument.register_after_indirect_branch(
-        simple_return_address_save_function_call_instrument
     )
 
 

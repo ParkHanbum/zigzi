@@ -36,7 +36,7 @@ class PEManager(object):
         set up instrument
 
         Args:
-            (instrument) : instrument of this file
+            instrumentor(:obj:`PEInstrument`) : instrument of this file
         """
         self.instrument = instrumentor
 
@@ -45,8 +45,7 @@ class PEManager(object):
         get instrument of current file
 
         Returns:
-            (instrument) : instrument of current file util
-
+            :obj:`PEInstrument` : instrument of current file util
         """
         return self.instrument
 
@@ -55,7 +54,7 @@ class PEManager(object):
         append section to file structure.
 
         Args:
-            section(section) : section that append to file
+            section(:obj:`Section`) : section that append to file
         """
         self.PE.sections.append(section)
         self.PE.__structures__.append(section)
@@ -65,7 +64,7 @@ class PEManager(object):
         get data of file
 
         Returns:
-            (bytearray) : bytearray type data of file
+            :obj:`bytearray` : bytearray type data of file
         """
         return self.PE.__data__
 
@@ -107,9 +106,9 @@ class PEManager(object):
         Args:
             data(bytearray) : data for append that bytearray type.
         Returns:
-            (tuple): tuple containing:
-                aligned_orig_data_len (int) : file data length that aligned
-                aligned_data_len (int) : argument data length that aligned
+            :obj:`tuple`: tuple containing:
+                aligned_orig_data_len(int) : file data length that aligned.\n
+                aligned_data_len(int) : argument data length that aligned.
         """
         orig_data_len = len(self.get_file_data())
         aligned_orig_data_len = self.get_aligned_offset(orig_data_len)
@@ -150,7 +149,7 @@ class PEManager(object):
             name(str) : name of section.
 
         Returns:
-            new section.
+            :obj:`Section` : new section that created.
         """
         if len(name) > 8:
             print("[EXCEPTION] SECTION NAME MUST LESS THEN 8 CHARACTER")
@@ -186,9 +185,9 @@ class PEManager(object):
         get raw data from section header
 
         Args:
-            section(section) : section header that
+            section(Section) : section header that
         Returns:
-            data(bytearray) : data that section contain.
+            :obj:`bytearray` : data that section contain.
         """
         offset = section.PointerToRawData
         size = section.SizeOfRawData
@@ -209,9 +208,9 @@ class PEManager(object):
         get Virtual address range of text section
 
         Returns:
-            tuple.
-                a tuple containing section's start and end pair.
-                ( start, end )
+            :obj:`tuple` : tuple containing :
+                - int : the start address of section. \n
+                - int : the end address of section.
         """
         executable_section = self.get_text_section()
         va_size = executable_section.Misc_VirtualSize
@@ -223,7 +222,7 @@ class PEManager(object):
         get text section.
 
         Returns:
-            (section) : Text section.
+            :obj:`section` : Text section.
         """
         for currentSection in self.PE.sections:
             if currentSection.Characteristics & 0x20000000:
@@ -291,12 +290,12 @@ class PEManager(object):
         get relocation elements.
 
         Returns:
-            dict : Dict with a List containing the following items.
-                - RVA(int) : address of relocation element.
-                - Address(int) : address of relocation element.
-                - Type(int) : type that represented by int.
-        Examples:
-            { Relocation block address : [RVA, Address, Type]}
+            :obj:`dict` : Dict containing:
+                int : address of relocation block\n
+                :obj:`list` : relocation block info. list containing:
+                    - int : relative address of relocation element.
+                    - int : address of relocation element.
+                    - int : type that represented by int.
         """
         relocation = {}
         if hasattr(self.PE, 'DIRECTORY_ENTRY_BASERELOC'):
@@ -313,9 +312,10 @@ class PEManager(object):
         get relocation elements from file structures that not parsed yet.
 
         Returns:
-            dict
-                containing relocation blocks.
-                list : relocation entry
+            :obj:`dict`: Dict containing:
+                int : relative address of relocation block. \n
+                :obj:`list` : list of relocation entry. :obj:`list` containing:
+                    - :obj:`Structure` : IMAGE_BASE_RELOCATION_ENTRY
         Examples:
             { Relocation block address : [Relocation Entry]}
         """
@@ -339,7 +339,8 @@ class PEManager(object):
         get import lists of pe file.
 
         Returns:
-            (list) : containing structures of import.
+            :obj:`list` : containing structures of import :
+                :obj:`Structure`: IMAGE_IMPORT_DESCRIPTOR or IMAGE_THUNK_DATA
         """
         imports_start_index = 0
         imports_end_index = 0
@@ -360,9 +361,9 @@ class PEManager(object):
         start and end index of import at structures.
 
         Returns:
-            (tuple): tuple containing:
-                start_index (int) : start index of import at structures.
-                end_index (int) : last index of import at structures.
+            :obj:`tuple` : tuple containing:
+                - int : start index of import at structures.
+                - int : last index of import at structures.
         """
         imports_start_index = 0
         imports_end_index = 0
@@ -497,17 +498,17 @@ class PEManager(object):
                                         section.Misc_VirtualSize)
 
     def adjust_directories(self, data_directories, origin_section_start,
-                           section_adjusted_va, origin_section_end,
-                           adjusted_section_size):
+                           adjust_section_start, origin_section_end,
+                           adjust_section_end):
         """
         adjust directories Virtual address.
 
         Args:
-            data_directories:
-            origin_section_start:
-            section_adjusted_va:
-            origin_section_end:
-            adjusted_section_size:
+            data_directories(:obj:`list`): data directories in PE file.
+            origin_section_start(Int) : start virtual address of section.
+            adjust_section_start(int) : start virtual address of adjust section.
+            origin_section_end(int) : last virtual address of section.
+            adjust_section_end(int) : last virtual address of adjust section.
         """
         directory_adjust = {
             'IMAGE_DIRECTORY_ENTRY_IMPORT': self.adjust_import,
@@ -523,7 +524,7 @@ class PEManager(object):
         }
 
         remove_list = []
-        increased_size = section_adjusted_va - origin_section_start
+        increased_size = adjust_section_start - origin_section_start
         for directory in data_directories:
             if (origin_section_start
                     <= directory.VirtualAddress
@@ -541,12 +542,10 @@ class PEManager(object):
                         entry = directory_adjust[directory.name]
                         entry(directory, directory.VirtualAddress,
                               directory.Size, increased_size)
-                        if directory.name == 'IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG':
-                            print("{}".format(increased_size))
-
-                except IndexError:
+                except IndexError as e:
                     print("===== [INDEX ERROR] =====")
-                    return False
+                    print(e)
+                    exit()
                 remove_list.append(directory)
         for el in remove_list:
             data_directories.remove(el)
@@ -554,7 +553,7 @@ class PEManager(object):
 
     def _remove_certification(self):
         """
-        Remove certification of file
+        set zero to certification data directory of pe file.
         """
         for index in range(len(self.PE.OPTIONAL_HEADER.DATA_DIRECTORY)):
             directory = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY[index]
@@ -567,10 +566,10 @@ class PEManager(object):
         adjust relocation directory's elements.
 
         Args:
-            directory: directory that has name "IMAGE_DIRECTORY_ENTRY_BASERELOC"
-            rva: current directory reloc_rva
-            size: current directory size
-            increase_size: increased size of section that directory included
+            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_BASERELOC
+            rva(int): current directory's relative virtual address.
+            size(int): current directory's size.
+            increase_size(int): increased size of section that directory included.
         """
         self.adjust_relocation_directories(increase_size)
         self.log = LoggerFactory().get_new_logger("AdjustRelocation2nd.log")
@@ -636,16 +635,16 @@ class PEManager(object):
                         """
 
                     self.set_dword_at_rva(reloc_rva, value + instrumented_size)
-                    self.log.log("[IF] [0x{:x}]\t0x{:x}\t0x{:x}\t0x{:x}\n"
+                    self.log.log("[1] [0x{:x}]\t0x{:x}\t0x{:x}\t0x{:x}\n"
                                  .format(reloc_rva, value,
                                          self.PE.get_dword_at_rva(reloc_rva),
                                          instrumented_size))
                 elif ((other_section_start + self._IMAGE_BASE_)
-                          <= value
-                          < (other_section_end + self._IMAGE_BASE_)):
+                        <= value
+                        < (other_section_end + self._IMAGE_BASE_)):
                     self.set_dword_at_rva(reloc_rva, value + increase_size)
                     self.log.log(
-                        "[ELIF] [0x{:x}]\t0x{:x}\t0x{:x}\t0x{:x}\n"
+                        "[2] [0x{:x}]\t0x{:x}\t0x{:x}\t0x{:x}\n"
                             .format(reloc_rva, value,
                                     self.PE.get_dword_at_rva(reloc_rva),
                                     increase_size)
@@ -653,13 +652,14 @@ class PEManager(object):
                 else:
                     try:
                         self.log.log(
-                            "[ELSE] [0x{:x}]\t0x{:x}\t0x{:x}\t0x{:x}\n"
+                            "[3] [0x{:x}]\t0x{:x}\t0x{:x}\t0x{:x}\n"
                                 .format(reloc_rva, value,
                                         self.PE.get_dword_at_rva(reloc_rva),
                                         increase_size)
                         )
-                    except ValueError:
+                    except ValueError as e:
                         print("=================[ERROR]===================")
+                        print(e)
                         print(
                             "\t[ELSE] [0x{:x}]\t0x{:x}\t0x{:x}\t0x{:x}\n"
                                 .format(reloc_rva, value,
@@ -673,10 +673,10 @@ class PEManager(object):
         adjust relocation directory's elements.
 
         Args:
-            directory: directory that has name "IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG"
-            rva: current directory address
-            size: current directory size
-            increase_size: increased size of section that directory included
+            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG
+            rva(int): current directory's relative virtual address.
+            size(int): current directory's size.
+            increase_size(int): increased size of section that directory included.
         """
         size = self.PE.get_dword_at_rva(rva)
         time = self.PE.get_dword_at_rva(rva + 0x4)
@@ -714,10 +714,10 @@ class PEManager(object):
         adjust relocation directory's elements.
 
         Args:
-            directory: directory that has name "IMAGE_DIRECTORY_ENTRY_DEBUG"
-            rva: current directory address
-            size: current directory size
-            increase_size: increased size of section that directory included
+            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_DEBUG
+            rva(int): current directory's relative virtual address.
+            size(int): current directory's size.
+            increase_size(int): increased size of section that directory included.
         """
         return 0
 
@@ -726,10 +726,10 @@ class PEManager(object):
         adjust relocation directory's elements.
 
         Args:
-            directory: directory that has name "IMAGE_DIRECTORY_ENTRY_TLS"
-            rva: current directory address
-            size: current directory size
-            increase_size: increased size of section that directory included
+            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_TLS
+            rva(int): current directory's relative virtual address.
+            size(int): current directory's size.
+            increase_size(int): increased size of section that directory included.
         """
         directory_tls = self.PE.DIRECTORY_ENTRY_TLS
         if directory_tls.struct.AddressOfCallBacks > 0:
@@ -753,10 +753,10 @@ class PEManager(object):
         adjust relocation directory's elements.
 
         Args:
-            directory: directory that has name "IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT"
-            rva: current directory address
-            size: current directory size
-            increase_size: increased size of section that directory included
+            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT
+            rva(int): current directory's relative virtual address.
+            size(int): current directory's size.
+            increase_size(int): increased size of section that directory included.
         """
         return 0
 
@@ -765,10 +765,10 @@ class PEManager(object):
         adjust relocation directory's elements.
 
         Args:
-            directory: directory that has name "IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT"
-            rva: current directory address
-            size: current directory size
-            increase_size: increased size of section that directory included
+            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT
+            rva(int): current directory's relative virtual address.
+            size(int): current directory's size.
+            increase_size(int): increased size of section that directory included.
         """
         first_import_entry = self.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0]
 
@@ -804,10 +804,10 @@ class PEManager(object):
         adjust relocation directory's elements.
 
         Args:
-            directory: directory that has thunk_data "IMAGE_DIRECTORY_ENTRY_IMPORT"
-            rva: current directory address
-            size: current directory size
-            increase_size: increased size of section that directory included
+            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_IMPORT
+            rva(int): current directory's relative virtual address.
+            size(int): current directory's size.
+            increase_size(int): increased size of section that directory included.
         """
         import_structures = self.get_import_structures()
         for entry in import_structures:
@@ -837,10 +837,10 @@ class PEManager(object):
         adjust relocation directory's elements.
 
         Args:
-            directory: directory that has name "IMAGE_DIRECTORY_ENTRY_EXPORT"
-            rva: current directory address
-            size: current directory size
-            increase_size: increased size of section that directory included
+            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_EXPORT
+            rva(int): current directory's relative virtual address.
+            size(int): current directory's size.
+            increase_size(int): increased size of section that directory included.
         """
         self.log = LoggerFactory().get_new_logger("AdjustExport.log")
         export_entry = self.PE.DIRECTORY_ENTRY_EXPORT
@@ -880,10 +880,10 @@ class PEManager(object):
         adjust relocation directory's elements.
 
         Args:
-            directory: directory that has name "IMAGE_DIRECTORY_ENTRY_RESOURCE"
-            rva: current directory address
-            size: current directory size
-            increase_size: increased size of section that directory included
+            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_RESOURCE
+            rva(int): current directory's relative virtual address.
+            size(int): current directory's size.
+            increase_size(int): increased size of section that directory included.
         """
         for rsrc_entries in self.PE.DIRECTORY_ENTRY_RESOURCE.entries:
             for rsrc_directory_entry in rsrc_entries.directory.entries:
@@ -896,7 +896,7 @@ class PEManager(object):
 
         Args:
             rva(int) : relative address.
-            dword:
+            dword(bytes) : 4-bytes type value.
         """
         return self.PE.set_dword_at_rva(rva, dword)
 
@@ -905,7 +905,7 @@ class PEManager(object):
         get data section of PE.
 
         Returns:
-            (section) : data section of PE.
+            :obj:`Section` : data section of PE.
         """
         data_section = \
             self.get_section_belong_rva(self.PE.OPTIONAL_HEADER.BaseOfData)
@@ -933,7 +933,13 @@ class PEManager(object):
         get relocation directories with its include elements.
 
         Returns:
-            tuple : 2-Dict with relocation entries and blocks.
+            :obj:`tuple`: tuple containing:
+                :obj:`dict` : relocation blocks
+                    - block address(int) : address of block
+                    - block entry(:obj:`Structure`) : IMAGE_BASE_RELOCATION
+                :obj:`dict` : relocation entry
+                    - block address(int) : The block address to which the entry belongs
+                    - relocation entry(:obj:`Structure`) : IMAGE_BASE_RELOCATION_ENTRY
         """
         relocation_blocks = {}
         relocation_entries = {}
@@ -977,7 +983,7 @@ class PEManager(object):
             offset(int) : offset of file.
 
         Returns:
-            (int) : absolute address to match offset.
+            int : absolute address to match offset.
         """
         rva = self.PE.get_rva_from_offset(offset)
         return self.get_abs_va_from_rva(rva)
@@ -990,7 +996,7 @@ class PEManager(object):
             rva(int) : relative address to be calculate.
 
         Returns:
-            ava(int) : absolute address of rva.
+            int : absolute address from rva.
         """
         return self.PE.OPTIONAL_HEADER.ImageBase + rva
 
@@ -999,7 +1005,7 @@ class PEManager(object):
         get address of image base.
 
         Returns:
-            (int) : virtual address of image base.
+            int : virtual address of image base.
         """
         return self.PE.OPTIONAL_HEADER.ImageBase
 
@@ -1011,7 +1017,7 @@ class PEManager(object):
             rva(int) : relative address.
 
         Returns:
-            (Structure) : structure that has located in rva.
+            :obj:`Structure` : structure that has located in rva.
         """
         result = None
         offset = self.PE.get_physical_by_rva(rva)
@@ -1051,9 +1057,9 @@ class PEManager(object):
         move relocation entry to appropriate relocation block.
 
         Args:
-            entry:
-            block:
-            increase_size:
+            entry(Structure) : IMAGE_BASE_RELOCATION_ENTRY
+            block(Structure) : IMAGE_BASE_RELOCATION
+            increase_size(int) : size to move the entry
         """
         pe_structure = self.PE.__structures__
         # we assume first section is text section.
@@ -1125,7 +1131,7 @@ class PEManager(object):
             block_rva: relative address that has covered by new block.
 
         Returns:
-            (int) : index of generated block.
+            int : index of generated block.
         """
         pe_structure = self.PE.__structures__
         (relocation_blocks, relocation_entries) \
@@ -1149,7 +1155,7 @@ class PEManager(object):
         generate new import descriptor that has empty.
 
         Returns:
-            (Structure) : IMPORT_DESCRIPTOR format
+            :obj:`Structure` : IMPORT_DESCRIPTOR
         """
         structure = Structure(self.PE.__IMAGE_IMPORT_DESCRIPTOR_format__)
         return structure
@@ -1159,7 +1165,7 @@ class PEManager(object):
         generate new import descriptor that has empty.
 
         Returns:
-            (Structure) : IMPORT_THUNK format
+            :obj:`Structure` : IMPORT_THUNK
         """
         structure = Structure(self.PE.__IMAGE_THUNK_DATA_format__)
         return structure
@@ -1169,7 +1175,7 @@ class PEManager(object):
         generate new empty thunk.
 
         Returns:
-            (Structure) : IMPORT_THUNK format
+            :obj:`Structure` : IMPORT_THUNK
         """
         structure = Structure(self.PE.__IMAGE_THUNK_DATA_format__)
         return structure
@@ -1182,7 +1188,7 @@ class PEManager(object):
             rva(int) : relative address.
 
         Returns:
-            (Structure) : relocation entry.
+            :obj:`Structure` : IMAGE_BASE_RELOCATION_ENTRY
         """
         structure = Structure(self.PE.__IMAGE_BASE_RELOCATION_ENTRY_format__)
         setattr(structure, "Data", (rva & 0xfff) + 0x3000)
@@ -1213,7 +1219,7 @@ class PEManager(object):
             rva(int) : rva for find section.
 
         Returns:
-            (Section)
+            :obj:`Section` : the Section to which the given relative address as argument belongs.
         """
         sections = self.PE.sections
         for section in sections:
@@ -1231,9 +1237,9 @@ class PEManager(object):
             entry_name(str) : name of data directory to find.
 
         Returns:
-            (tuple) :
-                (int) : Virtual address of data directory.
-                (int) : Size of data directory.
+            :obj:`tuple` : tuple containing :
+                - int : Virtual address of data directory.
+                - int : Size of data directory.
         """
         for entry in self.PE.OPTIONAL_HEADER.DATA_DIRECTORY:
             if entry.name == entry_name:
@@ -1244,9 +1250,9 @@ class PEManager(object):
         Gets the scope of the import descriptor.
 
         Returns:
-            (tuple) :
-                (int) : Virtual address of import descriptor.
-                (int) : Size of import data descriptor.
+            :obj:`tuple` :
+                - int : Virtual address of import descriptor.
+                - int : Size of import data descriptor.
         """
         return self.get_data_directory_address_range('IMAGE_DIRECTORY_ENTRY_IMPORT')
 
@@ -1255,9 +1261,9 @@ class PEManager(object):
         Gets the scope of the import address table.
 
         Returns:
-            (tuple) :
-                (int) : Virtual address of import address table.
-                (int) : Size of import data address table.
+            :obj:`tuple` :
+                - int : Virtual address of import address table.
+                - int : Size of import data address table.
         """
         return self.get_data_directory_address_range('IMAGE_DIRECTORY_ENTRY_IAT')
 
@@ -1267,7 +1273,7 @@ class PEManager(object):
         Whether the section is an executable.
 
         Args:
-            section(section): Section to check
+            section(Section): Section to check
         Returns:
             bool : true if executable, false otherwise
         """
@@ -1282,10 +1288,10 @@ class PEManager(object):
         make clone section from argument and return it.
 
         Args:
-            section(section) : section that need clone
+            section(:obj:`Section`) : section that need clone
 
         Returns:
-            (section) : cloned section from argument
+            :obj:`Section` : cloned section from argument
         """
         clone_section = copy.copy(section)
         return clone_section
