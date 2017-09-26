@@ -19,10 +19,11 @@ simple_instrument_code_rva = 0
 def simple_instrument_error_handler(pe_instrument, pe_manager, fn_rva):
     """
     add error handler, in this case it is a message box.
+
     Args:
-        pe_instrument(PEInstrument) : instrumentation for PE.
-        pe_manager(PEManager) : file manager for PE.
-        fn_rva: relative address of function at import address table.
+        pe_instrument(:obj:`PEInstrument`) : instrumentation for PE.
+        pe_manager(:obj:`PEManager`) : file manager for PE.
+        fn_rva(int): relative address of function at import address table.
     """
     global code_rva
     fn_va = pe_manager.get_abs_va_from_rva(fn_rva)

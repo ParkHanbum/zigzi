@@ -22,10 +22,10 @@ class PEInstrument(object):
 
     def __init__(self, pe_manager):
         """
-        creator of PEInstrument.
+        constructor of PEInstrument.
 
         Args:
-            pe_manager(PEManager) : The target file manager to instrument.
+            pe_manager(PEManager) : The manager of the file to instrument.
         """
         if not isinstance(pe_manager, PEManager):
             print("YOU MUST set up PE Manager")
@@ -83,11 +83,11 @@ class PEInstrument(object):
 
     def writefile(self, filename):
         """
-        write to file that has PE format.
+        write to file with PE format.
 
         Args:
             filename(str)
-                Filename represent absolute filepath that include with filename
+                the name of the file to write.
         """
         self.pe_manager.writefile(filename)
 
@@ -100,7 +100,10 @@ class PEInstrument(object):
         exist in the text section.
 
         Returns:
-            list: tuple that contain instruction address, instruction
+            :obj:`list`: list containing :
+                :obj:`tuple`
+                    - int : instruction address.
+                    - :obj:`instruction` : instruction.
         """
         relocation_dict = self.pe_manager.get_relocation()
         sorted_relocation = sorted(relocation_dict.items(),
@@ -178,8 +181,8 @@ class PEInstrument(object):
                                              inst.address, inst.mnemonic,
                                              inst.op_str))
                         for fn in self.pre_indirect_branch_functions:
-                            result = self.instrument(fn, inst,
-                                                     instrument_total)
+                            result = \
+                                self.instrument(fn, inst, instrument_total)
                             instrument_total += result
                     if self.is_after_indirect_branch_instrument_exist():
                         self.log.log('[0x{:x}]\t[0x{:x}]\t{:s}\t{:s}\n'
@@ -187,15 +190,16 @@ class PEInstrument(object):
                                              inst.address, inst.mnemonic,
                                              inst.op_str))
                         for fn in self.after_indirect_branch_functions:
-                            result = self.instrument(fn, inst, instrument_total,
-                                                     position=_INSTRUMENT_POS_AFTER_)
+                            result = \
+                                self.instrument(fn, inst, instrument_total,
+                                                position=_INSTRUMENT_POS_AFTER_)
                             instrument_total += result
                 elif self.disassembler.is_relative_branch(inst) \
                         and self.disassembler.is_call(inst):
                     if self.is_pre_relative_branch_instrument_exist():
                         for fn in self.pre_relative_branch_functions:
-                            result = self.instrument(fn, inst,
-                                                     instrument_total)
+                            result = \
+                                self.instrument(fn, inst, instrument_total)
                             instrument_total += result
                     if self.is_after_relative_branch_instrument_exist():
                         self.log.log('[0x{:x}]\t[0x{:x}]\t{:s}\t{:s}\n'
@@ -203,14 +207,14 @@ class PEInstrument(object):
                                              inst.address, inst.mnemonic,
                                              inst.op_str))
                         for fn in self.after_relative_branch_functions:
-                            result = self.instrument(fn, inst, instrument_total,
-                                                     position=_INSTRUMENT_POS_AFTER_)
+                            result = \
+                                self.instrument(fn, inst, instrument_total,
+                                                position=_INSTRUMENT_POS_AFTER_)
                             instrument_total += result
                 elif self.disassembler.is_return(inst):
                     if self.is_pre_return_instrument_exist():
                         for fn in self.pre_return_functions:
-                            result = self.instrument(fn, inst,
-                                                     instrument_total)
+                            result = self.instrument(fn, inst, instrument_total)
                             instrument_total += result
                     if self.is_after_return_instrument_exist():
                         self.log.log('[0x{:x}]\t[0x{:x}]\t{:s}\t{:s}\n'
@@ -218,11 +222,13 @@ class PEInstrument(object):
                                              inst.address, inst.mnemonic,
                                              inst.op_str))
                         for fn in self.after_return_functions:
-                            result = self.instrument(fn, inst, instrument_total,
-                                                     position=_INSTRUMENT_POS_AFTER_)
+                            result = \
+                                self.instrument(fn, inst, instrument_total,
+                                                position=_INSTRUMENT_POS_AFTER_)
                             instrument_total += result
-            except:
+            except Exception as e:
                 print("ERROR WHILE INSTRUMENT")
+                print(e)
                 exit()
         self.adjust_instruction_layout()
 
@@ -280,7 +286,7 @@ class PEInstrument(object):
         get_instrumented_size_with_vector.
 
         Args:
-            instruction(instrution):
+            instruction(instruction):
                 branch instruction that has relatively operand value
         Returns:
             int : size of instrumented until instruction's address.
@@ -325,7 +331,7 @@ class PEInstrument(object):
             rva(int): virtual address for calculate on.
             instrument_pos_dict(dict) : dict contains instruments position.
         Returns:
-            int
+            int :
                 instrumented size until argument virtual address with
                 increasing of instrumented size.
         """
@@ -347,7 +353,7 @@ class PEInstrument(object):
         Total size of instrument.
 
         Returns:
-            int
+            int : Total size of instrumentation.
         """
         sorted_instrument = sorted(self.instrument_pos_dict.items(),
                                    key=operator.itemgetter(0))
@@ -361,7 +367,7 @@ class PEInstrument(object):
         get codes that working on.
 
         Returns:
-            bytearray : text section's data.
+            :obj:`bytearray` : text section's data.
         """
         return self.code_manager.get_code()
 
@@ -426,7 +432,7 @@ class PEInstrument(object):
                 operand_end = instruction.address + instruction_size
             else:
                 instruction_length = \
-                    self.disassembler.get_instruction_length(instruction)
+                    self.disassembler.get_opcode_length(instruction)
                 self.log.log("[CACULATED][{:d}]\t".format(instruction_length))
                 operand_start = instruction.address + instruction_length
                 operand_end = instruction.address + instruction_size
@@ -438,8 +444,9 @@ class PEInstrument(object):
                         operand_start,
                         operand_end
                     )
-            except:
+            except Exception as e:
                 print ("[except]============================================")
+                print (e)
                 print ("[0x{}]\t{} {}\t\tINSIZE:{}\tOPSIZE:{}\t"
                        "OP START:{}\tOP END:{}\tVALUE:{:x}"
                        .format(instruction.address,
@@ -477,7 +484,8 @@ class PEInstrument(object):
                                      instruction.mnemonic,
                                      instruction.op_str, operand_value,
                                      adjusted_operand_value))
-            except:
+            except Exception as e:
+                print(e)
                 self._instrument_overflow_occurred()
                 self.overflowed_instrument_dict[instruction.address] = \
                     (instruction,
@@ -499,10 +507,9 @@ class PEInstrument(object):
             instruction(instruction) : instruction to be adjusting.
 
         Returns:
-            (int) : adjusted operand value.
+            int : adjusted operand value.
         """
         operand_value = 0
-        adjusted_operand_value = 0
         instrumented_size_till = self.get_instrumented_size(instruction)
         # fixed instruction opcode size for prefetch
         opcode_size = 3
@@ -516,8 +523,9 @@ class PEInstrument(object):
                     operand_start,
                     operand_end
                 )
-        except:
+        except Exception as e:
             print ("[except]============================================")
+            print (e)
             print ("[0x%08x]\t%s 0x%x\t\tINS:%d\tOPS:%d\tOP START:%x\t"
                    "OP END:%x".format(instruction.address,
                                       instruction.mnemonic,
@@ -559,7 +567,8 @@ class PEInstrument(object):
                                  instruction.mnemonic,
                                  instruction.op_str, operand_value,
                                  adjusted_operand_value))
-        except:
+        except Exception as e:
+            print (e)
             self._instrument_overflow_occurred()
             self.overflowed_instrument_dict[instruction.address] = \
                 (instruction,
@@ -578,8 +587,33 @@ class PEInstrument(object):
         extend the size of the operand if exceed the range of operand values
         while instrument.
 
+        Note:
+            The formula for determining the operand value of a branch
+            instruction in x86:
+            [Destination.Address - Instruction.Address - Instruction.size]
+
+            in this case, the operand value overflowed while we adjust direct
+            branches operands. that mean, 1 byte of operand size is too small
+            for adjusted operand value. cause we expand operand size to 4byte.
+
+            instruction size increase to 5byte or 6byte. according in formula of
+            determining operand value, The keystone adjusts the operand value
+            when it compiled.
+
+            the keystone is based on the address at which the instruction ends,
+
+            like this,
+            ks.asm('jmp 140') = [233, 135, 0, 0, 0]
+
+            but since the value we pass is based on the start address of the
+            instruction, it corrects the value of operand in the case of a
+            positive branch.
+
+            In the case of a negative branch, the base address is the starting
+            address of the instruction, so do not change it.
+
         Returns:
-            bool
+            bool : True if occurred overflow while instrumentation, False otherwise.
         """
         self.log = \
             LoggerFactory().get_new_logger("HandleOverflowInstrument.log")
@@ -606,31 +640,6 @@ class PEInstrument(object):
                                  instruction.op_str, operand_value,
                                  instrumented_size_till,
                                  adjusted_operand_value))
-            """
-            The formula for determining the operand value of a branch
-            instruction in x86:
-            [Destination.Address - Instruction.Address - Instruction.size]
-
-            in this case, the operand value overflowed while we adjust direct
-            branches operands. that mean, 1 byte of operand size is too small
-            for adjusted operand value. cause we expand operand size to 4byte.
-
-            instruction size increase to 5byte or 6byte. according in formula of
-            determining operand value, The keystone adjusts the operand value
-            when it compiled.
-
-            the keystone is based on the address at which the instruction ends,
-
-            like this,
-            ks.asm('jmp 140') = [233, 135, 0, 0, 0]
-
-            but since the value we pass is based on the start address of the
-            instruction, it corrects the value of operand in the case of a
-            postive branch.
-
-            In the case of a negative branch, the base address is the starting
-            address of the instruction, so do not change it.
-            """
 
             # adding 2 is to change the base of operand value to the
             # start address of the instruction.
@@ -673,7 +682,7 @@ class PEInstrument(object):
                 self.log.log("\t\t{} : {:d}\n".format(encoding,
                                                       increased_size))
             except KsError as ex:
-                print("ERROR: %s" % ex)
+                print("ERROR : {}".format(ex))
                 exit()
 
         self.save_instrument_history(self.instrument_pos_dict,
@@ -693,7 +702,7 @@ class PEInstrument(object):
             dst_adjust_dict(dict): later adjust map.
 
         Returns:
-            dict : adjusted instrumented map.
+            :obj:`dict` : adjusted instrumented map.
         """
         self.log = LoggerFactory().get_new_logger("AdjustingMerge.log")
         adjusted_dict = {}
@@ -780,19 +789,19 @@ class PEInstrument(object):
                                             handled_overflowed_pos_dict)
         self.instrument_pos_dict = adjusted_dict
 
-    def append_code(self, _code):
+    def append_code(self, code):
         """
         append code to last of code section.
 
         Args:
-            _code(str) : assembly code that append to last of code section.
+            code(str) : assembly code that append to last of code section.
 
         Returns:
-            rva(int) : relative address of code that appended
+            int : relative address of code that appended
         """
         _pad_size = 3
         pad = ";nop;" * _pad_size
-        code = pad + _code + pad
+        code = pad + code + pad
         encoding, count = self.ks.asm(code)
         code_offset = self.code_manager.instrument_at_last(encoding)
         code_rva = self.code_manager.get_base_rva() + code_offset + _pad_size
@@ -806,7 +815,7 @@ class PEInstrument(object):
             size(int): size of space that allocate.
 
         Returns:
-            DataSegment(DataSegment): DataSegment that represent for allocation.
+            :obj:`DataSegment`: DataSegment that represent for allocation.
         """
         data_chunk = DataSegment.Chunk(self.pe_manager, size)
         return data_chunk
@@ -820,4 +829,3 @@ class PEInstrument(object):
                                  + self.pe_manager.get_image_base()
                                  + 0x1000,
                                  inst.mnemonic, inst.op_str))
-

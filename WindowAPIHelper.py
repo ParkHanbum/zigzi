@@ -157,9 +157,9 @@ class WindowAPIHelper(object):
         get import address relative address and its size.
 
         Returns:
-            (tuple) :
-                rva(int) : relative address of import address table.
-                size(int) : size of import address table.
+            :obj:`tuple` : tuple containing :
+                - int : relative address of import address table.
+                - int : size of import address table.
         """
         rva = 0
         size = 0
@@ -177,7 +177,7 @@ class WindowAPIHelper(object):
             attr_data(int) : attribute value that to be filled.
 
         Returns:
-            (Structure) : import thunk structure.
+            :obj:`Structure` : import thunk structure.
         """
         new_thunk = self.pe_manager.gen_new_empty_import_thunk()
         setattr(new_thunk, "AddressOfData", attr_data)
@@ -191,7 +191,7 @@ class WindowAPIHelper(object):
         Creates a new thunk filled with zero that mean separator.
 
         Returns:
-            (Structure) : import thunk structure that has filled zero.
+            :obj:`Structure` : import thunk structure that has filled zero.
         """
         separator_thunk = self.gen_new_thunk(0)
         return separator_thunk
@@ -205,9 +205,9 @@ class WindowAPIHelper(object):
             ordinal(int) : Ordinal to be assigned to a new import thunk.
 
         Returns:
-            (tuple) :
-                import_thunk(Structure) : created import thunk.
-                rva(int) : rva of ordinal located in import address table.
+            :obj:`tuple` : tuple containing:
+                - :obj:`Structure` : created import thunk.
+                - int : relative address of ordinal located in import address table.
         """
         separator_thunk = self.gen_separator_thunk()
         empty_thunk = self.gen_new_thunk(ordinal)
@@ -239,7 +239,7 @@ class WindowAPIHelper(object):
         add MessageBoxA window API to PE File.
 
         Returns:
-            rva(int) : relative address of message box Api located in iat.
+            int : relative address of message box Api located in iat.
         """
         dll_import_descriptor = 0
         if not self.is_already_import_function('MessageBoxA'):
@@ -344,7 +344,7 @@ class WindowAPIHelper(object):
             import address table.
 
         Returns:
-            (Structure) : a new import descriptor.
+            :obj:`Structure` : a new import descriptor.
         """
         empty_import_descriptor = \
             self.pe_manager.gen_new_empty_import_descriptor()
@@ -385,7 +385,7 @@ class WindowAPIHelper(object):
             fn_name(str) : function name.
 
         Returns:
-            ordinal(int) : ordinal of matched.
+            int : ordinal of matched.
         """
         ordinal = 0
         if dll_name in self._COMMON_FUNCTIONS_:
@@ -452,8 +452,7 @@ class WindowAPIHelper(object):
             dll_name(str) : dll name.
 
         Returns:
-            (bool) : True, if dll name exist in import descriptor.
-                    False, if dll name doesn't exist in import descriptor.
+            bool : True if dll name exist in import descriptor, False otherwise.
         """
         for descriptor in self.import_entries:
             if descriptor.dll == dll_name:
@@ -468,8 +467,7 @@ class WindowAPIHelper(object):
             fn(str) : function name.
 
         Returns:
-            (bool) : True, if function name exist in import thunk.
-                    False, if function name doesn't exist in import thunk.
+            bool : True if function name exist in import thunk, False otherwise.
         """
         if isinstance(fn, basestring):
             for descriptor in self.import_entries:
@@ -487,7 +485,7 @@ class WindowAPIHelper(object):
         get the import thunk offset that located last offset.
 
         Returns:
-            (int) : the offset of the import thunk at the last offset.
+            int : the offset of the import thunk at the last offset.
         """
         offset = 0
         for entry in self.import_structures:
@@ -503,7 +501,7 @@ class WindowAPIHelper(object):
         get the import lookup thunk that located last offset.
 
         Returns:
-            (Structure) : import lookup thunk
+            :obj:`Structure` : import lookup thunk
         """
         (import_address_table_rva, size) = \
             self.pe_manager.get_import_address_table_address_range()
@@ -527,7 +525,7 @@ class WindowAPIHelper(object):
         get the import address thunk that located last offset.
 
         Returns:
-            (Structure) : import thunk
+            :obj:`Structure` : import thunk
         """
         (import_address_table_rva, size) = \
             self.pe_manager.get_import_address_table_address_range()
@@ -551,7 +549,7 @@ class WindowAPIHelper(object):
         get offset of the import descriptor that located last offset.
 
         Returns:
-            (int) : offset of the last import descriptor.
+            int : offset of the last import descriptor.
         """
         offset = 0
         for entry in self.import_structures:
@@ -566,7 +564,7 @@ class WindowAPIHelper(object):
         get the import descriptor that located last offset.
 
         Returns:
-            (Structure) : the last import descriptor.
+            :obj:`Structure` : the last import descriptor.
         """
         descriptor = None
         offset = 0
@@ -587,9 +585,9 @@ class WindowAPIHelper(object):
             dll_name(str) : name of dll.
 
         Returns:
-            (tuple):
-                next_ilt_rva (int) : relative address of generated ilt table.
-                dll_name_rva (int) : relative address of name.
+            :obj:`tuple`: tuple containing:
+                - int : relative address of generated ilt table.
+                - int : relative address of name.
         """
         # TODO : currently, this method modify import lookup table directly,
         # it must be abstract.
