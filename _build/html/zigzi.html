@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>zigzi package &#8212; zigzi  documentation</title>
-    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
@@ -23,16 +23,24 @@
     <script type="text/javascript" src="_static/doctools.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="Welcome to zigzi’s documentation!" href="index.html" />
-   
-  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
-
+    <link rel="prev" title="Welcome to zigzi’s documentation!" href="index.html" /> 
   </head>
   <body>
-  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to zigzi’s documentation!"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">zigzi  documentation</a> &#187;</li> 
+      </ul>
+    </div>  
 
     <div class="document">
       <div class="documentwrapper">
@@ -294,7 +302,26 @@ disassemble engine.</p>
 <dl class="method">
 <dt id="zigzi.Disassembler.Disassembler.disassemble">
 <code class="descname">disassemble</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Disassembler.html#Disassembler.disassemble"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Disassembler.Disassembler.disassemble" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Disassemble.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
+<dt>Dict containing:</dt>
+<dd><ul class="first last simple">
+<li>int : address of instruction.</li>
+<li><code class="xref py py-obj docutils literal"><span class="pre">instruction</span></code> : instruction.</li>
+</ul>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">dict</span></code></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="method">
 <dt id="zigzi.Disassembler.Disassembler.disassemble_dict_handle">
@@ -314,12 +341,43 @@ disassemble engine.</p>
 <dl class="method">
 <dt id="zigzi.Disassembler.Disassembler.get_disassemble_list">
 <code class="descname">get_disassemble_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Disassembler.html#Disassembler.get_disassemble_list"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Disassembler.Disassembler.get_disassemble_list" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>get instructions sorted by address.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
+<dt>list containing:</dt>
+<dd><ul class="first last simple">
+<li><code class="xref py py-obj docutils literal"><span class="pre">instruction</span></code> : instruction.</li>
+</ul>
+</dd>
+</dl>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">list</span></code></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="staticmethod">
-<dt id="zigzi.Disassembler.Disassembler.get_instruction_length">
-<em class="property">static </em><code class="descname">get_instruction_length</code><span class="sig-paren">(</span><em>instruction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Disassembler.html#Disassembler.get_instruction_length"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Disassembler.Disassembler.get_instruction_length" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dt id="zigzi.Disassembler.Disassembler.get_opcode_length">
+<em class="property">static </em><code class="descname">get_opcode_length</code><span class="sig-paren">(</span><em>instruction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Disassembler.html#Disassembler.get_opcode_length"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Disassembler.Disassembler.get_opcode_length" title="Permalink to this definition">¶</a></dt>
+<dd><p>calculate opcode length from instruction.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>instruction</strong> (<em>instruction</em>) – target instruction.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">length of opcode.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">int</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="staticmethod">
 <dt id="zigzi.Disassembler.Disassembler.is_branch">
@@ -342,7 +400,20 @@ disassemble engine.</p>
 <dl class="staticmethod">
 <dt id="zigzi.Disassembler.Disassembler.is_call">
 <em class="property">static </em><code class="descname">is_call</code><span class="sig-paren">(</span><em>instruction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/Disassembler.html#Disassembler.is_call"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.Disassembler.Disassembler.is_call" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Check whether it is a call instruction.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>instruction</strong> (<em>instruction</em>) – instruction for check.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True if instruction is call, False otherwise.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
 
 <dl class="staticmethod">
 <dt id="zigzi.Disassembler.Disassembler.is_indirect_branch">
@@ -568,8 +639,7 @@ The Hex Byte values may or may not be space separated.</p>
 <dl class="method">
 <dt id="zigzi.PEAnalyzeTool.PEAnalyzer.handle_FC_CALL">
 <code class="descname">handle_FC_CALL</code><span class="sig-paren">(</span><em>basic_block_size</em>, <em>inst</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEAnalyzeTool.html#PEAnalyzer.handle_FC_CALL"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEAnalyzeTool.PEAnalyzer.handle_FC_CALL" title="Permalink to this definition">¶</a></dt>
-<dd><p>handle kinds of CALL instruction.
-ex) CALL, CALL FAR.
+<dd><p>handle kinds of CALL instruction.   ex) CALL, CALL FAR.
 :param BasicBlock: &#64;type BasicBlock
 :return:</p>
 </dd></dl>
@@ -682,7 +752,7 @@ the instrumenting.</p>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">adjusted operand value.</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">(int)</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">int</td>
 </tr>
 </tbody>
 </table>
@@ -690,17 +760,17 @@ the instrumenting.</p>
 
 <dl class="method">
 <dt id="zigzi.PEInstrument.PEInstrument.append_code">
-<code class="descname">append_code</code><span class="sig-paren">(</span><em>_code</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.append_code"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.append_code" title="Permalink to this definition">¶</a></dt>
+<code class="descname">append_code</code><span class="sig-paren">(</span><em>code</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.append_code"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.append_code" title="Permalink to this definition">¶</a></dt>
 <dd><p>append code to last of code section.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>_code</strong> (<em>str</em>) – assembly code that append to last of code section.</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>code</strong> (<em>str</em>) – assembly code that append to last of code section.</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">relative address of code that appended</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">rva(int)</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">int</td>
 </tr>
 </tbody>
 </table>
@@ -725,7 +795,7 @@ redirect.</p>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">DataSegment that represent for allocation.</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><a class="reference internal" href="#module-zigzi.DataSegment" title="zigzi.DataSegment">DataSegment</a>(<a class="reference internal" href="#module-zigzi.DataSegment" title="zigzi.DataSegment">DataSegment</a>)</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">DataSegment</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -746,7 +816,7 @@ redirect.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">text section’s data.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">bytearray</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">bytearray</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -761,9 +831,21 @@ exist in the text section.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">tuple that contain instruction address, instruction</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
+<dt>list containing :</dt>
+<dd><dl class="first last docutils">
+<dt><code class="xref py py-obj docutils literal"><span class="pre">tuple</span></code></dt>
+<dd><ul class="first last simple">
+<li>int : instruction address.</li>
+<li><code class="xref py py-obj docutils literal"><span class="pre">instruction</span></code> : instruction.</li>
+</ul>
+</dd>
+</dl>
+</dd>
+</dl>
+</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">list</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -785,7 +867,7 @@ get_instrumented_size_with_vector.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>instruction</strong> (<em>instrution</em>) – branch instruction that has relatively operand value</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>instruction</strong> (<em>instruction</em>) – branch instruction that has relatively operand value</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">size of instrumented until instruction’s address.</td>
 </tr>
@@ -803,7 +885,9 @@ get_instrumented_size_with_vector.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">int</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Total size of instrumentation.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">int</td>
 </tr>
 </tbody>
 </table>
@@ -824,13 +908,11 @@ if not applied instrumented thing, to disssembled one, use this.</p>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last"><dl class="docutils">
-<dt>int</dt>
-<dd><p class="first last">instrumented size until argument virtual address with
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">instrumented size until argument virtual address with
 increasing of instrumented size.</p>
-</dd>
-</dl>
-</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">int</p>
 </td>
 </tr>
 </tbody>
@@ -847,11 +929,33 @@ increasing of instrumented size.</p>
 <code class="descname">handle_overflowed_instrument</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.handle_overflowed_instrument"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.handle_overflowed_instrument" title="Permalink to this definition">¶</a></dt>
 <dd><p>extend the size of the operand if exceed the range of operand values
 while instrument.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p>The formula for determining the operand value of a branch
+instruction in x86:
+[Destination.Address - Instruction.Address - Instruction.size]</p>
+<p>in this case, the operand value overflowed while we adjust direct
+branches operands. that mean, 1 byte of operand size is too small
+for adjusted operand value. cause we expand operand size to 4byte.</p>
+<p>instruction size increase to 5byte or 6byte. according in formula of
+determining operand value, The keystone adjusts the operand value
+when it compiled.</p>
+<p>the keystone is based on the address at which the instruction ends,</p>
+<p>like this,
+ks.asm(‘jmp 140’) = [233, 135, 0, 0, 0]</p>
+<p>but since the value we pass is based on the start address of the
+instruction, it corrects the value of operand in the case of a
+positive branch.</p>
+<p class="last">In the case of a negative branch, the base address is the starting
+address of the instruction, so do not change it.</p>
+</div>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">bool</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True if occurred overflow while instrumentation, False otherwise.</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
 </tr>
 </tbody>
 </table>
@@ -934,7 +1038,7 @@ pushed backward by the size of the inserted instruction.</p>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">adjusted instrumented map.</p>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">dict</p>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><code class="xref py py-obj docutils literal"><span class="pre">dict</span></code></p>
 </td>
 </tr>
 </tbody>
@@ -979,12 +1083,12 @@ pushed backward by the size of the inserted instruction.</p>
 <dl class="method">
 <dt id="zigzi.PEInstrument.PEInstrument.writefile">
 <code class="descname">writefile</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEInstrument.html#PEInstrument.writefile"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEInstrument.PEInstrument.writefile" title="Permalink to this definition">¶</a></dt>
-<dd><p>write to file that has PE format.</p>
+<dd><p>write to file with PE format.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<em>str</em>) – Filename represent absolute filepath that include with filename</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> (<em>str</em>) – the name of the file to write.</td>
 </tr>
 </tbody>
 </table>
@@ -1009,10 +1113,10 @@ pushed backward by the size of the inserted instruction.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>directory</strong> – directory that has name “IMAGE_DIRECTORY_ENTRY_TLS”</li>
-<li><strong>rva</strong> – current directory address</li>
-<li><strong>size</strong> – current directory size</li>
-<li><strong>increase_size</strong> – increased size of section that directory included</li>
+<li><strong>directory</strong> (<code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code>) – IMAGE_DIRECTORY_ENTRY_TLS</li>
+<li><strong>rva</strong> (<em>int</em>) – current directory’s relative virtual address.</li>
+<li><strong>size</strong> (<em>int</em>) – current directory’s size.</li>
+<li><strong>increase_size</strong> (<em>int</em>) – increased size of section that directory included.</li>
 </ul>
 </td>
 </tr>
@@ -1029,10 +1133,10 @@ pushed backward by the size of the inserted instruction.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>directory</strong> – directory that has name “IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT”</li>
-<li><strong>rva</strong> – current directory address</li>
-<li><strong>size</strong> – current directory size</li>
-<li><strong>increase_size</strong> – increased size of section that directory included</li>
+<li><strong>directory</strong> (<code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code>) – IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT</li>
+<li><strong>rva</strong> (<em>int</em>) – current directory’s relative virtual address.</li>
+<li><strong>size</strong> (<em>int</em>) – current directory’s size.</li>
+<li><strong>increase_size</strong> (<em>int</em>) – increased size of section that directory included.</li>
 </ul>
 </td>
 </tr>
@@ -1068,10 +1172,10 @@ pushed backward by the size of the inserted instruction.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>directory</strong> – directory that has name “IMAGE_DIRECTORY_ENTRY_DEBUG”</li>
-<li><strong>rva</strong> – current directory address</li>
-<li><strong>size</strong> – current directory size</li>
-<li><strong>increase_size</strong> – increased size of section that directory included</li>
+<li><strong>directory</strong> (<code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code>) – IMAGE_DIRECTORY_ENTRY_DEBUG</li>
+<li><strong>rva</strong> (<em>int</em>) – current directory’s relative virtual address.</li>
+<li><strong>size</strong> (<em>int</em>) – current directory’s size.</li>
+<li><strong>increase_size</strong> (<em>int</em>) – increased size of section that directory included.</li>
 </ul>
 </td>
 </tr>
@@ -1088,10 +1192,10 @@ pushed backward by the size of the inserted instruction.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>directory</strong> – directory that has name “IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT”</li>
-<li><strong>rva</strong> – current directory address</li>
-<li><strong>size</strong> – current directory size</li>
-<li><strong>increase_size</strong> – increased size of section that directory included</li>
+<li><strong>directory</strong> (<code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code>) – IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT</li>
+<li><strong>rva</strong> (<em>int</em>) – current directory’s relative virtual address.</li>
+<li><strong>size</strong> (<em>int</em>) – current directory’s size.</li>
+<li><strong>increase_size</strong> (<em>int</em>) – increased size of section that directory included.</li>
 </ul>
 </td>
 </tr>
@@ -1101,18 +1205,18 @@ pushed backward by the size of the inserted instruction.</p>
 
 <dl class="method">
 <dt id="zigzi.PEManager.PEManager.adjust_directories">
-<code class="descname">adjust_directories</code><span class="sig-paren">(</span><em>data_directories</em>, <em>origin_section_start</em>, <em>section_adjusted_va</em>, <em>origin_section_end</em>, <em>adjusted_section_size</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.adjust_directories"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.adjust_directories" title="Permalink to this definition">¶</a></dt>
+<code class="descname">adjust_directories</code><span class="sig-paren">(</span><em>data_directories</em>, <em>origin_section_start</em>, <em>adjust_section_start</em>, <em>origin_section_end</em>, <em>adjust_section_end</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/PEManager.html#PEManager.adjust_directories"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.PEManager.PEManager.adjust_directories" title="Permalink to this definition">¶</a></dt>
 <dd><p>adjust directories Virtual address.</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>data_directories</strong> – </li>
-<li><strong>origin_section_start</strong> – </li>
-<li><strong>section_adjusted_va</strong> – </li>
-<li><strong>origin_section_end</strong> – </li>
-<li><strong>adjusted_section_size</strong> – </li>
+<li><strong>data_directories</strong> (<code class="xref py py-obj docutils literal"><span class="pre">list</span></code>) – data directories in PE file.</li>
+<li><strong>origin_section_start</strong> (<em>Int</em>) – start virtual address of section.</li>
+<li><strong>adjust_section_start</strong> (<em>int</em>) – start virtual address of adjust section.</li>
+<li><strong>origin_section_end</strong> (<em>int</em>) – last virtual address of section.</li>
+<li><strong>adjust_section_end</strong> (<em>int</em>) – last virtual address of adjust section.</li>
 </ul>
 </td>
 </tr>
@@ -1129,10 +1233,10 @@ pushed backward by the size of the inserted instruction.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>directory</strong> – directory that has name “IMAGE_DIRECTORY_ENTRY_EXPORT”</li>
-<li><strong>rva</strong> – current directory address</li>
-<li><strong>size</strong> – current directory size</li>
-<li><strong>increase_size</strong> – increased size of section that directory included</li>
+<li><strong>directory</strong> (<code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code>) – IMAGE_DIRECTORY_ENTRY_EXPORT</li>
+<li><strong>rva</strong> (<em>int</em>) – current directory’s relative virtual address.</li>
+<li><strong>size</strong> (<em>int</em>) – current directory’s size.</li>
+<li><strong>increase_size</strong> (<em>int</em>) – increased size of section that directory included.</li>
 </ul>
 </td>
 </tr>
@@ -1160,10 +1264,10 @@ pushed backward by the size of the inserted instruction.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>directory</strong> – directory that has thunk_data “IMAGE_DIRECTORY_ENTRY_IMPORT”</li>
-<li><strong>rva</strong> – current directory address</li>
-<li><strong>size</strong> – current directory size</li>
-<li><strong>increase_size</strong> – increased size of section that directory included</li>
+<li><strong>directory</strong> (<code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code>) – IMAGE_DIRECTORY_ENTRY_IMPORT</li>
+<li><strong>rva</strong> (<em>int</em>) – current directory’s relative virtual address.</li>
+<li><strong>size</strong> (<em>int</em>) – current directory’s size.</li>
+<li><strong>increase_size</strong> (<em>int</em>) – increased size of section that directory included.</li>
 </ul>
 </td>
 </tr>
@@ -1180,10 +1284,10 @@ pushed backward by the size of the inserted instruction.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>directory</strong> – directory that has name “IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG”</li>
-<li><strong>rva</strong> – current directory address</li>
-<li><strong>size</strong> – current directory size</li>
-<li><strong>increase_size</strong> – increased size of section that directory included</li>
+<li><strong>directory</strong> (<code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code>) – IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG</li>
+<li><strong>rva</strong> (<em>int</em>) – current directory’s relative virtual address.</li>
+<li><strong>size</strong> (<em>int</em>) – current directory’s size.</li>
+<li><strong>increase_size</strong> (<em>int</em>) – increased size of section that directory included.</li>
 </ul>
 </td>
 </tr>
@@ -1200,10 +1304,10 @@ pushed backward by the size of the inserted instruction.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>directory</strong> – directory that has name “IMAGE_DIRECTORY_ENTRY_BASERELOC”</li>
-<li><strong>rva</strong> – current directory reloc_rva</li>
-<li><strong>size</strong> – current directory size</li>
-<li><strong>increase_size</strong> – increased size of section that directory included</li>
+<li><strong>directory</strong> (<code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code>) – IMAGE_DIRECTORY_ENTRY_BASERELOC</li>
+<li><strong>rva</strong> (<em>int</em>) – current directory’s relative virtual address.</li>
+<li><strong>size</strong> (<em>int</em>) – current directory’s size.</li>
+<li><strong>increase_size</strong> (<em>int</em>) – increased size of section that directory included.</li>
 </ul>
 </td>
 </tr>
@@ -1234,10 +1338,10 @@ then must fix offset of structures element.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>directory</strong> – directory that has name “IMAGE_DIRECTORY_ENTRY_RESOURCE”</li>
-<li><strong>rva</strong> – current directory address</li>
-<li><strong>size</strong> – current directory size</li>
-<li><strong>increase_size</strong> – increased size of section that directory included</li>
+<li><strong>directory</strong> (<code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code>) – IMAGE_DIRECTORY_ENTRY_RESOURCE</li>
+<li><strong>rva</strong> (<em>int</em>) – current directory’s relative virtual address.</li>
+<li><strong>size</strong> (<em>int</em>) – current directory’s size.</li>
+<li><strong>increase_size</strong> (<em>int</em>) – increased size of section that directory included.</li>
 </ul>
 </td>
 </tr>
@@ -1257,12 +1361,12 @@ then must fix offset of structures element.</p>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
 <dt>tuple containing:</dt>
-<dd>aligned_orig_data_len (int) : file data length that aligned
-aligned_data_len (int) : argument data length that aligned</dd>
+<dd>aligned_orig_data_len(int) : file data length that aligned.<p class="last">aligned_data_len(int) : argument data length that aligned.</p>
+</dd>
 </dl>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">(tuple)</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">tuple</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1294,7 +1398,7 @@ aligned_data_len (int) : argument data length that aligned</dd>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>section</strong> (<em>section</em>) – section that append to file</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>section</strong> (<code class="xref py py-obj docutils literal"><span class="pre">Section</span></code>) – section that append to file</td>
 </tr>
 </tbody>
 </table>
@@ -1314,7 +1418,10 @@ aligned_data_len (int) : argument data length that aligned</dd>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">new section.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">new section that created.</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><code class="xref py py-obj docutils literal"><span class="pre">Section</span></code></p>
 </td>
 </tr>
 </tbody>
@@ -1343,9 +1450,9 @@ aligned_data_len (int) : argument data length that aligned</dd>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">IMPORT_DESCRIPTOR format</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">IMPORT_DESCRIPTOR</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(Structure)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1359,9 +1466,9 @@ aligned_data_len (int) : argument data length that aligned</dd>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">IMPORT_THUNK format</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">IMPORT_THUNK</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(Structure)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1378,7 +1485,7 @@ aligned_data_len (int) : argument data length that aligned</dd>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">index of generated block.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(int)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">int</td>
 </tr>
 </tbody>
 </table>
@@ -1394,9 +1501,9 @@ aligned_data_len (int) : argument data length that aligned</dd>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>rva</strong> (<em>int</em>) – relative address.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">relocation entry.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">IMAGE_BASE_RELOCATION_ENTRY</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">(Structure)</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1414,7 +1521,7 @@ aligned_data_len (int) : argument data length that aligned</dd>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">absolute address to match offset.</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">(int)</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">int</td>
 </tr>
 </tbody>
 </table>
@@ -1430,9 +1537,9 @@ aligned_data_len (int) : argument data length that aligned</dd>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>rva</strong> (<em>int</em>) – relative address to be calculate.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">absolute address of rva.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">absolute address from rva.</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">ava(int)</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">int</td>
 </tr>
 </tbody>
 </table>
@@ -1487,11 +1594,11 @@ aligned_data_len (int) : argument data length that aligned</dd>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>section</strong> (<em>section</em>) – section that need clone</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>section</strong> (<code class="xref py py-obj docutils literal"><span class="pre">Section</span></code>) – section that need clone</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">cloned section from argument</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">(section)</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">Section</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1507,10 +1614,17 @@ aligned_data_len (int) : argument data length that aligned</dd>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>entry_name</strong> (<em>str</em>) – name of data directory to find.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">(int) : Virtual address of data directory.
-(int) : Size of data directory.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
+<dt>tuple containing :</dt>
+<dd><ul class="first last simple">
+<li>int : Virtual address of data directory.</li>
+<li>int : Size of data directory.</li>
+</ul>
+</dd>
+</dl>
+</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">(tuple)</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">tuple</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1526,7 +1640,7 @@ aligned_data_len (int) : argument data length that aligned</dd>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">data section of PE.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(section)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">Section</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1558,7 +1672,7 @@ aligned_data_len (int) : argument data length that aligned</dd>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">bytearray type data of file</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(bytearray)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">bytearray</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1574,7 +1688,7 @@ aligned_data_len (int) : argument data length that aligned</dd>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">virtual address of image base.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(int)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">int</td>
 </tr>
 </tbody>
 </table>
@@ -1604,10 +1718,13 @@ aligned_data_len (int) : argument data length that aligned</dd>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">(int) : Virtual address of import address table.
-(int) : Size of import data address table.</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><ul class="simple">
+<li>int : Virtual address of import address table.</li>
+<li>int : Size of import data address table.</li>
+</ul>
+</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(tuple)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">tuple</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1621,10 +1738,13 @@ aligned_data_len (int) : argument data length that aligned</dd>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">(int) : Virtual address of import descriptor.
-(int) : Size of import data descriptor.</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><ul class="simple">
+<li>int : Virtual address of import descriptor.</li>
+<li>int : Size of import data descriptor.</li>
+</ul>
+</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(tuple)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">tuple</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1638,9 +1758,13 @@ aligned_data_len (int) : argument data length that aligned</dd>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">containing structures of import.</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
+<dt>containing structures of import :</dt>
+<dd><code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code>: IMAGE_IMPORT_DESCRIPTOR or IMAGE_THUNK_DATA</dd>
+</dl>
+</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(list)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">list</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1656,12 +1780,15 @@ aligned_data_len (int) : argument data length that aligned</dd>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
 <dt>tuple containing:</dt>
-<dd>start_index (int) : start index of import at structures.
-end_index (int) : last index of import at structures.</dd>
+<dd><ul class="first last simple">
+<li>int : start index of import at structures.</li>
+<li>int : last index of import at structures.</li>
+</ul>
+</dd>
 </dl>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(tuple)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">tuple</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1677,7 +1804,7 @@ end_index (int) : last index of import at structures.</dd>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">instrument of current file util</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(<a class="reference internal" href="#zigzi.CodeManager.CodeManager.instrument" title="zigzi.CodeManager.CodeManager.instrument">instrument</a>)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">PEInstrument</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1691,9 +1818,9 @@ end_index (int) : last index of import at structures.</dd>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">IMPORT_THUNK format</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">IMPORT_THUNK</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(Structure)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1708,22 +1835,24 @@ end_index (int) : last index of import at structures.</dd>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
-<dt>Dict with a List containing the following items.</dt>
+<dt>Dict containing:</dt>
+<dd>int : address of relocation block<dl class="last docutils">
+<dt><code class="xref py py-obj docutils literal"><span class="pre">list</span></code> <span class="classifier-delimiter">:</span> <span class="classifier">relocation block info. list containing:</span></dt>
 <dd><ul class="first last simple">
-<li>RVA(int) : address of relocation element.</li>
-<li>Address(int) : address of relocation element.</li>
-<li>Type(int) : type that represented by int.</li>
+<li>int : relative address of relocation element.</li>
+<li>int : address of relocation element.</li>
+<li>int : type that represented by int.</li>
 </ul>
+</dd>
+</dl>
 </dd>
 </dl>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">dict</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">dict</span></code></td>
 </tr>
 </tbody>
 </table>
-<p class="rubric">Examples</p>
-<p>{ Relocation block address : [RVA, Address, Type]}</p>
 </dd></dl>
 
 <dl class="method">
@@ -1734,9 +1863,27 @@ end_index (int) : last index of import at structures.</dd>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">2-Dict with relocation entries and blocks.</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
+<dt>tuple containing:</dt>
+<dd><dl class="first last docutils">
+<dt><code class="xref py py-obj docutils literal"><span class="pre">dict</span></code> <span class="classifier-delimiter">:</span> <span class="classifier">relocation blocks</span></dt>
+<dd><ul class="first last simple">
+<li>block address(int) : address of block</li>
+<li>block entry(<code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code>) : IMAGE_BASE_RELOCATION</li>
+</ul>
+</dd>
+<dt><code class="xref py py-obj docutils literal"><span class="pre">dict</span></code> <span class="classifier-delimiter">:</span> <span class="classifier">relocation entry</span></dt>
+<dd><ul class="first last simple">
+<li>block address(int) : The block address to which the entry belongs</li>
+<li>relocation entry(<code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code>) : IMAGE_BASE_RELOCATION_ENTRY</li>
+</ul>
+</dd>
+</dl>
+</dd>
+</dl>
+</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">tuple</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">tuple</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1751,11 +1898,19 @@ end_index (int) : last index of import at structures.</dd>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
-<dt>dict</dt>
-<dd>containing relocation blocks.
-list : relocation entry</dd>
+<dt>Dict containing:</dt>
+<dd>int : relative address of relocation block.<dl class="last docutils">
+<dt><code class="xref py py-obj docutils literal"><span class="pre">list</span></code> <span class="classifier-delimiter">:</span> <span class="classifier">list of relocation entry. <code class="xref py py-obj docutils literal"><span class="pre">list</span></code> containing:</span></dt>
+<dd><ul class="first last simple">
+<li><code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code> : IMAGE_BASE_RELOCATION_ENTRY</li>
+</ul>
+</dd>
+</dl>
+</dd>
 </dl>
 </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">dict</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1789,7 +1944,9 @@ list : relocation entry</dd>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>rva</strong> (<em>int</em>) – rva for find section.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">(Section)</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">the Section to which the given relative address as argument belongs.</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">Section</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1803,11 +1960,11 @@ list : relocation entry</dd>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>section</strong> (<em>section</em>) – section header that</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>section</strong> (<em>Section</em>) – section header that</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">data that section contain.</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">data(bytearray)</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">bytearray</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1825,7 +1982,7 @@ list : relocation entry</dd>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">structure that has located in rva.</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">(Structure)</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1841,7 +1998,7 @@ list : relocation entry</dd>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">Text section.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(section)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">section</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1856,11 +2013,16 @@ list : relocation entry</dd>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
-<dt>tuple.</dt>
-<dd>a tuple containing section’s start and end pair.
-( start, end )</dd>
+<dt>tuple containing :</dt>
+<dd><ul class="first last simple">
+<li>int : the start address of section.</li>
+<li>int : the end address of section.</li>
+</ul>
+</dd>
 </dl>
 </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">tuple</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -1874,7 +2036,7 @@ list : relocation entry</dd>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>section</strong> (<em>section</em>) – Section to check</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>section</strong> (<em>Section</em>) – Section to check</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">true if executable, false otherwise</td>
 </tr>
@@ -1924,9 +2086,9 @@ if appropriate block is not exist, then append it after make new block.</p>
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
-<li><strong>entry</strong> – </li>
-<li><strong>block</strong> – </li>
-<li><strong>increase_size</strong> – </li>
+<li><strong>entry</strong> (<em>Structure</em>) – IMAGE_BASE_RELOCATION_ENTRY</li>
+<li><strong>block</strong> (<em>Structure</em>) – IMAGE_BASE_RELOCATION</li>
+<li><strong>increase_size</strong> (<em>int</em>) – size to move the entry</li>
 </ul>
 </td>
 </tr>
@@ -1944,7 +2106,7 @@ if appropriate block is not exist, then append it after make new block.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
 <li><strong>rva</strong> (<em>int</em>) – relative address.</li>
-<li><strong>dword</strong> – </li>
+<li><strong>dword</strong> (<em>bytes</em>) – 4-bytes type value.</li>
 </ul>
 </td>
 </tr>
@@ -1974,7 +2136,7 @@ if appropriate block is not exist, then append it after make new block.</p>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>(</strong><strong>instrument</strong><strong>)</strong> – instrument of this file</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>instrumentor</strong> (<code class="xref py py-obj docutils literal"><span class="pre">PEInstrument</span></code>) – instrument of this file</td>
 </tr>
 </tbody>
 </table>
@@ -2018,12 +2180,20 @@ called Return Address Verifier(RAV), the part of CFI(Control Flow Integrity).</p
 <dl class="function">
 <dt id="zigzi.SampleReturnVerifier.simple_instrument_error_handler">
 <code class="descclassname">zigzi.SampleReturnVerifier.</code><code class="descname">simple_instrument_error_handler</code><span class="sig-paren">(</span><em>pe_instrument</em>, <em>pe_manager</em>, <em>fn_rva</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi/SampleReturnVerifier.html#simple_instrument_error_handler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.SampleReturnVerifier.simple_instrument_error_handler" title="Permalink to this definition">¶</a></dt>
-<dd><p>add error handler, in this case it is a message box.
-:param pe_instrument: instrumentation for PE.
-:type pe_instrument: PEInstrument
-:param pe_manager: file manager for PE.
-:type pe_manager: PEManager
-:param fn_rva: relative address of function at import address table.</p>
+<dd><p>add error handler, in this case it is a message box.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>pe_instrument</strong> (<code class="xref py py-obj docutils literal"><span class="pre">PEInstrument</span></code>) – instrumentation for PE.</li>
+<li><strong>pe_manager</strong> (<code class="xref py py-obj docutils literal"><span class="pre">PEManager</span></code>) – file manager for PE.</li>
+<li><strong>fn_rva</strong> (<em>int</em>) – relative address of function at import address table.</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
 </dd></dl>
 
 <dl class="function">
@@ -2093,7 +2263,7 @@ helper class for stack.</p>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">a new import descriptor.</p>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">(Structure)</p>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code></p>
 </td>
 </tr>
 </tbody>
@@ -2131,7 +2301,7 @@ and append it to structures.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">relative address of message box Api located in iat.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">rva(int)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">int</td>
 </tr>
 </tbody>
 </table>
@@ -2218,11 +2388,18 @@ by the number of import descriptors and import thunks added.</p>
 </ul>
 </td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">next_ilt_rva (int) : relative address of generated ilt table.
-dll_name_rva (int) : relative address of name.</p>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first"><dl class="docutils">
+<dt>tuple containing:</dt>
+<dd><ul class="first last simple">
+<li>int : relative address of generated ilt table.</li>
+<li>int : relative address of name.</li>
+</ul>
+</dd>
+</dl>
+</p>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">(tuple)</p>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last"><code class="xref py py-obj docutils literal"><span class="pre">tuple</span></code></p>
 </td>
 </tr>
 </tbody>
@@ -2240,10 +2417,17 @@ and append it to structure.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>ordinal</strong> (<em>int</em>) – Ordinal to be assigned to a new import thunk.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">import_thunk(Structure) : created import thunk.
-rva(int) : rva of ordinal located in import address table.</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
+<dt>tuple containing:</dt>
+<dd><ul class="first last simple">
+<li><code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code> : created import thunk.</li>
+<li>int : relative address of ordinal located in import address table.</li>
+</ul>
+</dd>
+</dl>
+</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">(tuple)</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">tuple</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -2261,7 +2445,7 @@ rva(int) : rva of ordinal located in import address table.</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">import thunk structure.</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">(Structure)</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -2277,7 +2461,7 @@ rva(int) : rva of ordinal located in import address table.</td>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">import thunk structure that has filled zero.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(Structure)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -2291,10 +2475,17 @@ rva(int) : rva of ordinal located in import address table.</td>
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">rva(int) : relative address of import address table.
-size(int) : size of import address table.</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
+<dt>tuple containing :</dt>
+<dd><ul class="first last simple">
+<li>int : relative address of import address table.</li>
+<li>int : size of import address table.</li>
+</ul>
+</dd>
+</dl>
+</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(tuple)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">tuple</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -2310,7 +2501,7 @@ size(int) : size of import address table.</td>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">import thunk</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(Structure)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -2326,7 +2517,7 @@ size(int) : size of import address table.</td>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">the last import descriptor.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(Structure)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -2342,7 +2533,7 @@ size(int) : size of import address table.</td>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">offset of the last import descriptor.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(int)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">int</td>
 </tr>
 </tbody>
 </table>
@@ -2358,7 +2549,7 @@ size(int) : size of import address table.</td>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">import lookup thunk</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(Structure)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><code class="xref py py-obj docutils literal"><span class="pre">Structure</span></code></td>
 </tr>
 </tbody>
 </table>
@@ -2374,7 +2565,7 @@ size(int) : size of import address table.</td>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">the offset of the import thunk at the last offset.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">(int)</td>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">int</td>
 </tr>
 </tbody>
 </table>
@@ -2398,7 +2589,7 @@ and function name as argument.</p>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">ordinal of matched.</p>
 </td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">ordinal(int)</p>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body"><p class="first last">int</p>
 </td>
 </tr>
 </tbody>
@@ -2415,13 +2606,9 @@ and function name as argument.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>dll_name</strong> (<em>str</em>) – dll name.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
-<dt>True, if dll name exist in import descriptor.</dt>
-<dd>False, if dll name doesn’t exist in import descriptor.</dd>
-</dl>
-</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True if dll name exist in import descriptor, False otherwise.</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">(bool)</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
 </tr>
 </tbody>
 </table>
@@ -2437,13 +2624,9 @@ and function name as argument.</p>
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fn</strong> (<em>str</em>) – function name.</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><dl class="docutils">
-<dt>True, if function name exist in import thunk.</dt>
-<dd>False, if function name doesn’t exist in import thunk.</dd>
-</dl>
-</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">True if function name exist in import thunk, False otherwise.</td>
 </tr>
-<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">(bool)</td>
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">bool</td>
 </tr>
 </tbody>
 </table>
@@ -2503,11 +2686,6 @@ distribution archive.</p>
 <code class="descclassname">zigzi.</code><code class="descname">simple_return_address_save_function</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi.html#simple_return_address_save_function"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.simple_return_address_save_function" title="Permalink to this definition">¶</a></dt>
 <dd></dd></dl>
 
-<dl class="function">
-<dt id="zigzi.simple_return_address_save_function_call_instrument">
-<code class="descclassname">zigzi.</code><code class="descname">simple_return_address_save_function_call_instrument</code><span class="sig-paren">(</span><em>instruction</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/zigzi.html#simple_return_address_save_function_call_instrument"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#zigzi.simple_return_address_save_function_call_instrument" title="Permalink to this definition">¶</a></dt>
-<dd></dd></dl>
-
 </div>
 </div>
 
@@ -2517,45 +2695,37 @@ distribution archive.</p>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="index.html">zigzi</a></h1>
-
-
-
-
-
-
-
-
-<h3>Navigation</h3>
-<p class="caption"><span class="caption-text">Contents:</span></p>
-<ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">zigzi package</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.CodeManager">zigzi.CodeManager module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.DataObject">zigzi.DataObject module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.DataSegment">zigzi.DataSegment module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.Disassembler">zigzi.Disassembler module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.Heap">zigzi.Heap module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.Log">zigzi.Log module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.PEAnalyzeTool">zigzi.PEAnalyzeTool module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.PEInstrument">zigzi.PEInstrument module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.PEManager">zigzi.PEManager module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.SampleReturnVerifier">zigzi.SampleReturnVerifier module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.Stack">zigzi.Stack module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-zigzi.WindowAPIHelper">zigzi.WindowAPIHelper module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-zigzi">Module contents</a></li>
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">zigzi package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-zigzi.CodeManager">zigzi.CodeManager module</a></li>
+<li><a class="reference internal" href="#module-zigzi.DataObject">zigzi.DataObject module</a></li>
+<li><a class="reference internal" href="#module-zigzi.DataSegment">zigzi.DataSegment module</a></li>
+<li><a class="reference internal" href="#module-zigzi.Disassembler">zigzi.Disassembler module</a></li>
+<li><a class="reference internal" href="#module-zigzi.Heap">zigzi.Heap module</a></li>
+<li><a class="reference internal" href="#module-zigzi.Log">zigzi.Log module</a></li>
+<li><a class="reference internal" href="#module-zigzi.PEAnalyzeTool">zigzi.PEAnalyzeTool module</a></li>
+<li><a class="reference internal" href="#module-zigzi.PEInstrument">zigzi.PEInstrument module</a></li>
+<li><a class="reference internal" href="#module-zigzi.PEManager">zigzi.PEManager module</a></li>
+<li><a class="reference internal" href="#module-zigzi.SampleReturnVerifier">zigzi.SampleReturnVerifier module</a></li>
+<li><a class="reference internal" href="#module-zigzi.Stack">zigzi.Stack module</a></li>
+<li><a class="reference internal" href="#module-zigzi.WindowAPIHelper">zigzi.WindowAPIHelper module</a></li>
+<li><a class="reference internal" href="#module-zigzi">Module contents</a></li>
 </ul>
 </li>
 </ul>
 
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="index.html" title="previous chapter">Welcome to zigzi’s documentation!</a></li>
-  </ul></li>
-</ul>
-</div>
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="index.html"
+                        title="previous chapter">Welcome to zigzi’s documentation!</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/zigzi.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <form class="search" action="search.html" method="get">
@@ -2570,20 +2740,24 @@ distribution archive.</p>
       </div>
       <div class="clearer"></div>
     </div>
-    <div class="footer">
-      &copy;2017, Author.
-      
-      |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
-      
-      |
-      <a href="_sources/zigzi.rst.txt"
-          rel="nofollow">Page source</a>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="index.html" title="Welcome to zigzi’s documentation!"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="index.html">zigzi  documentation</a> &#187;</li> 
+      </ul>
     </div>
-
-    
-
-    
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Author.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
   </body>
 </html>

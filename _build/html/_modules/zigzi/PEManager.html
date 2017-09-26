@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>zigzi.PEManager &#8212; zigzi  documentation</title>
-    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
@@ -22,16 +22,23 @@
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" />
-   
-  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
-
+    <link rel="search" title="Search" href="../../search.html" /> 
   </head>
   <body>
-  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">zigzi  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../zigzi.html" accesskey="U">zigzi</a> &#187;</li> 
+      </ul>
+    </div>  
 
     <div class="document">
       <div class="documentwrapper">
@@ -77,7 +84,7 @@
 <span class="sd">        set up instrument</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            (instrument) : instrument of this file</span>
+<span class="sd">            instrumentor(:obj:`PEInstrument`) : instrument of this file</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">instrument</span> <span class="o">=</span> <span class="n">instrumentor</span></div>
 
@@ -86,8 +93,7 @@
 <span class="sd">        get instrument of current file</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (instrument) : instrument of current file util</span>
-
+<span class="sd">            :obj:`PEInstrument` : instrument of current file util</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">instrument</span></div>
 
@@ -96,7 +102,7 @@
 <span class="sd">        append section to file structure.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            section(section) : section that append to file</span>
+<span class="sd">            section(:obj:`Section`) : section that append to file</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">sections</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">section</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__structures__</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">section</span><span class="p">)</span></div>
@@ -106,7 +112,7 @@
 <span class="sd">        get data of file</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (bytearray) : bytearray type data of file</span>
+<span class="sd">            :obj:`bytearray` : bytearray type data of file</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__data__</span></div>
 
@@ -148,9 +154,9 @@
 <span class="sd">        Args:</span>
 <span class="sd">            data(bytearray) : data for append that bytearray type.</span>
 <span class="sd">        Returns:</span>
-<span class="sd">            (tuple): tuple containing:</span>
-<span class="sd">                aligned_orig_data_len (int) : file data length that aligned</span>
-<span class="sd">                aligned_data_len (int) : argument data length that aligned</span>
+<span class="sd">            :obj:`tuple`: tuple containing:</span>
+<span class="sd">                aligned_orig_data_len(int) : file data length that aligned.\n</span>
+<span class="sd">                aligned_data_len(int) : argument data length that aligned.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">orig_data_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_file_data</span><span class="p">())</span>
         <span class="n">aligned_orig_data_len</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_aligned_offset</span><span class="p">(</span><span class="n">orig_data_len</span><span class="p">)</span>
@@ -191,7 +197,7 @@
 <span class="sd">            name(str) : name of section.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            new section.</span>
+<span class="sd">            :obj:`Section` : new section that created.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">name</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">8</span><span class="p">:</span>
             <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[EXCEPTION] SECTION NAME MUST LESS THEN 8 CHARACTER&quot;</span><span class="p">)</span>
@@ -227,9 +233,9 @@
 <span class="sd">        get raw data from section header</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            section(section) : section header that</span>
+<span class="sd">            section(Section) : section header that</span>
 <span class="sd">        Returns:</span>
-<span class="sd">            data(bytearray) : data that section contain.</span>
+<span class="sd">            :obj:`bytearray` : data that section contain.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">offset</span> <span class="o">=</span> <span class="n">section</span><span class="o">.</span><span class="n">PointerToRawData</span>
         <span class="n">size</span> <span class="o">=</span> <span class="n">section</span><span class="o">.</span><span class="n">SizeOfRawData</span>
@@ -250,9 +256,9 @@
 <span class="sd">        get Virtual address range of text section</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            tuple.</span>
-<span class="sd">                a tuple containing section&#39;s start and end pair.</span>
-<span class="sd">                ( start, end )</span>
+<span class="sd">            :obj:`tuple` : tuple containing :</span>
+<span class="sd">                - int : the start address of section. \n</span>
+<span class="sd">                - int : the end address of section.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">executable_section</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_text_section</span><span class="p">()</span>
         <span class="n">va_size</span> <span class="o">=</span> <span class="n">executable_section</span><span class="o">.</span><span class="n">Misc_VirtualSize</span>
@@ -264,7 +270,7 @@
 <span class="sd">        get text section.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (section) : Text section.</span>
+<span class="sd">            :obj:`section` : Text section.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">currentSection</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">sections</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">currentSection</span><span class="o">.</span><span class="n">Characteristics</span> <span class="o">&amp;</span> <span class="mh">0x20000000</span><span class="p">:</span>
@@ -332,12 +338,12 @@
 <span class="sd">        get relocation elements.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            dict : Dict with a List containing the following items.</span>
-<span class="sd">                - RVA(int) : address of relocation element.</span>
-<span class="sd">                - Address(int) : address of relocation element.</span>
-<span class="sd">                - Type(int) : type that represented by int.</span>
-<span class="sd">        Examples:</span>
-<span class="sd">            { Relocation block address : [RVA, Address, Type]}</span>
+<span class="sd">            :obj:`dict` : Dict containing:</span>
+<span class="sd">                int : address of relocation block\n</span>
+<span class="sd">                :obj:`list` : relocation block info. list containing:</span>
+<span class="sd">                    - int : relative address of relocation element.</span>
+<span class="sd">                    - int : address of relocation element.</span>
+<span class="sd">                    - int : type that represented by int.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">relocation</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="p">,</span> <span class="s1">&#39;DIRECTORY_ENTRY_BASERELOC&#39;</span><span class="p">):</span>
@@ -354,9 +360,10 @@
 <span class="sd">        get relocation elements from file structures that not parsed yet.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            dict</span>
-<span class="sd">                containing relocation blocks.</span>
-<span class="sd">                list : relocation entry</span>
+<span class="sd">            :obj:`dict`: Dict containing:</span>
+<span class="sd">                int : relative address of relocation block. \n</span>
+<span class="sd">                :obj:`list` : list of relocation entry. :obj:`list` containing:</span>
+<span class="sd">                    - :obj:`Structure` : IMAGE_BASE_RELOCATION_ENTRY</span>
 <span class="sd">        Examples:</span>
 <span class="sd">            { Relocation block address : [Relocation Entry]}</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -380,7 +387,8 @@
 <span class="sd">        get import lists of pe file.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (list) : containing structures of import.</span>
+<span class="sd">            :obj:`list` : containing structures of import :</span>
+<span class="sd">                :obj:`Structure`: IMAGE_IMPORT_DESCRIPTOR or IMAGE_THUNK_DATA</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">imports_start_index</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">imports_end_index</span> <span class="o">=</span> <span class="mi">0</span>
@@ -401,9 +409,9 @@
 <span class="sd">        start and end index of import at structures.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (tuple): tuple containing:</span>
-<span class="sd">                start_index (int) : start index of import at structures.</span>
-<span class="sd">                end_index (int) : last index of import at structures.</span>
+<span class="sd">            :obj:`tuple` : tuple containing:</span>
+<span class="sd">                - int : start index of import at structures.</span>
+<span class="sd">                - int : last index of import at structures.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">imports_start_index</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="n">imports_end_index</span> <span class="o">=</span> <span class="mi">0</span>
@@ -538,17 +546,17 @@
                                         <span class="n">section</span><span class="o">.</span><span class="n">Misc_VirtualSize</span><span class="p">)</span>
 
 <div class="viewcode-block" id="PEManager.adjust_directories"><a class="viewcode-back" href="../../zigzi.html#zigzi.PEManager.PEManager.adjust_directories">[docs]</a>    <span class="k">def</span> <span class="nf">adjust_directories</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_directories</span><span class="p">,</span> <span class="n">origin_section_start</span><span class="p">,</span>
-                           <span class="n">section_adjusted_va</span><span class="p">,</span> <span class="n">origin_section_end</span><span class="p">,</span>
-                           <span class="n">adjusted_section_size</span><span class="p">):</span>
+                           <span class="n">adjust_section_start</span><span class="p">,</span> <span class="n">origin_section_end</span><span class="p">,</span>
+                           <span class="n">adjust_section_end</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        adjust directories Virtual address.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            data_directories:</span>
-<span class="sd">            origin_section_start:</span>
-<span class="sd">            section_adjusted_va:</span>
-<span class="sd">            origin_section_end:</span>
-<span class="sd">            adjusted_section_size:</span>
+<span class="sd">            data_directories(:obj:`list`): data directories in PE file.</span>
+<span class="sd">            origin_section_start(Int) : start virtual address of section.</span>
+<span class="sd">            adjust_section_start(int) : start virtual address of adjust section.</span>
+<span class="sd">            origin_section_end(int) : last virtual address of section.</span>
+<span class="sd">            adjust_section_end(int) : last virtual address of adjust section.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">directory_adjust</span> <span class="o">=</span> <span class="p">{</span>
             <span class="s1">&#39;IMAGE_DIRECTORY_ENTRY_IMPORT&#39;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">adjust_import</span><span class="p">,</span>
@@ -564,7 +572,7 @@
         <span class="p">}</span>
 
         <span class="n">remove_list</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="n">increased_size</span> <span class="o">=</span> <span class="n">section_adjusted_va</span> <span class="o">-</span> <span class="n">origin_section_start</span>
+        <span class="n">increased_size</span> <span class="o">=</span> <span class="n">adjust_section_start</span> <span class="o">-</span> <span class="n">origin_section_start</span>
         <span class="k">for</span> <span class="n">directory</span> <span class="ow">in</span> <span class="n">data_directories</span><span class="p">:</span>
             <span class="k">if</span> <span class="p">(</span><span class="n">origin_section_start</span>
                     <span class="o">&lt;=</span> <span class="n">directory</span><span class="o">.</span><span class="n">VirtualAddress</span>
@@ -582,12 +590,10 @@
                         <span class="n">entry</span> <span class="o">=</span> <span class="n">directory_adjust</span><span class="p">[</span><span class="n">directory</span><span class="o">.</span><span class="n">name</span><span class="p">]</span>
                         <span class="n">entry</span><span class="p">(</span><span class="n">directory</span><span class="p">,</span> <span class="n">directory</span><span class="o">.</span><span class="n">VirtualAddress</span><span class="p">,</span>
                               <span class="n">directory</span><span class="o">.</span><span class="n">Size</span><span class="p">,</span> <span class="n">increased_size</span><span class="p">)</span>
-                        <span class="k">if</span> <span class="n">directory</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="s1">&#39;IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG&#39;</span><span class="p">:</span>
-                            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">increased_size</span><span class="p">))</span>
-
-                <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+                <span class="k">except</span> <span class="ne">IndexError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;===== [INDEX ERROR] =====&quot;</span><span class="p">)</span>
-                    <span class="k">return</span> <span class="kc">False</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+                    <span class="n">exit</span><span class="p">()</span>
                 <span class="n">remove_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">directory</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">el</span> <span class="ow">in</span> <span class="n">remove_list</span><span class="p">:</span>
             <span class="n">data_directories</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">el</span><span class="p">)</span>
@@ -595,7 +601,7 @@
 
     <span class="k">def</span> <span class="nf">_remove_certification</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Remove certification of file</span>
+<span class="sd">        set zero to certification data directory of pe file.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">OPTIONAL_HEADER</span><span class="o">.</span><span class="n">DATA_DIRECTORY</span><span class="p">)):</span>
             <span class="n">directory</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">OPTIONAL_HEADER</span><span class="o">.</span><span class="n">DATA_DIRECTORY</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
@@ -608,10 +614,10 @@
 <span class="sd">        adjust relocation directory&#39;s elements.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            directory: directory that has name &quot;IMAGE_DIRECTORY_ENTRY_BASERELOC&quot;</span>
-<span class="sd">            rva: current directory reloc_rva</span>
-<span class="sd">            size: current directory size</span>
-<span class="sd">            increase_size: increased size of section that directory included</span>
+<span class="sd">            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_BASERELOC</span>
+<span class="sd">            rva(int): current directory&#39;s relative virtual address.</span>
+<span class="sd">            size(int): current directory&#39;s size.</span>
+<span class="sd">            increase_size(int): increased size of section that directory included.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">adjust_relocation_directories</span><span class="p">(</span><span class="n">increase_size</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">LoggerFactory</span><span class="p">()</span><span class="o">.</span><span class="n">get_new_logger</span><span class="p">(</span><span class="s2">&quot;AdjustRelocation2nd.log&quot;</span><span class="p">)</span>
@@ -677,16 +683,16 @@
 <span class="sd">                        &quot;&quot;&quot;</span>
 
                     <span class="bp">self</span><span class="o">.</span><span class="n">set_dword_at_rva</span><span class="p">(</span><span class="n">reloc_rva</span><span class="p">,</span> <span class="n">value</span> <span class="o">+</span> <span class="n">instrumented_size</span><span class="p">)</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;[IF] [0x</span><span class="si">{:x}</span><span class="s2">]</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="s2">&quot;[1] [0x</span><span class="si">{:x}</span><span class="s2">]</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\n</span><span class="s2">&quot;</span>
                                  <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reloc_rva</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span>
                                          <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_dword_at_rva</span><span class="p">(</span><span class="n">reloc_rva</span><span class="p">),</span>
                                          <span class="n">instrumented_size</span><span class="p">))</span>
                 <span class="k">elif</span> <span class="p">((</span><span class="n">other_section_start</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_IMAGE_BASE_</span><span class="p">)</span>
-                          <span class="o">&lt;=</span> <span class="n">value</span>
-                          <span class="o">&lt;</span> <span class="p">(</span><span class="n">other_section_end</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_IMAGE_BASE_</span><span class="p">)):</span>
+                        <span class="o">&lt;=</span> <span class="n">value</span>
+                        <span class="o">&lt;</span> <span class="p">(</span><span class="n">other_section_end</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_IMAGE_BASE_</span><span class="p">)):</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">set_dword_at_rva</span><span class="p">(</span><span class="n">reloc_rva</span><span class="p">,</span> <span class="n">value</span> <span class="o">+</span> <span class="n">increase_size</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
-                        <span class="s2">&quot;[ELIF] [0x</span><span class="si">{:x}</span><span class="s2">]</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                        <span class="s2">&quot;[2] [0x</span><span class="si">{:x}</span><span class="s2">]</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\n</span><span class="s2">&quot;</span>
                             <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reloc_rva</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span>
                                     <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_dword_at_rva</span><span class="p">(</span><span class="n">reloc_rva</span><span class="p">),</span>
                                     <span class="n">increase_size</span><span class="p">)</span>
@@ -694,13 +700,14 @@
                 <span class="k">else</span><span class="p">:</span>
                     <span class="k">try</span><span class="p">:</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">log</span><span class="o">.</span><span class="n">log</span><span class="p">(</span>
-                            <span class="s2">&quot;[ELSE] [0x</span><span class="si">{:x}</span><span class="s2">]</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\n</span><span class="s2">&quot;</span>
+                            <span class="s2">&quot;[3] [0x</span><span class="si">{:x}</span><span class="s2">]</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\n</span><span class="s2">&quot;</span>
                                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reloc_rva</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span>
                                         <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_dword_at_rva</span><span class="p">(</span><span class="n">reloc_rva</span><span class="p">),</span>
                                         <span class="n">increase_size</span><span class="p">)</span>
                         <span class="p">)</span>
-                    <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+                    <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
                         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;=================[ERROR]===================&quot;</span><span class="p">)</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
                         <span class="nb">print</span><span class="p">(</span>
                             <span class="s2">&quot;</span><span class="se">\t</span><span class="s2">[ELSE] [0x</span><span class="si">{:x}</span><span class="s2">]</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\t</span><span class="s2">0x</span><span class="si">{:x}</span><span class="se">\n</span><span class="s2">&quot;</span>
                                 <span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">reloc_rva</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span>
@@ -714,10 +721,10 @@
 <span class="sd">        adjust relocation directory&#39;s elements.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            directory: directory that has name &quot;IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG&quot;</span>
-<span class="sd">            rva: current directory address</span>
-<span class="sd">            size: current directory size</span>
-<span class="sd">            increase_size: increased size of section that directory included</span>
+<span class="sd">            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG</span>
+<span class="sd">            rva(int): current directory&#39;s relative virtual address.</span>
+<span class="sd">            size(int): current directory&#39;s size.</span>
+<span class="sd">            increase_size(int): increased size of section that directory included.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">size</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_dword_at_rva</span><span class="p">(</span><span class="n">rva</span><span class="p">)</span>
         <span class="n">time</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_dword_at_rva</span><span class="p">(</span><span class="n">rva</span> <span class="o">+</span> <span class="mh">0x4</span><span class="p">)</span>
@@ -755,10 +762,10 @@
 <span class="sd">        adjust relocation directory&#39;s elements.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            directory: directory that has name &quot;IMAGE_DIRECTORY_ENTRY_DEBUG&quot;</span>
-<span class="sd">            rva: current directory address</span>
-<span class="sd">            size: current directory size</span>
-<span class="sd">            increase_size: increased size of section that directory included</span>
+<span class="sd">            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_DEBUG</span>
+<span class="sd">            rva(int): current directory&#39;s relative virtual address.</span>
+<span class="sd">            size(int): current directory&#39;s size.</span>
+<span class="sd">            increase_size(int): increased size of section that directory included.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="mi">0</span></div>
 
@@ -767,10 +774,10 @@
 <span class="sd">        adjust relocation directory&#39;s elements.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            directory: directory that has name &quot;IMAGE_DIRECTORY_ENTRY_TLS&quot;</span>
-<span class="sd">            rva: current directory address</span>
-<span class="sd">            size: current directory size</span>
-<span class="sd">            increase_size: increased size of section that directory included</span>
+<span class="sd">            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_TLS</span>
+<span class="sd">            rva(int): current directory&#39;s relative virtual address.</span>
+<span class="sd">            size(int): current directory&#39;s size.</span>
+<span class="sd">            increase_size(int): increased size of section that directory included.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">directory_tls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">DIRECTORY_ENTRY_TLS</span>
         <span class="k">if</span> <span class="n">directory_tls</span><span class="o">.</span><span class="n">struct</span><span class="o">.</span><span class="n">AddressOfCallBacks</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -794,10 +801,10 @@
 <span class="sd">        adjust relocation directory&#39;s elements.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            directory: directory that has name &quot;IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT&quot;</span>
-<span class="sd">            rva: current directory address</span>
-<span class="sd">            size: current directory size</span>
-<span class="sd">            increase_size: increased size of section that directory included</span>
+<span class="sd">            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT</span>
+<span class="sd">            rva(int): current directory&#39;s relative virtual address.</span>
+<span class="sd">            size(int): current directory&#39;s size.</span>
+<span class="sd">            increase_size(int): increased size of section that directory included.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="mi">0</span></div>
 
@@ -806,10 +813,10 @@
 <span class="sd">        adjust relocation directory&#39;s elements.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            directory: directory that has name &quot;IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT&quot;</span>
-<span class="sd">            rva: current directory address</span>
-<span class="sd">            size: current directory size</span>
-<span class="sd">            increase_size: increased size of section that directory included</span>
+<span class="sd">            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT</span>
+<span class="sd">            rva(int): current directory&#39;s relative virtual address.</span>
+<span class="sd">            size(int): current directory&#39;s size.</span>
+<span class="sd">            increase_size(int): increased size of section that directory included.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">first_import_entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">DIRECTORY_ENTRY_DELAY_IMPORT</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
 
@@ -845,10 +852,10 @@
 <span class="sd">        adjust relocation directory&#39;s elements.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            directory: directory that has thunk_data &quot;IMAGE_DIRECTORY_ENTRY_IMPORT&quot;</span>
-<span class="sd">            rva: current directory address</span>
-<span class="sd">            size: current directory size</span>
-<span class="sd">            increase_size: increased size of section that directory included</span>
+<span class="sd">            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_IMPORT</span>
+<span class="sd">            rva(int): current directory&#39;s relative virtual address.</span>
+<span class="sd">            size(int): current directory&#39;s size.</span>
+<span class="sd">            increase_size(int): increased size of section that directory included.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">import_structures</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_import_structures</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="n">import_structures</span><span class="p">:</span>
@@ -878,10 +885,10 @@
 <span class="sd">        adjust relocation directory&#39;s elements.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            directory: directory that has name &quot;IMAGE_DIRECTORY_ENTRY_EXPORT&quot;</span>
-<span class="sd">            rva: current directory address</span>
-<span class="sd">            size: current directory size</span>
-<span class="sd">            increase_size: increased size of section that directory included</span>
+<span class="sd">            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_EXPORT</span>
+<span class="sd">            rva(int): current directory&#39;s relative virtual address.</span>
+<span class="sd">            size(int): current directory&#39;s size.</span>
+<span class="sd">            increase_size(int): increased size of section that directory included.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">log</span> <span class="o">=</span> <span class="n">LoggerFactory</span><span class="p">()</span><span class="o">.</span><span class="n">get_new_logger</span><span class="p">(</span><span class="s2">&quot;AdjustExport.log&quot;</span><span class="p">)</span>
         <span class="n">export_entry</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">DIRECTORY_ENTRY_EXPORT</span>
@@ -921,10 +928,10 @@
 <span class="sd">        adjust relocation directory&#39;s elements.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            directory: directory that has name &quot;IMAGE_DIRECTORY_ENTRY_RESOURCE&quot;</span>
-<span class="sd">            rva: current directory address</span>
-<span class="sd">            size: current directory size</span>
-<span class="sd">            increase_size: increased size of section that directory included</span>
+<span class="sd">            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_RESOURCE</span>
+<span class="sd">            rva(int): current directory&#39;s relative virtual address.</span>
+<span class="sd">            size(int): current directory&#39;s size.</span>
+<span class="sd">            increase_size(int): increased size of section that directory included.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">rsrc_entries</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">DIRECTORY_ENTRY_RESOURCE</span><span class="o">.</span><span class="n">entries</span><span class="p">:</span>
             <span class="k">for</span> <span class="n">rsrc_directory_entry</span> <span class="ow">in</span> <span class="n">rsrc_entries</span><span class="o">.</span><span class="n">directory</span><span class="o">.</span><span class="n">entries</span><span class="p">:</span>
@@ -937,7 +944,7 @@
 
 <span class="sd">        Args:</span>
 <span class="sd">            rva(int) : relative address.</span>
-<span class="sd">            dword:</span>
+<span class="sd">            dword(bytes) : 4-bytes type value.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">set_dword_at_rva</span><span class="p">(</span><span class="n">rva</span><span class="p">,</span> <span class="n">dword</span><span class="p">)</span></div>
 
@@ -946,7 +953,7 @@
 <span class="sd">        get data section of PE.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (section) : data section of PE.</span>
+<span class="sd">            :obj:`Section` : data section of PE.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">data_section</span> <span class="o">=</span> \
             <span class="bp">self</span><span class="o">.</span><span class="n">get_section_belong_rva</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">OPTIONAL_HEADER</span><span class="o">.</span><span class="n">BaseOfData</span><span class="p">)</span>
@@ -974,7 +981,13 @@
 <span class="sd">        get relocation directories with its include elements.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            tuple : 2-Dict with relocation entries and blocks.</span>
+<span class="sd">            :obj:`tuple`: tuple containing:</span>
+<span class="sd">                :obj:`dict` : relocation blocks</span>
+<span class="sd">                    - block address(int) : address of block</span>
+<span class="sd">                    - block entry(:obj:`Structure`) : IMAGE_BASE_RELOCATION</span>
+<span class="sd">                :obj:`dict` : relocation entry</span>
+<span class="sd">                    - block address(int) : The block address to which the entry belongs</span>
+<span class="sd">                    - relocation entry(:obj:`Structure`) : IMAGE_BASE_RELOCATION_ENTRY</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">relocation_blocks</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">relocation_entries</span> <span class="o">=</span> <span class="p">{}</span>
@@ -1018,7 +1031,7 @@
 <span class="sd">            offset(int) : offset of file.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (int) : absolute address to match offset.</span>
+<span class="sd">            int : absolute address to match offset.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">rva</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_rva_from_offset</span><span class="p">(</span><span class="n">offset</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_abs_va_from_rva</span><span class="p">(</span><span class="n">rva</span><span class="p">)</span></div>
@@ -1031,7 +1044,7 @@
 <span class="sd">            rva(int) : relative address to be calculate.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            ava(int) : absolute address of rva.</span>
+<span class="sd">            int : absolute address from rva.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">OPTIONAL_HEADER</span><span class="o">.</span><span class="n">ImageBase</span> <span class="o">+</span> <span class="n">rva</span></div>
 
@@ -1040,7 +1053,7 @@
 <span class="sd">        get address of image base.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (int) : virtual address of image base.</span>
+<span class="sd">            int : virtual address of image base.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">OPTIONAL_HEADER</span><span class="o">.</span><span class="n">ImageBase</span></div>
 
@@ -1052,7 +1065,7 @@
 <span class="sd">            rva(int) : relative address.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (Structure) : structure that has located in rva.</span>
+<span class="sd">            :obj:`Structure` : structure that has located in rva.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">result</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="n">offset</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">get_physical_by_rva</span><span class="p">(</span><span class="n">rva</span><span class="p">)</span>
@@ -1092,9 +1105,9 @@
 <span class="sd">        move relocation entry to appropriate relocation block.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            entry:</span>
-<span class="sd">            block:</span>
-<span class="sd">            increase_size:</span>
+<span class="sd">            entry(Structure) : IMAGE_BASE_RELOCATION_ENTRY</span>
+<span class="sd">            block(Structure) : IMAGE_BASE_RELOCATION</span>
+<span class="sd">            increase_size(int) : size to move the entry</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">pe_structure</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__structures__</span>
         <span class="c1"># we assume first section is text section.</span>
@@ -1166,7 +1179,7 @@
 <span class="sd">            block_rva: relative address that has covered by new block.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (int) : index of generated block.</span>
+<span class="sd">            int : index of generated block.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">pe_structure</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__structures__</span>
         <span class="p">(</span><span class="n">relocation_blocks</span><span class="p">,</span> <span class="n">relocation_entries</span><span class="p">)</span> \
@@ -1190,7 +1203,7 @@
 <span class="sd">        generate new import descriptor that has empty.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (Structure) : IMPORT_DESCRIPTOR format</span>
+<span class="sd">            :obj:`Structure` : IMPORT_DESCRIPTOR</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">structure</span> <span class="o">=</span> <span class="n">Structure</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__IMAGE_IMPORT_DESCRIPTOR_format__</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">structure</span></div>
@@ -1200,7 +1213,7 @@
 <span class="sd">        generate new import descriptor that has empty.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (Structure) : IMPORT_THUNK format</span>
+<span class="sd">            :obj:`Structure` : IMPORT_THUNK</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">structure</span> <span class="o">=</span> <span class="n">Structure</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__IMAGE_THUNK_DATA_format__</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">structure</span></div>
@@ -1210,7 +1223,7 @@
 <span class="sd">        generate new empty thunk.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (Structure) : IMPORT_THUNK format</span>
+<span class="sd">            :obj:`Structure` : IMPORT_THUNK</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">structure</span> <span class="o">=</span> <span class="n">Structure</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__IMAGE_THUNK_DATA_format__</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">structure</span></div>
@@ -1223,7 +1236,7 @@
 <span class="sd">            rva(int) : relative address.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (Structure) : relocation entry.</span>
+<span class="sd">            :obj:`Structure` : IMAGE_BASE_RELOCATION_ENTRY</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">structure</span> <span class="o">=</span> <span class="n">Structure</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">__IMAGE_BASE_RELOCATION_ENTRY_format__</span><span class="p">)</span>
         <span class="nb">setattr</span><span class="p">(</span><span class="n">structure</span><span class="p">,</span> <span class="s2">&quot;Data&quot;</span><span class="p">,</span> <span class="p">(</span><span class="n">rva</span> <span class="o">&amp;</span> <span class="mh">0xfff</span><span class="p">)</span> <span class="o">+</span> <span class="mh">0x3000</span><span class="p">)</span>
@@ -1254,7 +1267,7 @@
 <span class="sd">            rva(int) : rva for find section.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (Section)</span>
+<span class="sd">            :obj:`Section` : the Section to which the given relative address as argument belongs.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">sections</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">sections</span>
         <span class="k">for</span> <span class="n">section</span> <span class="ow">in</span> <span class="n">sections</span><span class="p">:</span>
@@ -1272,9 +1285,9 @@
 <span class="sd">            entry_name(str) : name of data directory to find.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (tuple) :</span>
-<span class="sd">                (int) : Virtual address of data directory.</span>
-<span class="sd">                (int) : Size of data directory.</span>
+<span class="sd">            :obj:`tuple` : tuple containing :</span>
+<span class="sd">                - int : Virtual address of data directory.</span>
+<span class="sd">                - int : Size of data directory.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">for</span> <span class="n">entry</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">PE</span><span class="o">.</span><span class="n">OPTIONAL_HEADER</span><span class="o">.</span><span class="n">DATA_DIRECTORY</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">entry</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">entry_name</span><span class="p">:</span>
@@ -1285,9 +1298,9 @@
 <span class="sd">        Gets the scope of the import descriptor.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (tuple) :</span>
-<span class="sd">                (int) : Virtual address of import descriptor.</span>
-<span class="sd">                (int) : Size of import data descriptor.</span>
+<span class="sd">            :obj:`tuple` :</span>
+<span class="sd">                - int : Virtual address of import descriptor.</span>
+<span class="sd">                - int : Size of import data descriptor.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data_directory_address_range</span><span class="p">(</span><span class="s1">&#39;IMAGE_DIRECTORY_ENTRY_IMPORT&#39;</span><span class="p">)</span></div>
 
@@ -1296,9 +1309,9 @@
 <span class="sd">        Gets the scope of the import address table.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (tuple) :</span>
-<span class="sd">                (int) : Virtual address of import address table.</span>
-<span class="sd">                (int) : Size of import data address table.</span>
+<span class="sd">            :obj:`tuple` :</span>
+<span class="sd">                - int : Virtual address of import address table.</span>
+<span class="sd">                - int : Size of import data address table.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_data_directory_address_range</span><span class="p">(</span><span class="s1">&#39;IMAGE_DIRECTORY_ENTRY_IAT&#39;</span><span class="p">)</span></div>
 
@@ -1308,7 +1321,7 @@
 <span class="sd">        Whether the section is an executable.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            section(section): Section to check</span>
+<span class="sd">            section(Section): Section to check</span>
 <span class="sd">        Returns:</span>
 <span class="sd">            bool : true if executable, false otherwise</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -1323,10 +1336,10 @@
 <span class="sd">        make clone section from argument and return it.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            section(section) : section that need clone</span>
+<span class="sd">            section(:obj:`Section`) : section that need clone</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            (section) : cloned section from argument</span>
+<span class="sd">            :obj:`Section` : cloned section from argument</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">clone_section</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">section</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">clone_section</span></div>
@@ -1362,32 +1375,6 @@
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="../../index.html">zigzi</a></h1>
-
-
-
-
-
-
-
-
-<h3>Navigation</h3>
-<p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../zigzi.html">zigzi package</a></li>
-</ul>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="../../index.html">Documentation overview</a><ul>
-  <li><a href="../index.html">Module code</a><ul>
-  <li><a href="../zigzi.html">zigzi</a><ul>
-  </ul></li>
-  </ul></li>
-  </ul></li>
-</ul>
-</div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <form class="search" action="../../search.html" method="get">
@@ -1402,17 +1389,23 @@
       </div>
       <div class="clearer"></div>
     </div>
-    <div class="footer">
-      &copy;2017, Author.
-      
-      |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
-      
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">zigzi  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../zigzi.html" >zigzi</a> &#187;</li> 
+      </ul>
     </div>
-
-    
-
-    
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Author.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
   </body>
 </html>

@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>zigzi &#8212; zigzi  documentation</title>
-    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
@@ -22,16 +22,22 @@
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
-    <link rel="search" title="Search" href="../search.html" />
-   
-  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
-
+    <link rel="search" title="Search" href="../search.html" /> 
   </head>
   <body>
-  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">zigzi  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
 
     <div class="document">
       <div class="documentwrapper">
@@ -64,24 +70,6 @@
 <span class="kn">from</span> <span class="nn">WindowAPIHelper</span> <span class="k">import</span> <span class="o">*</span>
 
 <span class="n">code_rva</span> <span class="o">=</span> <span class="mi">0</span>
-
-
-<div class="viewcode-block" id="simple_return_address_save_function_call_instrument"><a class="viewcode-back" href="../zigzi.html#zigzi.simple_return_address_save_function_call_instrument">[docs]</a><span class="k">def</span> <span class="nf">simple_return_address_save_function_call_instrument</span><span class="p">(</span><span class="n">instruction</span><span class="p">):</span>
-    <span class="k">global</span> <span class="n">code_rva</span>
-    <span class="n">code_zero_rva</span> <span class="o">=</span> <span class="n">code_rva</span> <span class="o">-</span> <span class="mh">0x1000</span>
-    <span class="n">instruction_zero_rva</span> <span class="o">=</span> <span class="n">instruction</span><span class="o">.</span><span class="n">address</span>
-    <span class="n">instruction_end_rva</span> <span class="o">=</span> <span class="n">instruction_zero_rva</span> <span class="o">+</span> <span class="n">instruction</span><span class="o">.</span><span class="n">size</span>
-    <span class="c1"># 5 mean instrumented code size.</span>
-    <span class="n">code</span> <span class="o">=</span> <span class="s2">&quot;CALL </span><span class="si">{:d}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">code_zero_rva</span> <span class="o">-</span> <span class="n">instruction_end_rva</span> <span class="o">+</span> <span class="mi">5</span><span class="p">)</span>
-    <span class="n">hex_code</span> <span class="o">=</span> <span class="n">binascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">code</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;hex&#39;</span><span class="p">)</span>
-    <span class="k">try</span><span class="p">:</span>
-        <span class="c1"># Initialize engine in X86-32bit mode</span>
-        <span class="n">ks</span> <span class="o">=</span> <span class="n">Ks</span><span class="p">(</span><span class="n">KS_ARCH_X86</span><span class="p">,</span> <span class="n">KS_MODE_32</span><span class="p">)</span>
-        <span class="n">encoding</span><span class="p">,</span> <span class="n">count</span> <span class="o">=</span> <span class="n">ks</span><span class="o">.</span><span class="n">asm</span><span class="p">(</span><span class="n">hex_code</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">encoding</span><span class="p">,</span> <span class="n">count</span>
-    <span class="k">except</span> <span class="n">KsError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ERROR: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ex</span><span class="p">)</span>
-    <span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="mi">0</span></div>
 
 
 <div class="viewcode-block" id="simple_return_address_save_function"><a class="viewcode-back" href="../zigzi.html#zigzi.simple_return_address_save_function">[docs]</a><span class="k">def</span> <span class="nf">simple_return_address_save_function</span><span class="p">():</span>
@@ -144,10 +132,6 @@
 
     <span class="n">pe_instrument</span><span class="o">.</span><span class="n">register_pre_indirect_branch</span><span class="p">(</span>
         <span class="n">simple_indirect_branch_counting_function_call_instrument</span>
-    <span class="p">)</span>
-
-    <span class="n">pe_instrument</span><span class="o">.</span><span class="n">register_after_indirect_branch</span><span class="p">(</span>
-        <span class="n">simple_return_address_save_function_call_instrument</span>
     <span class="p">)</span></div>
 
 
@@ -198,30 +182,6 @@
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="../index.html">zigzi</a></h1>
-
-
-
-
-
-
-
-
-<h3>Navigation</h3>
-<p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../zigzi.html">zigzi package</a></li>
-</ul>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="../index.html">Documentation overview</a><ul>
-  <li><a href="index.html">Module code</a><ul>
-  </ul></li>
-  </ul></li>
-</ul>
-</div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <form class="search" action="../search.html" method="get">
@@ -236,17 +196,22 @@
       </div>
       <div class="clearer"></div>
     </div>
-    <div class="footer">
-      &copy;2017, Author.
-      
-      |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
-      
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">zigzi  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >Module code</a> &#187;</li> 
+      </ul>
     </div>
-
-    
-
-    
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Author.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
   </body>
 </html>

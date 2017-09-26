@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     <title>zigzi.Disassembler &#8212; zigzi  documentation</title>
-    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
     <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
     <script type="text/javascript">
       var DOCUMENTATION_OPTIONS = {
@@ -22,16 +22,23 @@
     <script type="text/javascript" src="../../_static/underscore.js"></script>
     <script type="text/javascript" src="../../_static/doctools.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
-    <link rel="search" title="Search" href="../../search.html" />
-   
-  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
-
+    <link rel="search" title="Search" href="../../search.html" /> 
   </head>
   <body>
-  
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">zigzi  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../zigzi.html" accesskey="U">zigzi</a> &#187;</li> 
+      </ul>
+    </div>  
 
     <div class="document">
       <div class="documentwrapper">
@@ -98,6 +105,13 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">instructions_dict</span></div>
 
 <div class="viewcode-block" id="Disassembler.get_disassemble_list"><a class="viewcode-back" href="../../zigzi.html#zigzi.Disassembler.Disassembler.get_disassemble_list">[docs]</a>    <span class="k">def</span> <span class="nf">get_disassemble_list</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        get instructions sorted by address.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            :obj:`list` : list containing:</span>
+<span class="sd">                - :obj:`instruction` : instruction.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_need_handle_disassemble_list</span><span class="p">():</span>
             <span class="n">disassemble_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_disassemble_dict</span><span class="p">()</span>
             <span class="n">sorted_instructions</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">disassemble_dict</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span>
@@ -106,6 +120,14 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">instructions_list</span></div>
 
 <div class="viewcode-block" id="Disassembler.disassemble"><a class="viewcode-back" href="../../zigzi.html#zigzi.Disassembler.Disassembler.disassemble">[docs]</a>    <span class="k">def</span> <span class="nf">disassemble</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Disassemble.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            :obj:`dict`: Dict containing:</span>
+<span class="sd">                - int : address of instruction.</span>
+<span class="sd">                - :obj:`instruction` : instruction.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">code_manager</span><span class="p">:</span>
             <span class="k">return</span> <span class="mi">0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">instructions_dict</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
@@ -170,6 +192,14 @@
 
 <div class="viewcode-block" id="Disassembler.is_call"><a class="viewcode-back" href="../../zigzi.html#zigzi.Disassembler.Disassembler.is_call">[docs]</a>    <span class="nd">@staticmethod</span>
     <span class="k">def</span> <span class="nf">is_call</span><span class="p">(</span><span class="n">instruction</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Check whether it is a call instruction.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            instruction(instruction): instruction for check.</span>
+<span class="sd">        Returns:</span>
+<span class="sd">            bool : True if instruction is call, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="n">instruction</span><span class="o">.</span><span class="n">mnemonic</span> <span class="o">==</span> <span class="s1">&#39;call&#39;</span><span class="p">:</span>
             <span class="k">return</span> <span class="kc">True</span>
         <span class="k">return</span> <span class="kc">False</span></div>
@@ -190,8 +220,17 @@
                     <span class="k">return</span> <span class="kc">True</span>
         <span class="k">return</span> <span class="kc">False</span></div>
 
-<div class="viewcode-block" id="Disassembler.get_instruction_length"><a class="viewcode-back" href="../../zigzi.html#zigzi.Disassembler.Disassembler.get_instruction_length">[docs]</a>    <span class="nd">@staticmethod</span>
-    <span class="k">def</span> <span class="nf">get_instruction_length</span><span class="p">(</span><span class="n">instruction</span><span class="p">):</span>
+<div class="viewcode-block" id="Disassembler.get_opcode_length"><a class="viewcode-back" href="../../zigzi.html#zigzi.Disassembler.Disassembler.get_opcode_length">[docs]</a>    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">get_opcode_length</span><span class="p">(</span><span class="n">instruction</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        calculate opcode length from instruction.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            instruction(instruction) : target instruction.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            int : length of opcode.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">opcode</span> <span class="o">=</span> <span class="n">instruction</span><span class="o">.</span><span class="n">opcode</span>
         <span class="n">length</span> <span class="o">=</span> <span class="mi">0</span>
         <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">el</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">opcode</span><span class="p">):</span>
@@ -206,32 +245,6 @@
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
         <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="../../index.html">zigzi</a></h1>
-
-
-
-
-
-
-
-
-<h3>Navigation</h3>
-<p class="caption"><span class="caption-text">Contents:</span></p>
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="../../zigzi.html">zigzi package</a></li>
-</ul>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="../../index.html">Documentation overview</a><ul>
-  <li><a href="../index.html">Module code</a><ul>
-  <li><a href="../zigzi.html">zigzi</a><ul>
-  </ul></li>
-  </ul></li>
-  </ul></li>
-</ul>
-</div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
     <form class="search" action="../../search.html" method="get">
@@ -246,17 +259,23 @@
       </div>
       <div class="clearer"></div>
     </div>
-    <div class="footer">
-      &copy;2017, Author.
-      
-      |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
-      
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">zigzi  documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li>
+          <li class="nav-item nav-item-2"><a href="../zigzi.html" >zigzi</a> &#187;</li> 
+      </ul>
     </div>
-
-    
-
-    
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Author.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.6.4.
+    </div>
   </body>
 </html>
