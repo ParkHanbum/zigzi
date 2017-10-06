@@ -5,9 +5,10 @@
 
 import copy
 import operator
-
+import lief
 from pefile import *
 from Log import LoggerFactory
+from struct import pack, unpack
 
 
 class PEManager(object):
@@ -24,51 +25,38 @@ class PEManager(object):
         self.PEName = filename
         pe_file = open(filename, 'r+b')
         pe_data = mmap.mmap(pe_file.fileno(), 0, access=mmap.ACCESS_COPY)
+        self.pe = lief.PE.parse(filename)
+        self.pe_origin = lief.PE.parse(filename)
+        self.builder = lief.PE.Builder(self.pe)
         self.PEOrigin = PE(None, data=pe_data, fast_load=False)
-        self.PE = PE(None, data=pe_data, fast_load=False)
-        self._IMAGE_BASE_ = self.PE.OPTIONAL_HEADER.ImageBase
+        self.pefile = PE(None, data=pe_data, fast_load=False)
+        self._IMAGE_BASE_ = self.pefile.OPTIONAL_HEADER.ImageBase
         self.instrument = None
         self.log = None
-        self.section_prev_adjust = None
+        self.origin_sections = {}
+        self.api_list = {}
+        self.api_rva = []
 
-    def set_instrument(self, instrumentor):
-        """
-        set up instrument
-
-        Args:
-            instrumentor(:obj:`PEInstrument`) : instrument of this file
-        """
-        self.instrument = instrumentor
-
-    def get_instrument(self):
-        """
-        get instrument of current file
-
-        Returns:
-            :obj:`PEInstrument` : instrument of current file util
-        """
-        return self.instrument
-
-    def append_section_to_file(self, section):
+    def _append_section_to_file(self, section):
         """
         append section to file structure.
 
         Args:
             section(:obj:`Section`) : section that append to file
         """
-        self.PE.sections.append(section)
-        self.PE.__structures__.append(section)
+        self.pefile.sections.append(section)
+        self.pefile.__structures__.append(section)
 
-    def get_file_data(self):
+    def _get_file_data(self):
         """
         get data of file
 
         Returns:
             :obj:`bytearray` : bytearray type data of file
         """
-        return self.PE.__data__
+        return self.pefile.__data__
 
-    def get_aligned_offset(self, offset):
+    def _get_aligned_offset(self, offset):
         """
         Align offset with file alignment
 
@@ -78,28 +66,28 @@ class PEManager(object):
         Returns:
             int : aligned offset
         """
-        file_align = self.PE.OPTIONAL_HEADER.FileAlignment
+        file_align = self._get_offset_alignment()
         v = offset % file_align
         if v > 0:
             return (offset - v) + file_align
         return offset
 
-    def get_aligned_rva(self, va):
+    def _get_aligned_rva(self, rva):
         """
         get aligned virtual address from argument.
 
         Args:
-            va(int): virtual address for align
+            rva(int): virtual address for align
         Returns:
             int : aligned virtual address
         """
-        aligned_va = self.get_section_alignment()
-        v = va % aligned_va
+        aligned_va = self._get_section_alignment()
+        v = rva % aligned_va
         if v > 0:
-            return (va - v) + aligned_va
-        return va
+            return (rva - v) + aligned_va
+        return rva
 
-    def append_data_to_file(self, data):
+    def _append_data_to_file(self, data):
         """
         append data to file.
 
@@ -110,204 +98,49 @@ class PEManager(object):
                 aligned_orig_data_len(int) : file data length that aligned.\n
                 aligned_data_len(int) : argument data length that aligned.
         """
-        orig_data_len = len(self.get_file_data())
-        aligned_orig_data_len = self.get_aligned_offset(orig_data_len)
+        orig_data_len = len(self._get_file_data())
+        aligned_orig_data_len = self._get_aligned_offset(orig_data_len)
         data_len = len(data)
-        aligned_data_len = self.get_aligned_offset(data_len)
+        aligned_data_len = self._get_aligned_offset(data_len)
         # make null space for data.
         space = bytearray((aligned_orig_data_len + aligned_data_len)
                           - orig_data_len)
-        self.PE.set_bytes_at_offset(orig_data_len - 1, bytes(space))
+        self.pefile.set_bytes_at_offset(orig_data_len - 1, bytes(space))
         # Fill space with data
-        self.PE.set_bytes_at_offset(aligned_orig_data_len, bytes(data))
+        self.pefile.set_bytes_at_offset(aligned_orig_data_len, bytes(data))
         return aligned_orig_data_len, aligned_data_len
 
-    def create_new_executable_section(self, data):
-        """
-        Create new executable section with given data.
+    def _get_offset_alignment(self):
+        return self.pe.optional_header.file_alignment
 
-        Args:
-            data(bytearray) : Raw point of new section
-        """
-        size_of_data = len(data)
-        (pointToRaw, sizeOfRaw) = self.append_data_to_file(data)
-        # TODO : Fixed the assumption that the first section is a text section.
-        section = self.PE.sections[0]
-        section.SizeOfRawData = sizeOfRaw
-        section.PointerToRawData = pointToRaw
-        section.Misc_VirtualSize = size_of_data
-        section.Misc_PhysicalAddress = size_of_data
-        section.Misc = size_of_data
-        # self.PE.OPTIONAL_HEADER.SizeOfCode = size_of_data
-
-    def create_new_data_section(self, data, name):
-        """
-        Create a new data section and add it to the last section.
-
-        Args:
-            data(bytearray) : data for append to section.
-            name(str) : name of section.
-
-        Returns:
-            :obj:`Section` : new section that created.
-        """
-        if len(name) > 8:
-            print("[EXCEPTION] SECTION NAME MUST LESS THEN 8 CHARACTER")
-            exit()
-        size_of_data = len(data)
-        (pointToRaw, sizeOfRaw) = self.append_data_to_file(data)
-        section = self.get_cloned_section_header(self.get_data_section())
-        section.Name = name
-        section.SizeOfRawData = sizeOfRaw
-        section.PointerToRawData = pointToRaw
-        section.Misc_VirtualSize = size_of_data
-        section.Misc_PhysicalAddress = size_of_data
-        section.Misc = size_of_data
-        # section.Characteristics = (1 << 31) + (1 << 30) + (1 << 6)
-        characteristics = \
-            SECTION_CHARACTERISTICS['IMAGE_SCN_MEM_WRITE'] \
-            | SECTION_CHARACTERISTICS['IMAGE_SCN_MEM_READ'] \
-            | SECTION_CHARACTERISTICS['IMAGE_SCN_CNT_INITIALIZED_DATA']
-        section.Characteristics = characteristics
-        section.next_section_virtual_address = None
-        last_section = self.PE.sections[-1]
-        rva_end = last_section.VirtualAddress + last_section.Misc_VirtualSize
-        section.VirtualAddress = self.get_aligned_rva(rva_end)
-        last_section_last_offset = \
-            last_section.get_file_offset() + last_section.sizeof()
-        section.set_file_offset(last_section_last_offset)
-        self.PE.FILE_HEADER.NumberOfSections += 1
-        self.append_section_to_file(section)
-        return section
-
-    def get_section_raw_data(self, section):
-        """
-        get raw data from section header
-
-        Args:
-            section(Section) : section header that
-        Returns:
-            :obj:`bytearray` : data that section contain.
-        """
-        offset = section.PointerToRawData
-        size = section.SizeOfRawData
-        data = bytearray(self.get_file_data()[offset:offset + size])
-        return data
-
-    def get_entry_point_rva(self):
-        """
-        get Entry point virtual address of file
-
-        Returns:
-            int : entry point virtual address
-        """
-        return self.PE.OPTIONAL_HEADER.AddressOfEntryPoint
-
-    def get_text_section_virtual_address_range(self):
-        """
-        get Virtual address range of text section
-
-        Returns:
-            :obj:`tuple` : tuple containing :
-                - int : the start address of section. \n
-                - int : the end address of section.
-        """
-        executable_section = self.get_text_section()
-        va_size = executable_section.Misc_VirtualSize
-        va = executable_section.VirtualAddress
-        return va, va + va_size
-
-    def get_text_section(self):
-        """
-        get text section.
-
-        Returns:
-            :obj:`section` : Text section.
-        """
-        for currentSection in self.PE.sections:
-            if currentSection.Characteristics & 0x20000000:
-                return currentSection
-
-    def get_section_alignment(self):
+    def _get_section_alignment(self):
         """
         get section alignment.
 
         Returns:
             int : section alignment
         """
-        return self.PE.OPTIONAL_HEADER.SectionAlignment
+        return self.pe.optional_header.section_alignment
 
-    def set_entry_point(self, entry_va):
+    def _set_entry_point(self, entry_va):
         """
         Set up entry point of file
 
         Args:
             entry_va (int): virtual address of entry point
         """
-        self.PE.OPTIONAL_HEADER.AddressOfEntryPoint = entry_va
+        self.pe.optional_header.addressof_entrypoint = entry_va
 
     def _adjust_file(self):
-        self._remove_certification()
-        self.adjust_file_layout()
-        self.PE.merge_modified_section_data()
-        self.PE.OPTIONAL_HEADER.SizeOfImage = self.get_image_size()
-        self.PE.OPTIONAL_HEADER.CheckSum = 0
-        self.PE.OPTIONAL_HEADER.CheckSum = self.PE.generate_checksum()
+        pass
+        # self._remove_certification()
+        # self._adjust_file_layout()
+        # self.pefile.merge_modified_section_data()
+        # self.pefile.OPTIONAL_HEADER.SizeOfImage = self._get_image_size()
+        # self.pefile.OPTIONAL_HEADER.CheckSum = 0
+        # self.pefile.OPTIONAL_HEADER.CheckSum = self.pefile.generate_checksum()
 
-    def writefile(self, file_path):
-        """
-        write instrumented & modified file data to file.
-
-        Args:
-            file_path (str) : file path with absolute path.
-        """
-        self.adjust_file_layout()
-        self.PE.write(file_path)
-
-    def writefile_without_adjust(self, file_path):
-        """
-        write file data to file.
-
-        Args:
-            file_path(str) : file name with its absolute path.
-        """
-        self.PE.write(file_path)
-
-    def get_image_size(self):
-        """
-        last section's end represent that Image size.
-
-        Returns:
-            int : Image size.
-        """
-        section = self.PE.sections[-1]
-        va = section.VirtualAddress
-        size = section.Misc_VirtualSize
-        return self.get_aligned_rva(va + size)
-
-    def get_relocation(self):
-        """
-        get relocation elements.
-
-        Returns:
-            :obj:`dict` : Dict containing:
-                int : address of relocation block\n
-                :obj:`list` : relocation block info. list containing:
-                    - int : relative address of relocation element.
-                    - int : address of relocation element.
-                    - int : type that represented by int.
-        """
-        relocation = {}
-        if hasattr(self.PE, 'DIRECTORY_ENTRY_BASERELOC'):
-            for entry in self.PE.DIRECTORY_ENTRY_BASERELOC:
-                for el in entry.entries:
-                    if el.struct.Data == 0:
-                        continue
-                    address = el.rva
-                    relocation[address] = [el.rva, address, el.type]
-        return relocation
-
-    def get_relocation_from_structures(self):
+    def _get_relocation_from_structures(self):
         """
         get relocation elements from file structures that not parsed yet.
 
@@ -322,7 +155,7 @@ class PEManager(object):
         structures_relocation_block = {}
         structures_relocation_entries = {}
         block_va = -1
-        for entry in self.PE.__structures__:
+        for entry in self.pefile.__structures__:
             if entry.name.find('IMAGE_BASE_RELOCATION_ENTRY') != -1:
                 if block_va > 0:
                     structures_relocation_entries[block_va].append(entry)
@@ -334,70 +167,13 @@ class PEManager(object):
                 "DIRECTORY"
         return structures_relocation_entries
 
-    def get_import_structures(self):
-        """
-        get import lists of pe file.
-
-        Returns:
-            :obj:`list` : containing structures of import :
-                :obj:`Structure`: IMAGE_IMPORT_DESCRIPTOR or IMAGE_THUNK_DATA
-        """
-        imports_start_index = 0
-        imports_end_index = 0
-
-        for index, structure in enumerate(self.PE.__structures__):
-            if ((structure.name == 'IMAGE_IMPORT_DESCRIPTOR')
-                    == (structure.name == 'IMAGE_THUNK_DATA')):
-                if imports_start_index > 0:
-                    imports_end_index = index
-                    break
-            else:
-                if imports_start_index == 0:
-                    imports_start_index = index
-        return self.PE.__structures__[imports_start_index:imports_end_index]
-
-    def get_imports_range_in_structures(self):
-        """
-        start and end index of import at structures.
-
-        Returns:
-            :obj:`tuple` : tuple containing:
-                - int : start index of import at structures.
-                - int : last index of import at structures.
-        """
-        imports_start_index = 0
-        imports_end_index = 0
-
-        for index, structure in enumerate(self.PE.__structures__):
-            if ((structure.name == 'IMAGE_IMPORT_DESCRIPTOR')
-                    == (structure.name == 'IMAGE_THUNK_DATA')):
-                if imports_start_index > 0:
-                    imports_end_index = index
-                    break
-            else:
-                if imports_start_index == 0:
-                    imports_start_index = index
-        return imports_start_index, imports_end_index
-
-    def is_possible_relocation(self):
-        """
-        Verify that the file can be relocated.
-
-        Returns:
-            bool : True if relocation possible, False otherwise.
-        """
-        if hasattr(self.PE, 'DIRECTORY_ENTRY_BASERELOC'):
-            return True
-        return False
-
-    def adjust_file_layout(self):
+    def _adjust_file_layout(self):
         """
         adjust broken file layout while instrumentation.
         """
         # adjust that before section adjusting
         self._adjust_entry_point()
         self._adjust_executable_section()
-        # self.adjustRelocationDirectories()
         # section adjusting
         self._adjust_section()
         # adjust that after section adjusting
@@ -410,27 +186,51 @@ class PEManager(object):
         as a result, section's area can overlapped.
         that is why we need to relocate section without overlapped area.
         """
-        self.section_prev_adjust = copy.deepcopy(self.PE.sections)
-        for index in range(len(self.PE.sections) - 1):
-            src_section = self.PE.sections[index]
-            virtual_size = src_section.Misc_VirtualSize
-            src_va = src_section.VirtualAddress
-            src_va_end = src_va + virtual_size
+        for section in self.pe.sections:
+            self.origin_sections[section.name] = section.virtual_address
 
-            dst_section = self.PE.sections[index + 1]
-            if dst_section.VirtualAddress < src_va_end:
+        for index in range(len(self.pe.sections) - 1):
+            src_section = self.pe.sections[index]
+            src_offset = src_section.offset
+            src_size = src_section.size
+            src_offset_end = src_offset + src_size
+            src_virtual_size = src_section.virtual_size
+            src_va = src_section.virtual_address
+            src_va_end = src_va + src_virtual_size
+
+            dst_section = self.pe.sections[index + 1]
+            dst_offset = dst_section.offset
+            dst_size = dst_section.size
+            dst_offset_end = dst_offset + dst_size
+            dst_virtual_size = dst_section.virtual_size
+            dst_va = dst_section.virtual_address
+            dst_va_end = dst_va + dst_virtual_size
+
+            if dst_va < src_va_end:
                 print("adjust virtual address")
-                section_va = dst_section.VirtualAddress
-                adjusted_section_va = section_va + (src_va_end - section_va)
-                adjusted_section_va = self.get_aligned_rva(adjusted_section_va)
-                dst_section.VirtualAddress = adjusted_section_va
-                src_section.next_section_virtual_address = adjusted_section_va
+                adjusted_section_rva = dst_va + (src_va_end - dst_va)
+                adjusted_section_rva = self._get_aligned_rva(adjusted_section_rva)
+                dst_section.virtual_address = adjusted_section_rva
+                increase_size = adjusted_section_rva - dst_va
+                print("0x{:x}\t0x{:x}\t0x{:x}".
+                      format(dst_va, increase_size, adjusted_section_rva))
+
+            if dst_offset < src_offset_end:
+                print("adjust offset")
+                adjusted_section_offset = dst_offset + (src_offset_end - dst_offset)
+                adjusted_section_offset = self._get_aligned_offset(adjusted_section_offset)
+                dst_section.offset = adjusted_section_offset
+                increase_size = adjusted_section_offset - dst_offset
+                print("0x{:x}\t0x{:x}\t0x{:x}".
+                      format(dst_offset, increase_size,
+                             adjusted_section_offset))
 
     def _adjust_optional_header(self):
         """
         while instrumentation, it can change position of pointer recoreded in
         Optional header. for that reason that we need adjust this.
         """
+        """ is this necessary?
         # adjust base of data
         if hasattr(self.PEOrigin.OPTIONAL_HEADER, 'BaseOfData'):
             base_of_data = self.PEOrigin.OPTIONAL_HEADER.BaseOfData
@@ -441,65 +241,134 @@ class PEManager(object):
                         < (section.VirtualAddress + section.Misc_VirtualSize)):
                     base_of_data_section_rva = base_of_data \
                                                - section.VirtualAddress
-                    adjusted_section = self.PE.sections[index]
-                    self.PE.OPTIONAL_HEADER.BaseOfData = \
+                    adjusted_section = self.pefile.sections[index]
+                    self.pefile.OPTIONAL_HEADER.BaseOfData = \
                         adjusted_section.VirtualAddress \
                         + base_of_data_section_rva
-
+        """
         """ 
         Recalculates the SizeOfImage, SizeOfCode, SizeOfInitializedData and 
         SizeOfUninitializedData of the optional header.
         """
-        optional_hdr = self.PE.OPTIONAL_HEADER
-        optional_hdr.SizeOfImage = (
-            self.PE.sections[-1].VirtualAddress +
-            self.PE.sections[-1].Misc_VirtualSize
+
+        optional_hdr = self.pe.optional_header
+        optional_hdr.sizeof_image = (
+            self.pe.sections[len(self.pe.sections) - 1].virtual_size +
+            self.pe.sections[len(self.pe.sections) - 1].size
         )
 
-        optional_hdr.SizeOfCode = 0
-        optional_hdr.SizeOfInitializedData = 0
-        optional_hdr.SizeOfUninitializedData = 0
+        optional_hdr.sizeof_code = 0
+        optional_hdr.sizeof_initialized_data = 0
+        optional_hdr.sizeof_uninitialized_data = 0
 
         # Recalculating the sizes by iterating over every section and checking
         # if the appropriate characteristics are set.
-        for section in self.PE.sections:
-            if section.Characteristics & 0x00000020:
+        for section in self.pe.sections:
+            # 0x00000020
+            if section.has_characteristic(lief.PE.SECTION_CHARACTERISTICS.CNT_CODE):
                 # Section contains code.
-                optional_hdr.SizeOfCode += section.SizeOfRawData
-            if section.Characteristics & 0x00000040:
+                optional_hdr.sizeof_code += section.size
+            # 0x00000040
+            if section.has_characteristic(lief.PE.SECTION_CHARACTERISTICS.CNT_INITIALIZED_DATA):
                 # Section contains initialized data.
-                optional_hdr.SizeOfInitializedData += section.SizeOfRawData
-            if section.Characteristics & 0x00000080:
+                optional_hdr.sizeof_initialized_data += section.size
+            # 0x00000080
+            if section.has_characteristic(lief.PE.SECTION_CHARACTERISTICS.CNT_UNINITIALIZED_DATA):
                 # Section contains uninitialized data.
-                optional_hdr.SizeOfUninitializedData += section.SizeOfRawData
+                optional_hdr.sizeof_uninitialized_data += section.size
 
     def _adjust_data_directories(self):
         """
         adjust element of data directories.
         """
-        sections = self.PE.sections
-        origin_sections = self.section_prev_adjust
-        data_directories = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY
+        directory_adjust_fn = {
+            lief.PE.DATA_DIRECTORY.ARCHITECTURE: self._not_implement_yet_,
+            lief.PE.DATA_DIRECTORY.CERTIFICATE_TABLE: self._not_implement_yet_,
+            lief.PE.DATA_DIRECTORY.CLR_RUNTIME_HEADER: self._not_implement_yet_,
+            lief.PE.DATA_DIRECTORY.DEBUG: self._not_implement_yet_,
+            lief.PE.DATA_DIRECTORY.EXCEPTION_TABLE: self._not_implement_yet_,
+            lief.PE.DATA_DIRECTORY.GLOBAL_PTR: self._not_implement_yet_,
+            lief.PE.DATA_DIRECTORY.IAT: self._not_implement_yet_,
+            lief.PE.DATA_DIRECTORY.BASE_RELOCATION_TABLE: self._adjust_relocation,
+            # lief.PE.DATA_DIRECTORY.BOUND_IMPORT: self._adjust_bound_imports,
+            # lief.PE.DATA_DIRECTORY.DELAY_IMPORT_DESCRIPTOR: self._adjust_delay_import,
+            # lief.PE.DATA_DIRECTORY.IMPORT_TABLE: self._adjust_import,
+            lief.PE.DATA_DIRECTORY.LOAD_CONFIG_TABLE: self._adjust_load_config,
+            # lief.PE.DATA_DIRECTORY.RESOURCE_TABLE: self._adjust_resource,
+            # lief.PE.DATA_DIRECTORY.TLS_TABLE: self._adjust_TLS,
+        }
 
-        for index in range(len(origin_sections)):
-            section = sections[index]
-            origin_section = origin_sections[index]
-            origin_section_start = origin_section.VirtualAddress
-            if index + 1 < len(origin_sections):
-                origin_section_end = origin_sections[index + 1].VirtualAddress
-            else:
-                origin_section_end = origin_section.VirtualAddress + \
-                                     origin_section.Misc_VirtualSize
-            data_directories = \
-                self.adjust_directories(data_directories,
-                                        origin_section_start,
-                                        section.VirtualAddress,
-                                        origin_section_end,
-                                        section.Misc_VirtualSize)
+        for data_directory in self.pe.data_directories:
+            if data_directory.has_section:
+                section_cnt_data_directory = data_directory.section
+                if section_cnt_data_directory.name in self.origin_sections:
+                    origin_virtual_address = \
+                        self.origin_sections[section_cnt_data_directory.name]
+                    adjust_virtual_address = \
+                        section_cnt_data_directory.virtual_address
+                    if data_directory.type in directory_adjust_fn:
+                        # adjust data directory elements.
+                        entry = directory_adjust_fn[data_directory.type]
+                        entry(data_directory, origin_virtual_address,
+                              adjust_virtual_address)
+                    data_directory.rva += (adjust_virtual_address
+                                           - origin_virtual_address)
 
-    def adjust_directories(self, data_directories, origin_section_start,
-                           adjust_section_start, origin_section_end,
-                           adjust_section_end):
+    def _not_implement_yet_(self, directory,
+                            origin_cnt_section_rva,
+                            adjust_cnt_section_rva):
+        print("[{}] THIS DATA DIRECTORY IS NOT SUPPORT YET."
+              .format(directory.type))
+
+    def _adjust_load_config(self, directory,
+                            origin_cnt_section_rva,
+                            adjust_cnt_section_rva):
+        """
+        adjust relocation directory's elements.
+
+        Args:
+            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG
+            rva(int): current directory's relative virtual address.
+            size(int): current directory's size.
+            increase_size(int): increased size of section that directory included.
+        """
+        rva = directory.rva
+        increase_size = adjust_cnt_section_rva - origin_cnt_section_rva
+
+        # https://msdn.microsoft.com/en-us/library/windows/desktop/ms680328(v=vs.85).aspx
+        size = self.pe.get_content_from_virtual_address(rva, 4)
+        time = self.pe.get_content_from_virtual_address(rva + 0x4, 4)
+        version = self.pe.get_content_from_virtual_address(rva + 0x8, 4)
+        global_flags_clear = self.pe.get_content_from_virtual_address(rva + 0xC, 4)
+        global_flags_set = self.pe.get_content_from_virtual_address(rva + 0x10, 4)
+        critical_section_default_timeout = self.pe.get_content_from_virtual_address(rva + 0x14, 4)
+        decommit_free_block_threshold = self.pe.get_content_from_virtual_address(rva + 0x18, 4)
+        decommit_total_free_threshold = self.pe.get_content_from_virtual_address(rva + 0x1C, 4)
+        Lock_Prefix_Table_VA = self.pe.get_content_from_virtual_address(rva + 0x20, 4)
+        Maximum_Allocation_Size = self.pe.get_content_from_virtual_address(rva + 0x24, 4)
+        VIrtual_Memory_Threshold = self.pe.get_content_from_virtual_address(rva + 0x28, 4)
+        Process_Heap_Flags = self.pe.get_content_from_virtual_address(rva + 0x2C, 4)
+        Process_Affinity_Mask = self.pe.get_content_from_virtual_address(rva + 0x30, 4)
+        CSD_Version = self.pe.get_content_from_virtual_address(rva + 0x34, 4)
+        Edit_List_VA = self.pe.get_content_from_virtual_address(rva + 0x38, 4)
+
+        SecurityCookie = self.pe.get_content_from_virtual_address(rva + 0x3C, 4)
+        SecurityCookie = unpack("<i", bytearray(SecurityCookie))[0]
+        if SecurityCookie > 0:
+            self.pe.patch_address(rva + 0x3C, SecurityCookie + increase_size)
+        SEHandlerTable = self.pe.get_content_from_virtual_address(rva + 0x40, 4)
+        SEHandlerTable = unpack("<i", bytearray(SEHandlerTable))[0]
+        if SEHandlerTable > 0:
+            self.pe.patch_address(rva + 0x40, SEHandlerTable + increase_size)
+        SEHandlerCount = self.pe.get_content_from_virtual_address(rva + 0x44, 4)
+        SEHandlerCount = unpack("<i", bytearray(SEHandlerCount))[0]
+        if SEHandlerCount > 0:
+            self.pe.patch_address(rva + 0x48, SEHandlerCount + increase_size)
+        return 0
+
+    def _adjust_directories(self, data_directories, origin_section_start,
+                            adjust_section_start, origin_section_end,
+                            adjust_section_end):
         """
         adjust directories Virtual address.
 
@@ -511,16 +380,16 @@ class PEManager(object):
             adjust_section_end(int) : last virtual address of adjust section.
         """
         directory_adjust = {
-            'IMAGE_DIRECTORY_ENTRY_IMPORT': self.adjust_import,
+            # 'IMAGE_DIRECTORY_ENTRY_IMPORT': self._adjust_import,
             # 'IMAGE_DIRECTORY_ENTRY_DEBUG': self.adjustDebug,
-            'IMAGE_DIRECTORY_ENTRY_TLS': self.adjust_TLS,
-            'IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG': self.adjust_load_config,
-            'IMAGE_DIRECTORY_ENTRY_EXPORT': self.adjust_export,
-            'IMAGE_DIRECTORY_ENTRY_RESOURCE': self.adjust_resource,
-            'IMAGE_DIRECTORY_ENTRY_BASERELOC': self.adjust_relocation,
-            'IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT': self.adjust_delay_import,
-            'IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT': self.adjust_bound_imports,
-            'IMAGE_DIRECTORY_ENTRY_IAT': self.adjust_iat,
+            # 'IMAGE_DIRECTORY_ENTRY_TLS': self._adjust_TLS,
+            # 'IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG': self._adjust_load_config,
+            # 'IMAGE_DIRECTORY_ENTRY_EXPORT': self._adjust_export,
+            # 'IMAGE_DIRECTORY_ENTRY_RESOURCE': self._adjust_resource,
+            # 'IMAGE_DIRECTORY_ENTRY_BASERELOC': self._adjust_relocation,
+            # 'IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT': self._adjust_delay_import,
+            # 'IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT': self._adjust_bound_imports,
+            # 'IMAGE_DIRECTORY_ENTRY_IAT': self._adjust_iat,
         }
 
         remove_list = []
@@ -534,8 +403,8 @@ class PEManager(object):
                               directory.VirtualAddress,
                               origin_section_end,
                               directory.name))
-                index = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY.index(directory)
-                self.PE.OPTIONAL_HEADER.DATA_DIRECTORY[index].VirtualAddress \
+                index = self.pefile.OPTIONAL_HEADER.DATA_DIRECTORY.index(directory)
+                self.pefile.OPTIONAL_HEADER.DATA_DIRECTORY[index].VirtualAddress \
                     = directory.VirtualAddress + increased_size
                 try:
                     if directory.name in directory_adjust:
@@ -555,13 +424,15 @@ class PEManager(object):
         """
         set zero to certification data directory of pe file.
         """
-        for index in range(len(self.PE.OPTIONAL_HEADER.DATA_DIRECTORY)):
-            directory = self.PE.OPTIONAL_HEADER.DATA_DIRECTORY[index]
+        for index in range(len(self.pefile.OPTIONAL_HEADER.DATA_DIRECTORY)):
+            directory = self.pefile.OPTIONAL_HEADER.DATA_DIRECTORY[index]
             if directory.name == 'IMAGE_DIRECTORY_ENTRY_SECURITY':
                 directory.VirtualAddress = 0
                 directory.Size = 0
 
-    def adjust_relocation(self, directory, rva, size, increase_size):
+    def _adjust_relocation(self, directory,
+                           origin_cnt_section_rva,
+                           adjust_cnt_section_rva):
         """
         adjust relocation directory's elements.
 
@@ -571,157 +442,74 @@ class PEManager(object):
             size(int): current directory's size.
             increase_size(int): increased size of section that directory included.
         """
-        self.adjust_relocation_directories(increase_size)
-        self.log = LoggerFactory().get_new_logger("AdjustRelocation2nd.log")
-        relocation_dict = self.get_relocation_from_structures()
-        # TODO : fix assume that first section is text.
-        origin_sections = self.PEOrigin.sections
-        target_sections = self.PE.sections
-        execute_section_start = origin_sections[0].VirtualAddress
-        execute_section_end = (execute_section_start
-                               + origin_sections[0].Misc_VirtualSize)
-        other_section_start = origin_sections[1].VirtualAddress
-        other_section_end = (target_sections[-1:][0].VirtualAddress
-                             + target_sections[-1:][0].Misc_VirtualSize)
-        sorted_relocation_dict = sorted(relocation_dict.items(),
-                                        key=operator.itemgetter(0))
-        for block_va, entries in sorted_relocation_dict:
-            for entry in entries:
-                if entry.Data == 0x0:
-                    continue
-                reloc_rva = (entry.Data & 0xfff) + block_va
-                value = self.PE.get_dword_at_rva(reloc_rva)
-                if ((execute_section_start + self._IMAGE_BASE_)
-                        <= value
-                        < (execute_section_end + self._IMAGE_BASE_)):
+        increase_size = adjust_cnt_section_rva - origin_cnt_section_rva
+        self.enable_rebuild_relocation()
+        self._adjust_relocation_entries(increase_size)
+        self._adjust_relocation_target(increase_size)
+
+    def _get_dword_at_rva(self, rva):
+        value = self.pe.get_content_from_virtual_address(rva, 4)
+        return unpack("<i", bytearray(value))[0]
+
+    def _adjust_relocation_target(self, increase_size):
+        self.log = LoggerFactory().get_new_logger("adjust_relocation_target.log")
+        for index, section in enumerate(self.pe_origin.sections):
+            if index == 0:
+                code_section_rva = section.virtual_address
+                code_section_end = code_section_rva + section.size
+            if index == 1:
+                other_section_rva = section.virtual_address
+        last_section = self.pe.sections[len(self.pe.sections) - 1]
+        other_section_end = last_section.virtual_address + last_section.size
+        imagebase = self.get_image_base()
+        code_section_va = code_section_rva + imagebase
+        code_section_end += imagebase
+        other_section_va = other_section_rva + imagebase
+        other_section_end += imagebase
+
+        self.log.log("CODE_SECTION RANGE : {:x} ~ {:x}\n"
+                 .format(code_section_va, code_section_end))
+        self.log.log("OTHER_SECTION RANGE : {:x} ~ {:x}\n"
+                 .format(other_section_va, other_section_end))
+
+        for relocation in self.pe.relocations:
+            relocation_rva = relocation.virtual_address
+            for relocation_entry in relocation.entries:
+                entry_rva = relocation_rva + relocation_entry.position
+                relocation_target = self._get_dword_at_rva(entry_rva)
+                if code_section_va <= relocation_target < code_section_end:
+                    # relocation target value belong code section
+                    self.log.log("code section : {:x}\n".format(relocation_target))
                     instrumented_size = \
                         self.get_instrument() \
-                            .get_instrumented_vector_size(value
+                            .get_instrumented_vector_size(relocation_target
                                                           - self._IMAGE_BASE_
                                                           - 0x1000)
-
-                    structure = self.get_structure_from_rva(reloc_rva)
-                    if structure is not None:
-                        structure.AddressOfData = value + instrumented_size
-                        # actually effect
-                        structure.ForwarderString = value + instrumented_size
-                        structure.Function = value + instrumented_size
-                        structure.Ordinal = value + instrumented_size
-                        """
-                        origin = structure.__pack__()
-                        temp = structure.AddressOfData
-                        structure.AddressOfData = value + instrumented_size
-                        if origin == structure.__pack__():
-                            print("1")
-                        structure.AddressOfData = temp
-
-                        temp = structure.ForwarderString
-                        structure.ForwarderString = value + instrumented_size
-                        if origin == structure.__pack__():
-                            print("2")
-                        structure.ForwarderString = temp
-
-                        temp = structure.Function
-                        structure.Function = value + instrumented_size
-                        if origin == structure.__pack__():
-                            print("3")
-                        structure.Function = temp
-
-                        temp = structure.Ordinal
-                        structure.Ordinal = value + instrumented_size
-                        if origin == structure.__pack__():
-                            print("4")
-                        structure.Ordinal = temp
-                        """
-
-                    self.set_dword_at_rva(reloc_rva, value + instrumented_size)
-                    self.log.log("[1] [0x{:x}]\t0x{:x}\t0x{:x}\t0x{:x}\n"
-                                 .format(reloc_rva, value,
-                                         self.PE.get_dword_at_rva(reloc_rva),
-                                         instrumented_size))
-                elif ((other_section_start + self._IMAGE_BASE_)
-                        <= value
-                        < (other_section_end + self._IMAGE_BASE_)):
-                    self.set_dword_at_rva(reloc_rva, value + increase_size)
-                    self.log.log(
-                        "[2] [0x{:x}]\t0x{:x}\t0x{:x}\t0x{:x}\n"
-                            .format(reloc_rva, value,
-                                    self.PE.get_dword_at_rva(reloc_rva),
-                                    increase_size)
-                    )
+                    relocation_target += instrumented_size
+                    self.pe.patch_address(entry_rva, relocation_target, 4)
+                    check = self._get_dword_at_rva(entry_rva)
+                    self.log.log("\tPatch : {:x}\t{:x} => {:x}\n"
+                             .format(entry_rva, relocation_target, check))
+                elif other_section_va <= relocation_target < other_section_end:
+                    # relocation target value belong other section
+                    self.log.log("other section : {:x}\n".format(relocation_target))
+                    relocation_target += increase_size
+                    if relocation_target in self.api_list:
+                        self._register_api_address(entry_rva)
+                        continue
+                    self.pe.patch_address(entry_rva, relocation_target, 4)
+                    check = self._get_dword_at_rva(entry_rva)
+                    self.log.log("\tPatch : {:x}\t{:x} => {:x}\n"
+                                 .format(entry_rva, relocation_target, check))
                 else:
-                    try:
-                        self.log.log(
-                            "[3] [0x{:x}]\t0x{:x}\t0x{:x}\t0x{:x}\n"
-                                .format(reloc_rva, value,
-                                        self.PE.get_dword_at_rva(reloc_rva),
-                                        increase_size)
-                        )
-                    except ValueError as e:
-                        print("=================[ERROR]===================")
-                        print(e)
-                        print(
-                            "\t[ELSE] [0x{:x}]\t0x{:x}\t0x{:x}\t0x{:x}\n"
-                                .format(reloc_rva, value,
-                                        self.PE.get_dword_at_rva(reloc_rva),
-                                        increase_size)
-                        )
-                        exit()
+                    # check value for debug.
+                    self.log.log("[0x{:x}] does not belong section: {:x}\n"
+                             .format(entry_rva, relocation_target))
+        self.log.fin()
 
-    def adjust_load_config(self, directory, rva, size, increase_size):
-        """
-        adjust relocation directory's elements.
-
-        Args:
-            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_LOAD_CONFIG
-            rva(int): current directory's relative virtual address.
-            size(int): current directory's size.
-            increase_size(int): increased size of section that directory included.
-        """
-        size = self.PE.get_dword_at_rva(rva)
-        time = self.PE.get_dword_at_rva(rva + 0x4)
-        version = self.PE.get_dword_at_rva(rva + 0x8)
-        global_flags_clear = self.PE.get_dword_at_rva(rva + 0xC)
-        global_flags_set = self.PE.get_dword_at_rva(rva + 0x10)
-        critical_section_default_timeout = self.PE.get_dword_at_rva(rva + 0x14)
-        decommit_free_block_threshold = self.PE.get_dword_at_rva(rva + 0x18)
-        decommit_total_free_threshold = self.PE.get_dword_at_rva(rva + 0x1C)
-        Lock_Prefix_Table_VA = self.PE.get_dword_at_rva(rva + 0x20)
-        Maximum_Allocation_Size = self.PE.get_dword_at_rva(rva + 0x24)
-        VIrtual_Memory_Threshold = self.PE.get_dword_at_rva(rva + 0x28)
-        Process_Heap_Flags = self.PE.get_dword_at_rva(rva + 0x2C)
-        Process_Affinity_Mask = self.PE.get_dword_at_rva(rva + 0x30)
-        CSD_Version = self.PE.get_dword_at_rva(rva + 0x34)
-        Edit_List_VA = self.PE.get_dword_at_rva(rva + 0x38)
-
-        directory_load_config = self.PE.DIRECTORY_ENTRY_LOAD_CONFIG
-        if directory_load_config.struct.SecurityCookie > 0x0:
-            directory_load_config.struct.SecurityCookie += increase_size
-        if directory_load_config.struct.SEHandlerTable > 0x0:
-            directory_load_config.struct.SEHandlerTable += increase_size
-        if directory_load_config.struct.GuardCFCheckFunctionPointer > 0x0:
-            directory_load_config.struct.GuardCFCheckFunctionPointer \
-                += increase_size
-        # Security_Cookie_VA = self.PE.get_dword_at_rva(rva + 0x3C)
-        # self.setDwordAtRVA(rva + 0x3C, Security_Cookie_VA + increase_size)
-        # SE_Handler_Table_VA = self.PE.get_dword_at_rva(rva + 0x40)
-        # self.setDwordAtRVA(rva + 0x40, SE_Handler_Table_VA + increase_size)
-        SE_Handler_Count = self.PE.get_dword_at_rva(rva + 0x44)
-        return 0
-
-    def adjust_debug(self, directory, rva, size, increase_size):
-        """
-        adjust relocation directory's elements.
-
-        Args:
-            directory(:obj:`Structure`): IMAGE_DIRECTORY_ENTRY_DEBUG
-            rva(int): current directory's relative virtual address.
-            size(int): current directory's size.
-            increase_size(int): increased size of section that directory included.
-        """
-        return 0
-
-    def adjust_TLS(self, directory, rva, size, increase_size):
+    def _adjust_TLS(self, directory,
+                    origin_cnt_section_rva,
+                    adjust_cnt_section_rva):
         """
         adjust relocation directory's elements.
 
@@ -731,24 +519,23 @@ class PEManager(object):
             size(int): current directory's size.
             increase_size(int): increased size of section that directory included.
         """
-        directory_tls = self.PE.DIRECTORY_ENTRY_TLS
-        if directory_tls.struct.AddressOfCallBacks > 0:
-            directory_tls.struct.AddressOfCallBacks \
-                += increase_size
-        if directory_tls.struct.AddressOfIndex > 0:
-            directory_tls.struct.AddressOfIndex \
-                += increase_size
-        if directory_tls.struct.EndAddressOfRawData > 0:
-            directory_tls.struct.EndAddressOfRawData \
-                += increase_size
-        if directory_tls.struct.StartAddressOfRawData > 0:
-            directory_tls.struct.StartAddressOfRawData += increase_size
+        increase_size = adjust_cnt_section_rva - origin_cnt_section_rva
+        directory_tls = lief.PE.TLS
+        if directory_tls.addressof_callbacks > 0:
+            directory_tls.addressof_callbacks += increase_size
+        if directory_tls.addressof_index > 0:
+            directory_tls.addressof_index += increase_size
+        # TODO : addressof_raw_data is tuple contain start, end
+        if directory_tls.addressof_raw_data > 0:
+            directory_tls.addressof_raw_data += increase_size
+        if directory_tls.addressof_raw_data > 0:
+            directory_tls.addressof_raw_data += increase_size
         return 0
 
-    def adjust_iat(self, directory, rva, size, increase_size):
+    def _adjust_iat(self, directory, rva, size, increase_size):
         pass
 
-    def adjust_bound_imports(self, directory, rva, size, increase_size):
+    def _adjust_bound_imports(self, directory, rva, size, increase_size):
         """
         adjust relocation directory's elements.
 
@@ -760,7 +547,7 @@ class PEManager(object):
         """
         return 0
 
-    def adjust_delay_import(self, directory, rva, size, increase_size):
+    def _adjust_delay_import(self, directory, rva, size, increase_size):
         """
         adjust relocation directory's elements.
 
@@ -770,7 +557,7 @@ class PEManager(object):
             size(int): current directory's size.
             increase_size(int): increased size of section that directory included.
         """
-        first_import_entry = self.PE.DIRECTORY_ENTRY_DELAY_IMPORT[0]
+        first_import_entry = self.pefile.DIRECTORY_ENTRY_DELAY_IMPORT[0]
 
         first_import_entry.struct.pINT = \
             first_import_entry.struct.pINT + increase_size
@@ -799,7 +586,7 @@ class PEManager(object):
             ilt.Function += increase_size
             ilt.Ordinal += increase_size
 
-    def adjust_import(self, directory, rva, size, increase_size):
+    def _adjust_import(self, directory, rva, size, increase_size):
         """
         adjust relocation directory's elements.
 
@@ -832,7 +619,7 @@ class PEManager(object):
                     if entry.Function > 0:
                         entry.Function += increase_size
 
-    def adjust_export(self, directory, rva, size, increase_size):
+    def _adjust_export(self, directory, rva, size, increase_size):
         """
         adjust relocation directory's elements.
 
@@ -843,7 +630,7 @@ class PEManager(object):
             increase_size(int): increased size of section that directory included.
         """
         self.log = LoggerFactory().get_new_logger("AdjustExport.log")
-        export_entry = self.PE.DIRECTORY_ENTRY_EXPORT
+        export_entry = self.pefile.DIRECTORY_ENTRY_EXPORT
         export_entry_struct = export_entry.struct
         export_entry_struct.AddressOfFunctions += increase_size
         export_entry_struct.AddressOfNameOrdinals += increase_size
@@ -853,16 +640,16 @@ class PEManager(object):
 
         for index in range(len(export_entry.symbols)):
             entry_name_rva = export_entry_struct.AddressOfNames + (index * 4)
-            name_rva = self.PE.get_dword_at_rva(entry_name_rva)
+            name_rva = self.pefile.get_dword_at_rva(entry_name_rva)
             name_rva += increase_size
             self.set_dword_at_rva(entry_name_rva, name_rva)
             entry_fn_rva = export_entry_struct.AddressOfFunctions + (index * 4)
-            fn_rva = self.PE.get_dword_at_rva(entry_fn_rva)
+            fn_rva = self.pefile.get_dword_at_rva(entry_fn_rva)
 
             # when export RVA belong other section.
             if self.PEOrigin.sections[1].VirtualAddress <= fn_rva:
                 self.log.log("[OTHER]\t")
-                instrument_size = self.PE.sections[1].VirtualAddress \
+                instrument_size = self.pefile.sections[1].VirtualAddress \
                                   - self.PEOrigin.sections[1].VirtualAddress
 
             # when export RVA belong code section.
@@ -875,7 +662,7 @@ class PEManager(object):
             self.set_dword_at_rva(entry_fn_rva, fn_rva + instrument_size)
             self.log.log("{:x}\t{:x}\n".format(fn_rva, instrument_size))
 
-    def adjust_resource(self, directory, rva, size, increase_size):
+    def _adjust_resource(self, directory, rva, size, increase_size):
         """
         adjust relocation directory's elements.
 
@@ -885,50 +672,31 @@ class PEManager(object):
             size(int): current directory's size.
             increase_size(int): increased size of section that directory included.
         """
-        for rsrc_entries in self.PE.DIRECTORY_ENTRY_RESOURCE.entries:
+        for rsrc_entries in self.pefile.DIRECTORY_ENTRY_RESOURCE.entries:
             for rsrc_directory_entry in rsrc_entries.directory.entries:
                 for rsrc_directory_el in rsrc_directory_entry.directory.entries:
                     rsrc_directory_el.data.struct.OffsetToData += increase_size
-
-    def set_dword_at_rva(self, rva, dword):
-        """
-        set dword at rva.
-
-        Args:
-            rva(int) : relative address.
-            dword(bytes) : 4-bytes type value.
-        """
-        return self.PE.set_dword_at_rva(rva, dword)
-
-    def get_data_section(self):
-        """
-        get data section of PE.
-
-        Returns:
-            :obj:`Section` : data section of PE.
-        """
-        data_section = \
-            self.get_section_belong_rva(self.PE.OPTIONAL_HEADER.BaseOfData)
-        return data_section
 
     def _adjust_entry_point(self):
         """
         adjust entry point of file
         """
-        entry_va = self.get_entry_point_rva()
+        entry_va = self.get_entry_point_va()
         instrument_size = \
             self.get_instrument() \
                 .get_instrumented_vector_size(entry_va - 0x1000)
-        self.set_entry_point(entry_va + instrument_size)
+        self._set_entry_point(entry_va + instrument_size)
 
     def _adjust_executable_section(self):
         """
         create new section and append modified code data.
         """
         code_data = self.get_instrument().get_code()
-        self.create_new_executable_section(code_data)
+        self.pe.sections[0].virtual_size = (len(code_data))
+        self.pe.sections[0].sizeof_raw_data = (len(code_data))
+        self.pe.sections[0].content = code_data
 
-    def get_relocation_directories(self):
+    def _get_relocation_directories(self):
         """
         get relocation directories with its include elements.
 
@@ -944,7 +712,7 @@ class PEManager(object):
         relocation_blocks = {}
         relocation_entries = {}
         block_va = -1
-        for entry in self.PE.__structures__:
+        for entry in self.pefile.__structures__:
             if entry.name.find('IMAGE_BASE_RELOCATION_ENTRY') != -1:
                 if block_va > 0:
                     relocation_entries[block_va].append(entry)
@@ -956,14 +724,14 @@ class PEManager(object):
                 "DIRECTORY"
         return relocation_blocks, relocation_entries
 
-    def adjust_relocation_offset(self):
+    def _adjust_relocation_offset(self):
         """
         structures has owned offset.
         so, if modify position or order of structures element
         then must fix offset of structures element.
         """
         file_offset = 0
-        for entry in self.PE.__structures__:
+        for entry in self.pefile.__structures__:
             if entry.name.find('IMAGE_BASE_RELOCATION_ENTRY') != -1:
                 entry.set_file_offset(file_offset)
                 file_offset += 2
@@ -975,41 +743,7 @@ class PEManager(object):
             elif entry.name.find('DIRECTORY_ENTRY_BASERELOC') != -1:
                 'DIRECTORY_ENTRY_BASERELOC'
 
-    def get_abs_va_from_offset(self, offset):
-        """
-        calculate absolute virtual address from offset.
-
-        Args:
-            offset(int) : offset of file.
-
-        Returns:
-            int : absolute address to match offset.
-        """
-        rva = self.PE.get_rva_from_offset(offset)
-        return self.get_abs_va_from_rva(rva)
-
-    def get_abs_va_from_rva(self, rva):
-        """
-        get absolute virtual address from rva that argument.
-
-        Args:
-            rva(int) : relative address to be calculate.
-
-        Returns:
-            int : absolute address from rva.
-        """
-        return self.PE.OPTIONAL_HEADER.ImageBase + rva
-
-    def get_image_base(self):
-        """
-        get address of image base.
-
-        Returns:
-            int : virtual address of image base.
-        """
-        return self.PE.OPTIONAL_HEADER.ImageBase
-
-    def get_structure_from_rva(self, rva):
+    def _get_structure_from_rva(self, rva):
         """
         Find the structure located in rva.
 
@@ -1020,39 +754,94 @@ class PEManager(object):
             :obj:`Structure` : structure that has located in rva.
         """
         result = None
-        offset = self.PE.get_physical_by_rva(rva)
+        offset = self.pefile.get_physical_by_rva(rva)
         if not offset:
             print("ERROR UNBOUNDED RVA")
             exit()
-        for structure in self.PE.__structures__:
+        for structure in self.pefile.__structures__:
             structure_offset = structure.get_file_offset()
             if offset == structure_offset:
                 result = structure
                 break
         return result
 
-    def get_bytes_at_offset(self, offset_start, offset_stop):
-        return self.PE.__data__[offset_start:offset_stop]
-
-    def adjust_relocation_directories(self, increase_size):
+    def _adjust_relocation_entries(self, increase_size):
         """
-        adjust relocation directories and its elements.
+        adjust relocation directories and its entries.
         """
-        self.log = LoggerFactory().get_new_logger("AdjustRelocation1st.log")
-        relocation_blocks, relocation_entries = \
-            self.get_relocation_directories()
-        sorted_relocation_blocks = sorted(relocation_blocks.items(),
-                                          key=operator.itemgetter(0))
-        for index, (block_va, block) in enumerate(sorted_relocation_blocks):
-            for entry in relocation_entries[block_va]:
-                if entry.Data == 0:
-                    continue
-                self.relocation_entry_move_to_appropriate_block(entry, block,
-                                                                increase_size)
-        self.adjust_relocation_offset()
+        self.log = LoggerFactory().get_new_logger("adjust_relocation_entries.log")
+        relocation_rva = []
+        # TODO : current working with relocation is only support type 3
+        for relocation in self.pe.relocations:
+            for relocation_entry in relocation.entries:
+                if relocation_entry.position > 0:
+                    entry_rva = relocation_entry.position \
+                                + relocation.virtual_address
+                    relocation_rva.append(entry_rva)
 
-    def relocation_entry_move_to_appropriate_block(self, entry, block,
-                                                   increase_size):
+        adjusted_relocation_rva = []
+        for rva in relocation_rva:
+            adjusted_relocation_rva.append(
+                self._adjust_relocation_rva(rva, increase_size)
+            )
+
+        build_relocation = {}
+        for rva in adjusted_relocation_rva:
+            relocation_block_rva = rva & 0xfffff000
+            if not (relocation_block_rva in build_relocation):
+                # if relocation does not exist then make relocation first.
+                relocation_block_new = lief.PE.Relocation()
+                relocation_block_new.virtual_address = relocation_block_rva
+                build_relocation[relocation_block_rva] = relocation_block_new
+            # append rva as relocation entry to relocation.
+            relocation_entry = self.gen_relocation_entry_from_rva(rva)
+            build_relocation[relocation_block_rva].add_entry(relocation_entry)
+
+        self.pe.remove_all_relocations()
+        for rva, relocation in build_relocation.items():
+            self.pe.add_relocation(relocation)
+
+    def gen_relocation_entry_from_rva(self, rva):
+        relocation_position = rva & 0xfff
+        relocation_entry_new = lief.PE.RelocationEntry()
+        relocation_entry_new.type = lief.PE.RELOCATIONS_BASE_TYPES(3)
+        relocation_entry_new.position = relocation_position
+        return relocation_entry_new
+
+    def _get_code_section_end(self):
+        (rva, rva_end) = self.get_text_section_virtual_address_range()
+        return rva_end
+
+    def _adjust_relocation_rva(self, relocation_rva, increase_size):
+        code_section_end = self._get_code_section_end()
+        # we assume that first section virtual address is 0x1000
+        instrumented_size = self.get_instrument() \
+            .get_instrumented_vector_size(relocation_rva - 0x1000)
+
+        if relocation_rva + instrumented_size <= code_section_end:
+            # if code section include relocation rva.
+            self.log.log("[CODE] original entry rva : [0x{:x}]\t"
+                         "adjusted entry rva : [0x{:x}]\t"
+                         "instrumented size ; 0x{:x}\n"
+                         .format(relocation_rva,
+                                 relocation_rva + instrumented_size,
+                                 instrumented_size)
+                         )
+            relocation_rva += instrumented_size
+        else:
+            # otherwise, relocation rva not belong code section.
+            self.log.log("[OTHER] original entry rva : [0x{:x}]\t"
+                         "adjusted entry rva : [0x{:x}]\t"
+                         "instrumented size ; 0x{:x}\n"
+                         .format(relocation_rva,
+                                 relocation_rva + increase_size,
+                                 increase_size)
+                         )
+            relocation_rva += increase_size
+        return relocation_rva
+
+    def _relocation_entry_move_to_appropriate_block(self, entry, block,
+                                                    increase_size):
         """
         move relocation entry to appropriate relocation block.
 
@@ -1061,11 +850,11 @@ class PEManager(object):
             block(Structure) : IMAGE_BASE_RELOCATION
             increase_size(int) : size to move the entry
         """
-        pe_structure = self.PE.__structures__
+        pe_structure = self.pefile.__structures__
         # we assume first section is text section.
         # code section's address end that increased by instrument.
-        instrumented_code_section_end = self.PE.sections[0].VirtualAddress \
-                                        + self.PE.sections[0].Misc_VirtualSize
+        instrumented_code_section_end = self.pefile.sections[0].VirtualAddress \
+                                        + self.pefile.sections[0].Misc_VirtualSize
         entry_data = entry.Data & 0x0fff
         entry_type = entry.Data & 0xf000
         block_va = block.VirtualAddress
@@ -1103,28 +892,7 @@ class PEManager(object):
                          .format(entry_rva, entry_data + block_va,
                                  entry_data, increase_size))
 
-    def register_rva_to_relocation(self, rva):
-        """
-        append rva to relocation list.
-        if appropriate block is not exist, then append it after make new block.
-
-        Args:
-            rva(int) : relative address for relocating.
-        """
-        block_rva = rva & 0xfffff000
-        pe_structure = self.PE.__structures__
-
-        (relocationBlocks, relocationEntries) = \
-            self.get_relocation_directories()
-
-        if block_rva in relocationBlocks:
-            block_index = pe_structure.index(relocationBlocks[block_rva])
-        else:
-            block_index = self.gen_new_relocation_block(block_rva)
-        entry = self.gen_new_relocation_entry(rva)
-        self.append_relocation_entry_to_block(entry, block_index)
-
-    def gen_new_relocation_block(self, block_rva):
+    def _gen_new_relocation_block(self, block_rva):
         """
         generate new relocation block that cover rva.
         Args:
@@ -1133,9 +901,9 @@ class PEManager(object):
         Returns:
             int : index of generated block.
         """
-        pe_structure = self.PE.__structures__
+        pe_structure = self.pefile.__structures__
         (relocation_blocks, relocation_entries) \
-            = self.get_relocation_directories()
+            = self._get_relocation_directories()
         sorted_relocation_blocks = sorted(relocation_blocks.items(),
                                           key=operator.itemgetter(0))
         for _block_rva, _block in sorted_relocation_blocks:
@@ -1150,37 +918,7 @@ class PEManager(object):
         pe_structure.insert(block_index, new_block)
         return block_index
 
-    def gen_new_empty_import_descriptor(self):
-        """
-        generate new import descriptor that has empty.
-
-        Returns:
-            :obj:`Structure` : IMPORT_DESCRIPTOR
-        """
-        structure = Structure(self.PE.__IMAGE_IMPORT_DESCRIPTOR_format__)
-        return structure
-
-    def gen_new_empty_import_thunk(self):
-        """
-        generate new import descriptor that has empty.
-
-        Returns:
-            :obj:`Structure` : IMPORT_THUNK
-        """
-        structure = Structure(self.PE.__IMAGE_THUNK_DATA_format__)
-        return structure
-
-    def get_new_empty_thunk(self):
-        """
-        generate new empty thunk.
-
-        Returns:
-            :obj:`Structure` : IMPORT_THUNK
-        """
-        structure = Structure(self.PE.__IMAGE_THUNK_DATA_format__)
-        return structure
-
-    def gen_new_relocation_entry(self, rva):
+    def _gen_new_relocation_entry(self, rva):
         """
         Create a relocation entry for rva.
 
@@ -1190,11 +928,11 @@ class PEManager(object):
         Returns:
             :obj:`Structure` : IMAGE_BASE_RELOCATION_ENTRY
         """
-        structure = Structure(self.PE.__IMAGE_BASE_RELOCATION_ENTRY_format__)
+        structure = Structure(self.pefile.__IMAGE_BASE_RELOCATION_ENTRY_format__)
         setattr(structure, "Data", (rva & 0xfff) + 0x3000)
         return structure
 
-    def append_relocation_entry_to_block(self, entry, block_index):
+    def _append_relocation_entry_to_block(self, entry, block_index):
         """
         append relocation entry to appropriate relocation block.
 
@@ -1202,7 +940,7 @@ class PEManager(object):
             entry(Structure) : entry to be append.
             block_index(int) : index of block.
         """
-        pe_structure = self.PE.__structures__
+        pe_structure = self.pefile.__structures__
         _block_size = pe_structure[block_index].SizeOfBlock
         if (_block_size - 8) > 0:
             block_entry_count = (_block_size - 8) / 2
@@ -1211,23 +949,246 @@ class PEManager(object):
             pe_structure.insert(block_index + 1, entry)
         pe_structure[block_index].SizeOfBlock += 2
 
-    def get_section_belong_rva(self, rva):
+    @staticmethod
+    def _get_cloned_section_header(section):
         """
-        Find the section containing rva.
+        make clone section from argument and return it.
 
         Args:
-            rva(int) : rva for find section.
+            section(:obj:`Section`) : section that need clone
 
         Returns:
-            :obj:`Section` : the Section to which the given relative address as argument belongs.
+            :obj:`Section` : cloned section from argument
         """
-        sections = self.PE.sections
-        for section in sections:
-            if section.VirtualAddress \
-                    <= rva \
-                    < section.VirtualAddress + section.Misc_VirtualSize:
-                return section
-        return None
+        clone_section = copy.copy(section)
+        return clone_section
+
+    def _create_new_executable_section(self, data):
+        """
+        Create new executable section with given data.
+
+        Args:
+            data(bytearray) : Raw point of new section
+        """
+        size_of_data = len(data)
+        (pointToRaw, sizeOfRaw) = self._append_data_to_file(data)
+        # TODO : Fixed the assumption that the first section is a text section.
+        section = self.pefile.sections[0]
+        section.SizeOfRawData = sizeOfRaw
+        section.PointerToRawData = pointToRaw
+        section.Misc_VirtualSize = size_of_data
+        section.Misc_PhysicalAddress = size_of_data
+        section.Misc = size_of_data
+        # self.PE.OPTIONAL_HEADER.SizeOfCode = size_of_data
+
+    def set_instrument(self, instrumentor):
+        """
+        set up instrument
+
+        Args:
+            instrumentor(:obj:`PEInstrument`) : instrument of this file
+        """
+        self.instrument = instrumentor
+
+    def get_instrument(self):
+        """
+        get instrument of current file
+
+        Returns:
+            :obj:`PEInstrument` : instrument of current file util
+        """
+        return self.instrument
+
+    def adjust_relocation_data_in_scope(self, start, end, increase_size):
+        """
+        Adjust the values of data belonging to a specific scope.
+
+        Args:
+            start(int) : start of scope.
+            end(int) : end of scope.
+            increase_size(int): the size to be adjust.
+        """
+        for relocation_block in self.pe.relocations:
+            for relocation_entry in relocation_block.entries:
+                relocation_rva = relocation_block.virtual_address \
+                                 + relocation_entry.position
+                value = \
+                    self.pe.get_content_from_virtual_address(relocation_rva, 4)
+                if ((start + self._IMAGE_BASE_)
+                        <= value
+                        < (end + self._IMAGE_BASE_)):
+                    self.pe.patch_address(relocation_rva, value + increase_size)
+
+    def get_last_section(self):
+        return self.pe.sections[len(self.pe.sections) - 1]
+
+    def create_new_data_section(self, data, name):
+        """
+        Create a new data section and add it to the last section.
+
+        Args:
+            data(bytearray) : data for append to section.
+            name(str) : name of section.
+
+        Returns:
+            :obj:`Section` : new section that created.
+        """
+        if len(name) > 8:
+            print("[EXCEPTION] SECTION NAME MUST LESS THEN 8 CHARACTER")
+            exit()
+
+        section_last = self.get_last_section()
+        section_last_rva = section_last.virtual_address \
+                           + section_last.virtual_size
+        section_new_rva = self._get_aligned_rva(section_last_rva)
+        section_new = lief.PE.Section(name)
+        section_new.content = data
+        section_new.virtual_address = section_new_rva    # choose by lief
+        section_new.characteristics = \
+            lief.PE.SECTION_CHARACTERISTICS.CNT_INITIALIZED_DATA \
+            | lief.PE.SECTION_CHARACTERISTICS.MEM_READ
+        self.pe.add_section(section_new)
+        return section_new
+
+    def set_bytes_at_rva(self, rva, bytes):
+        self.pe.patch_address(rva, bytes)
+
+    def set_dword_at_rva(self, rva, dword):
+        """
+        set dword at rva.
+
+        Args:
+            rva(int) : relative address.
+            dword(int) : 4-bytes int value.
+        """
+        self.pe.patch_address(rva, dword)
+
+    def get_data_from_rva(self, rva, size):
+        return self.pe.get_content_from_virtual_address(rva, size)
+
+    def get_section_raw_data(self, section):
+        """
+        get raw data from section header
+
+        Args:
+            section(Section) : section header that
+        Returns:
+            :obj:`bytearray` : data that section contain.
+        """
+        offset = section.PointerToRawData
+        size = section.SizeOfRawData
+        data = bytearray(self._get_file_data()[offset:offset + size])
+        return data
+
+    def get_entry_point_va(self):
+        """
+        get Entry point virtual address of file
+
+        Returns:
+            int : entry point virtual address
+        """
+        return self.pe.optional_header.addressof_entrypoint
+
+    def get_text_section_virtual_address_range(self):
+        """
+        get Virtual address range of text section
+
+        Returns:
+            :obj:`tuple` : tuple containing :
+                - int : the start address of section. \n
+                - int : the end address of section.
+        """
+        executable_section = self.get_text_section()
+        va_size = executable_section.size
+        va = executable_section.virtual_address
+        return va, va + va_size
+
+    def get_text_section(self):
+        """
+        get text section.
+
+        Returns:
+            :obj:`section` : Text section.
+        """
+        code_rva = self.pe.optional_header.baseof_code
+        code_section = self.pe.section_from_rva(code_rva)
+        return code_section
+
+    def get_relocation(self):
+        """
+        get relocation elements.
+
+        Returns:
+            :obj:`dict` : Dict containing:
+                int : address of relocation block\n
+                :obj:`list` : relocation block info. list containing:
+                    - int : relative address of relocation element.
+                    - int : address of relocation element.
+                    - int : type that represented by int.
+        """
+        relocation_dict = {}
+        for relocation in self.pe.relocations:
+            entries = []
+            for relocation_entry in relocation.entries:
+                entries.append(relocation_entry)
+            relocation_dict[relocation.virtual_address] = entries
+        return relocation_dict
+
+    def get_import_structures(self):
+        """
+        get import lists of pe file.
+
+        Returns:
+            :obj:`list` : containing structures of import :
+                :obj:`Structure`: IMAGE_IMPORT_DESCRIPTOR or IMAGE_THUNK_DATA
+        """
+        imports_start_index = 0
+        imports_end_index = 0
+
+        for index, structure in enumerate(self.pefile.__structures__):
+            if ((structure.name == 'IMAGE_IMPORT_DESCRIPTOR')
+                    == (structure.name == 'IMAGE_THUNK_DATA')):
+                if imports_start_index > 0:
+                    imports_end_index = index
+                    break
+            else:
+                if imports_start_index == 0:
+                    imports_start_index = index
+        return self.pefile.__structures__[imports_start_index:imports_end_index]
+
+    def get_imports_range_in_structures(self):
+        """
+        start and end index of import at structures.
+
+        Returns:
+            :obj:`tuple` : tuple containing:
+                - int : start index of import at structures.
+                - int : last index of import at structures.
+        """
+        imports_start_index = 0
+        imports_end_index = 0
+
+        for index, structure in enumerate(self.pefile.__structures__):
+            if ((structure.name == 'IMAGE_IMPORT_DESCRIPTOR')
+                    == (structure.name == 'IMAGE_THUNK_DATA')):
+                if imports_start_index > 0:
+                    imports_end_index = index
+                    break
+            else:
+                if imports_start_index == 0:
+                    imports_start_index = index
+        return imports_start_index, imports_end_index
+
+    def get_data_section(self):
+        """
+        get data section of PE.
+
+        Returns:
+            :obj:`Section` : data section of PE.
+        """
+        data_section = \
+            self.get_section_belong_rva(self.pefile.OPTIONAL_HEADER.BaseOfData)
+        return data_section
 
     def get_data_directory_address_range(self, entry_name):
         """
@@ -1241,9 +1202,30 @@ class PEManager(object):
                 - int : Virtual address of data directory.
                 - int : Size of data directory.
         """
-        for entry in self.PE.OPTIONAL_HEADER.DATA_DIRECTORY:
+        for entry in self.pefile.OPTIONAL_HEADER.DATA_DIRECTORY:
             if entry.name == entry_name:
                 return entry.VirtualAddress, entry.Size
+
+    def get_abs_va_from_rva(self, rva):
+        """
+        get absolute virtual address from rva that argument.
+
+        Args:
+            rva(int) : relative address to be calculate.
+
+        Returns:
+            int : absolute address from rva.
+        """
+        return self.pe.optional_header.imagebase + rva
+
+    def get_image_base(self):
+        """
+        get address of image base.
+
+        Returns:
+            int : virtual address of image base.
+        """
+        return self.pe.optional_header.imagebase
 
     def get_import_descriptor_address_range(self):
         """
@@ -1267,56 +1249,134 @@ class PEManager(object):
         """
         return self.get_data_directory_address_range('IMAGE_DIRECTORY_ENTRY_IAT')
 
-    @staticmethod
-    def is_executable_section(section):
+    def get_section_belong_rva(self, rva):
         """
-        Whether the section is an executable.
+        Find the section containing rva.
 
         Args:
-            section(Section): Section to check
-        Returns:
-            bool : true if executable, false otherwise
-        """
-        if section.Characteristics \
-                & SECTION_CHARACTERISTICS['IMAGE_SCN_MEM_EXECUTE']:
-            return True
-        return False
-
-    @staticmethod
-    def get_cloned_section_header(section):
-        """
-        make clone section from argument and return it.
-
-        Args:
-            section(:obj:`Section`) : section that need clone
+            rva(int) : rva for find section.
 
         Returns:
-            :obj:`Section` : cloned section from argument
+            :obj:`Section` : the Section to which the given relative address as argument belongs.
         """
-        clone_section = copy.copy(section)
-        return clone_section
+        return self.pe.section_from_rva(rva)
 
-    def adjust_data_in_range(self, start, end, increase_size):
+    def get_bytes_at_offset(self, offset_start, offset_stop):
+        return self.pefile.__data__[offset_start:offset_stop]
+
+    def gen_new_empty_import_descriptor(self):
         """
-        Adjust the values of data belonging to a specific range.
+        generate new import descriptor that has empty.
+
+        Returns:
+            :obj:`Structure` : IMPORT_DESCRIPTOR
+        """
+        structure = Structure(self.pefile.__IMAGE_IMPORT_DESCRIPTOR_format__)
+        return structure
+
+    def gen_new_empty_import_thunk(self):
+        """
+        generate new import descriptor that has empty.
+
+        Returns:
+            :obj:`Structure` : IMPORT_THUNK
+        """
+        structure = Structure(self.pefile.__IMAGE_THUNK_DATA_format__)
+        return structure
+
+    def is_relocatable(self):
+        """
+        Verify that the file can be relocated.
+
+        Returns:
+            bool : True if relocation possible, False otherwise.
+        """
+        return self.pe.has_relocations
+
+    def register_rva_to_relocation(self, rva):
+        """
+        append rva to relocation list.
+        if appropriate block is not exist, then append it after make new block.
 
         Args:
-            start(int) : start of range.
-            end(int) : end of range.
-            increase_size(int): the size to be adjust.
+            rva(int) : relative address for relocating.
         """
-        relocation_dict = self.get_relocation_from_structures()
-        sorted_relocation_dict = sorted(relocation_dict.items(),
-                                        key=operator.itemgetter(0))
-        for block_va, entries in sorted_relocation_dict:
-            for entry in entries:
-                if entry.Data == 0x0:
-                    continue
-                relocation_rva = (entry.Data & 0xfff) + block_va
-                value = self.PE.get_dword_at_rva(relocation_rva)
-                if ((start + self._IMAGE_BASE_)
-                        <= value
-                        < (end + self._IMAGE_BASE_)):
-                    self.set_dword_at_rva(relocation_rva, value + increase_size)
-                    print("{:x}\t{:x}\t{:x}".format(relocation_rva, value,
-                                                    increase_size))
+        block_rva = rva & 0xfffff000
+        position = rva & 0x00000fff
+
+        relocation_entry_new = None
+        for relocation in self.pe.relocations:
+            if relocation.virtual_address == block_rva:
+                relocation_entry_new = lief.PE.RelocationEntry()
+                relocation_entry_new.type = lief.PE.RELOCATIONS_BASE_TYPES.HIGHLOW
+                relocation_entry_new.position = position
+                relocation.add_entry(relocation_entry_new)
+
+        if relocation_entry_new is None:
+            relocation_entry_new = lief.PE.RelocationEntry()
+            relocation_entry_new.type = lief.PE.RELOCATIONS_BASE_TYPES.HIGHLOW
+            relocation_entry_new.position = position
+            relocation_block_new = lief.PE.Relocation()
+            relocation_block_new.virtual_address = block_rva
+            relocation_block_new.add_entry(relocation_entry_new)
+            self.pe.add_relocation(relocation_block_new)
+
+    def writefile(self, file_path):
+        """
+        write instrumented & modified file data to file.
+
+        Args:
+            file_path (str) : file path with absolute path.
+        """
+        self._adjust_file_layout()
+        self.builder.build()
+        self.adjust_register_api()
+        self.disable_patch_import()
+        self.disable_rebuild_relocation()
+        self.builder.build()
+        self.builder.write(file_path)
+
+    def writefile_without_adjust(self, file_path):
+        """
+        write file data to file.
+
+        Args:
+            file_path(str) : file name with its absolute path.
+        """
+        self.builder.build()
+        self.builder.write(file_path)
+
+    def enable_patch_import(self):
+        self.builder.build_imports(True).patch_imports(True)
+
+    def disable_patch_import(self):
+        self.builder.build_imports(False).patch_imports(False)
+
+    def enable_rebuild_relocation(self):
+        self.builder.build_relocations(True)
+
+    def disable_rebuild_relocation(self):
+        self.builder.build_relocations(False)
+
+    def add_library(self, lib_name):
+        return self.pe.add_library(lib_name)
+
+    def predict_function_rva(self, lib_name, fn_name):
+        return self.pe.predict_function_rva(lib_name, fn_name)
+
+    def _register_api_address(self, entry_rva):
+        self.api_rva.append(entry_rva)
+
+    def register_api_list(self, dll_name, api_name, fn_va):
+        self.api_list[fn_va] = (dll_name, api_name)
+
+    def adjust_register_api(self):
+        for entry_rva in self.api_rva:
+            bound_api_rva = self._get_dword_at_rva(entry_rva)
+            if bound_api_rva in self.api_list:
+                (dll_name, api_name) = self.api_list[bound_api_rva]
+                api_rva = self.predict_function_rva(dll_name, api_name)
+                self.pe.patch_address(entry_rva,
+                                      self.get_abs_va_from_rva(api_rva)
+                                      - 0x1000,
+                                      4)

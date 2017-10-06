@@ -35,8 +35,8 @@ def simple_instrument_error_handler(pe_instrument, pe_manager, fn_rva):
     allocation_va = allocation.get_va()
     caption_start_pos = 0
     text_start_pos = 0x100
-    allocation[caption_start_pos:len(caption)] = caption
-    allocation[text_start_pos:len(text)] = text
+    allocation[caption_start_pos:len(caption)] = bytearray(caption)
+    allocation[text_start_pos:len(text)] = bytearray(text)
 
     code = ("push 0;"   # UINT    uType
             "push {};"   # LPCTSTR lpCaption,

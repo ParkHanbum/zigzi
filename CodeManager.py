@@ -14,6 +14,11 @@ from Log import LoggerFactory
 class CodeManager(object):
 
     def __init__(self, code, rva):
+        if isinstance(code, list):
+            code = bytearray(code)
+        if not isinstance(code, bytearray):
+            print("CodeManager only take bytearray or list as argument")
+            exit()
         self.code = code
         self.rva = rva
         self.log = LoggerFactory().get_new_logger("Instrument.log")

@@ -32,17 +32,13 @@ class PEInstrument(object):
             exit()
         self.pe_manager = pe_manager
         self.pe_manager.set_instrument(self)
-        self.entryPointVA = self.pe_manager.get_entry_point_rva()
         self.ks = Ks(KS_ARCH_X86, KS_MODE_32)
         self.cs = Cs(CS_ARCH_X86, CS_MODE_32)
-
         execute_section = self.pe_manager.get_text_section()
-        execute_section_data = \
-            self.pe_manager.get_section_raw_data(execute_section)
+        execute_section_data = execute_section.content
         self.code_manager = CodeManager(execute_section_data,
-                                        execute_section.VirtualAddress)
+                                        execute_section.virtual_address)
         self.disassembler = Disassembler(self.code_manager)
-
         # save history of instrument for relocation
         self.instrument_pos_dict = {}
         self.current_instrument_pos_dict = {}
@@ -379,10 +375,10 @@ class PEInstrument(object):
         """
         # instructions = self.Disassembler.getDisassembleList()
         instructions = self.get_instructions()
-        if not self.pe_manager.is_possible_relocation():
+        if not self.pe_manager.is_relocatable():
             print("Not Support PE without relocation, yet.")
             exit()
-        self._save_instruction_log()
+        self.save_final_instruction()
         self.log = LoggerFactory().get_new_logger("AdjustDirectBranches.log")
         for instAddress, instruction in instructions:
             if ((not self.disassembler.is_indirect_branch(instruction))
@@ -485,7 +481,8 @@ class PEInstrument(object):
                                      instruction.op_str, operand_value,
                                      adjusted_operand_value))
             except Exception as e:
-                print(e)
+                # print("[adjust_direct_branches]")
+                # print(e)
                 self._instrument_overflow_occurred()
                 self.overflowed_instrument_dict[instruction.address] = \
                     (instruction,
@@ -820,8 +817,11 @@ class PEInstrument(object):
         data_chunk = DataSegment.Chunk(self.pe_manager, size)
         return data_chunk
 
-    def _save_instruction_log(self):
-        self.log = LoggerFactory().get_new_logger("final_instructions.log")
+    def save_final_instruction(self):
+        self.save_instruction_log("final_instructions.log")
+
+    def save_instruction_log(self, log_name):
+        self.log = LoggerFactory().get_new_logger(log_name)
         instructions = self.get_instructions()
         for address, inst in instructions:
             self.log.log("[0x{:04x}]\t{}\t{}\n"
@@ -829,3 +829,4 @@ class PEInstrument(object):
                                  + self.pe_manager.get_image_base()
                                  + 0x1000,
                                  inst.mnemonic, inst.op_str))
+

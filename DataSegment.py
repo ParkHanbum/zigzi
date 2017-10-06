@@ -15,12 +15,10 @@ class Chunk(object):
         if not isinstance(pe_manager, PEManager):
             raise TypeError('data should be of type: PEManager')
         data = bytearray(size)
-        section = pe_manager.create_new_data_section(data, ".zigzi")
+        section = pe_manager.create_new_data_section(data, ".zigzi1")
         self.pe_manager = pe_manager
-        self.offset = section.PointerToRawData
-        self.offset_end = section.SizeOfRawData
-        self.section_rva = section.VirtualAddress
-        self.section_va = pe_manager.get_abs_va_from_rva(self.section_rva)
+        self.rva = section.virtual_address
+        self.section_va = pe_manager.get_abs_va_from_rva(self.rva)
         self.size = size
 
     def __len__(self):
@@ -28,52 +26,52 @@ class Chunk(object):
 
     def __getitem__(self, i):
         if type(i) is slice:
-            start = i.start + self.offset
-            stop = i.stop + self.offset
+            start = i.start + self.rva
+            size = i.stop - i.start
             step = i.step
             if step is not None:
                 print("NOT SUPPORTED STEP")
+                exit()
         else:
-            start = self.offset + i
-            stop = self.offset + i + 1
+            start = self.rva + i
+            size = 1
 
-        if start >= self.size + self.offset\
-                or start < self.offset:
+        if start >= self.size + self.rva\
+                or start < self.rva:
             raise IndexError(
                 "Indexing is out of range Min:0 ~ Max:{} but argument:{}"
-                    .format(self.size, start - self.offset)
+                    .format(self.size, start - self.rva)
             )
-        if stop >= self.size + self.offset \
-                or start < self.offset:
+        if size >= self.size + self.rva \
+                or start < self.rva:
             raise IndexError(
                 "Indexing is out of range Min:0 ~ Max:{} but argument:{}"
-                    .format(self.size, start - self.offset)
+                    .format(self.size, start - self.rva)
             )
 
-        return self.pe_manager.get_bytes_at_offset(start, stop)
+        return self.pe_manager.get_data_from_rva(start, size)
 
     def __delitem__(self, i):
         pass
 
     def __setitem__(self, i, v):
         if type(i) is slice:
-            start = i.start + self.offset
-            stop = i.stop
+            start = i.start + self.rva
+            size = i.stop - i.start
             step = i.step
             if step is not None:
                 print("NOT SUPPORTED STEP")
                 exit()
         else:
-            start = i + self.offset
+            start = i + self.rva
 
-        if start >= self.size + self.offset \
-                or start < self.offset:
+        if start >= self.size + self.rva \
+                or start < self.rva:
             raise IndexError(
                 "Indexing is out of range Max:{} but argument:{}"
-                    .format(self.size, start - self.offset)
+                    .format(self.size, start - self.rva)
             )
-        self.pe_manager.PE.set_bytes_at_offset(start, v)
-                                               # struct.pack('<L', v))
+        self.pe_manager.set_bytes_at_rva(start, v)
 
     def get_va(self):
         return self.section_va

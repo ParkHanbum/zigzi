@@ -84,9 +84,9 @@ class Tests(unittest.TestCase):
         dst_pe_manager = PEManager(cls.dst_filename)
         dst_data_section = dst_pe_manager.get_data_section()
         src_data_section = src_pe_manager.get_data_section()
-        cls._Adjust_Size_ = dst_data_section.VirtualAddress \
-                            - src_data_section.VirtualAddress
-        cls._Image_Base_ = src_pe_manager.PE.OPTIONAL_HEADER.ImageBase
+        cls._Adjust_Size_ = dst_data_section.virtual_address \
+                            - src_data_section.virtual_address
+        cls._Image_Base_ = src_pe_manager.get_image_base()
 
     @classmethod
     def tearDownClass(cls):
@@ -104,11 +104,11 @@ class Tests(unittest.TestCase):
         dst_instrument = self.dst_instrument
         src_util = src_instrument.get_pe_manager()
         dst_util = dst_instrument.get_pe_manager()
-        if not hasattr(src_util.PE, "DIRECTORY_ENTRY_EXPORT"):
+        if not hasattr(src_util.pefile, "DIRECTORY_ENTRY_EXPORT"):
             print("THIS BINARY HAS NOT EXPORT.")
             return True
-        src_export_entry = src_util.PE.DIRECTORY_ENTRY_EXPORT
-        dst_export_entry = dst_util.PE.DIRECTORY_ENTRY_EXPORT
+        src_export_entry = src_util.pefile.DIRECTORY_ENTRY_EXPORT
+        dst_export_entry = dst_util.pefile.DIRECTORY_ENTRY_EXPORT
         src_export_entry_struct = src_export_entry.struct
         dst_export_entry_struct = dst_export_entry.struct
         src_fn_rva = []
@@ -117,13 +117,13 @@ class Tests(unittest.TestCase):
         for index in range(len(src_export_entry.symbols)):
             entry_fn_rva = src_export_entry_struct.AddressOfFunctions \
                            + (index * 4)
-            fn_rva = src_util.PE.get_dword_at_rva(entry_fn_rva)
+            fn_rva = src_util.pefile.get_dword_at_rva(entry_fn_rva)
             src_fn_rva.append(fn_rva)
 
         for index in range(len(dst_export_entry.symbols)):
             entry_fn_rva = dst_export_entry_struct.AddressOfFunctions \
                            + (index * 4)
-            fn_rva = dst_util.PE.get_dword_at_rva(entry_fn_rva)
+            fn_rva = dst_util.pefile.get_dword_at_rva(entry_fn_rva)
             dst_fn_rva.append(fn_rva)
 
         if len(src_fn_rva) != len(dst_fn_rva):
@@ -175,8 +175,8 @@ class Tests(unittest.TestCase):
             src_reloc = src_reloc_el[1]
             dst_reloc_address = int(dst_reloc_el[0])
             dst_reloc = dst_reloc_el[1]
-            src_reloc_data = int(src_manager.PE.get_dword_at_rva(src_reloc_address))
-            dst_reloc_data = int(dst_manager.PE.get_dword_at_rva(dst_reloc_address))
+            src_reloc_data = int(src_manager.pefile.get_dword_at_rva(src_reloc_address))
+            dst_reloc_data = int(dst_manager.pefile.get_dword_at_rva(dst_reloc_address))
 
             self.reloc_log.write(
                 "[{:04x}]\t[0x{:x}][0x{:x}][{}]\t[0x{:x}][0x{:x}][{}]\n"
@@ -211,6 +211,8 @@ class Tests(unittest.TestCase):
         dst_instrument = self.dst_instrument
         src_disassemble = src_instrument.get_instructions()
         dst_disassemble = dst_instrument.get_instructions()
+        src_instrument.save_instruction_log("source_instructions.log")
+        src_instrument.save_instruction_log("destiny_instructions.log")
         execute_start, execute_end = \
             src_instrument.get_pe_manager()\
             .get_text_section_virtual_address_range()
@@ -409,6 +411,9 @@ class Tests(unittest.TestCase):
         return result
 
     def checkCompareInstruction(self, dst_inst, src_inst):
+        if dst_inst._raw.id == 0:
+            print("point")
+            exit()
         if dst_inst.mnemonic == src_inst.mnemonic \
                 and dst_inst.op_str == src_inst.op_str:
             result = True
