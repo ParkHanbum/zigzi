@@ -1,0 +1,390 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Return Address Verifier &mdash; zigzi  documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  
+  
+    <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  
+
+  
+
+  
+        <link rel="index" title="Index"
+              href="genindex.html"/>
+        <link rel="search" title="Search" href="search.html"/>
+    <link rel="top" title="zigzi  documentation" href="index.html"/> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="index.html" class="icon icon-home"> zigzi
+          
+
+          
+            
+            <img src="_static/zigzi_icon_120x120.png" class="logo" />
+          
+          </a>
+
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="zigzi.html">zigzi package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="zigzi.html#submodules">Submodules</a></li>
+<li class="toctree-l2"><a class="reference internal" href="zigzi.html#module-zigzi.CodeManager">zigzi.CodeManager module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="zigzi.html#module-zigzi.DataObject">zigzi.DataObject module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="zigzi.html#module-zigzi.DataSegment">zigzi.DataSegment module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="zigzi.html#module-zigzi.Disassembler">zigzi.Disassembler module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="zigzi.html#module-zigzi.Heap">zigzi.Heap module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="zigzi.html#module-zigzi.Log">zigzi.Log module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="zigzi.html#module-zigzi.PEAnalyzeTool">zigzi.PEAnalyzeTool module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="zigzi.html#module-zigzi.PEInstrument">zigzi.PEInstrument module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="zigzi.html#module-zigzi.PEManager">zigzi.PEManager module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="zigzi.html#module-zigzi.SampleReturnVerifier">zigzi.SampleReturnVerifier module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="zigzi.html#module-zigzi.Stack">zigzi.Stack module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="zigzi.html#module-zigzi.WindowAPIHelper">zigzi.WindowAPIHelper module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="zigzi.html#module-zigzi">Module contents</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">zigzi</a>
+        
+      </nav>
+
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Return Address Verifier</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/tutorial.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="return-address-verifier">
+<h1>Return Address Verifier<a class="headerlink" href="#return-address-verifier" title="Permalink to this headline">¶</a></h1>
+<p>이번 장에서 <code class="docutils literal"><span class="pre">Zigzi</span></code> 를 활용하여 <code class="docutils literal"><span class="pre">Runtime</span></code> 에 함수의 복귀주소를 검증하는 기법인
+<code class="docutils literal"><span class="pre">Return</span> <span class="pre">Address</span> <span class="pre">Verifier</span></code> 를 구현해보고 이를 통해서 <code class="docutils literal"><span class="pre">Zigzi</span></code> 를 기반으로
+<code class="docutils literal"><span class="pre">Binary</span> <span class="pre">Instrumentation</span></code> 을 활용한 기능을 <code class="docutils literal"><span class="pre">Binary</span></code> 에 추가하는 방법을
+살펴보겠습니다.</p>
+<div class="section" id="pe">
+<h2>PE<a class="headerlink" href="#pe" title="Permalink to this headline">¶</a></h2>
+<p>먼저 Instrumentation 기능을 사용하기 위해 <code class="docutils literal"><span class="pre">PEInstrument</span></code> 모듈을,
+<code class="docutils literal"><span class="pre">Binary</span> <span class="pre">rewriting</span></code> 기능을 사용하기 위해 <code class="docutils literal"><span class="pre">File</span> <span class="pre">Manager</span></code> 인 <code class="docutils literal"><span class="pre">PEManager</span></code>
+모듈을 import 합니다.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">PEInstrument</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">PEManager</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">WindowAPIHelper</span> <span class="kn">import</span> <span class="o">*</span>
+</pre></div>
+</div>
+<p>또한 Return Address Verifier 를 통해 함수의 복귀주소가 변조됐을 시에 이를
+시각적으로 보여주기 위해서 <code class="docutils literal"><span class="pre">MessageBoxA</span></code> 를 사용할 목적으로 <code class="docutils literal"><span class="pre">WindowAPIHelper</span></code>
+모듈 또한 import 합니다.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="c1"># PE Manager</span>
+<span class="n">pe_manager</span> <span class="o">=</span> <span class="n">PEManager</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+<span class="c1"># add api</span>
+<span class="n">window_api_helper</span> <span class="o">=</span> <span class="n">WindowAPIHelper</span><span class="p">(</span><span class="n">pe_manager</span><span class="p">)</span>
+<span class="n">message_box_fn_rva</span> <span class="o">=</span> <span class="n">window_api_helper</span><span class="o">.</span><span class="n">add_message_box</span><span class="p">()</span>
+<span class="c1"># set new instrumentation</span>
+<span class="n">pe_instrument</span> <span class="o">=</span> <span class="n">PEInstrument</span><span class="p">(</span><span class="n">pe_manager</span><span class="p">)</span>
+
+<span class="c1"># instrument return address verifier feature to binary</span>
+<span class="n">do_return_address_verifier</span><span class="p">(</span><span class="n">pe_instrument</span><span class="p">,</span> <span class="n">pe_manager</span><span class="p">,</span> <span class="n">message_box_fn_rva</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>이제 원하는 Binary의 경로와 이름으로 생성된 PEManager와 WindowAPIHelper를 통해
+PEInstrument 와 MessageBox API의 Relative Virtual Address 값을 얻습니다.</p>
+<p>Return Address Verifier 기능을 구현하는 과정은 아래에서 다룹니다.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">do_return_address_verifier</span><span class="p">(</span><span class="n">pe_instrument</span><span class="p">,</span> <span class="n">pe_manager</span><span class="p">,</span> <span class="n">fn_rva</span><span class="p">):</span>
+    <span class="n">simple_instrument_error_handler</span><span class="p">(</span><span class="n">pe_instrument</span><span class="p">,</span> <span class="n">pe_manager</span><span class="p">,</span> <span class="n">fn_rva</span><span class="p">)</span>
+
+    <span class="c1"># case of relative branch instruction</span>
+    <span class="n">pe_instrument</span><span class="o">.</span><span class="n">register_after_relative_branch</span><span class="p">(</span>
+        <span class="n">simple_instrument_return_address_at_after_branch</span>
+    <span class="p">)</span>
+    <span class="c1"># case of indirect branch instruction</span>
+    <span class="n">pe_instrument</span><span class="o">.</span><span class="n">register_after_indirect_branch</span><span class="p">(</span>
+        <span class="n">simple_instrument_return_address_at_after_branch</span>
+    <span class="p">)</span>
+
+    <span class="c1"># case of return instruction</span>
+    <span class="n">pe_instrument</span><span class="o">.</span><span class="n">register_pre_return</span><span class="p">(</span>
+        <span class="n">simple_instrument_return_address_verifier_at_pre_return</span>
+    <span class="p">)</span>
+    <span class="n">pe_instrument</span><span class="o">.</span><span class="n">do_instrument</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Return Address Verifier 을 구현하는 과정은 크게 세 단계로 이루어집니다. 첫 번째,
+과정으로 함수의 복귀주소 검증이 실패했을시 이를 시각적으로 보여주기 위해서
+<code class="docutils literal"><span class="pre">MessageBox</span></code> 를 띄우는 API 호출 로직을 추가하는 과정입니다.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">simple_instrument_error_handler</span><span class="p">(</span><span class="n">pe_instrument</span><span class="p">,</span> <span class="n">pe_manager</span><span class="p">,</span> <span class="n">fn_rva</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">code_rva</span>
+    <span class="n">fn_va</span> <span class="o">=</span> <span class="n">pe_manager</span><span class="o">.</span><span class="n">get_abs_va_from_rva</span><span class="p">(</span><span class="n">fn_rva</span><span class="p">)</span>
+
+    <span class="n">allocation</span> <span class="o">=</span> <span class="n">pe_instrument</span><span class="o">.</span><span class="n">falloc</span><span class="p">(</span><span class="mh">0x1000</span><span class="p">)</span>
+    <span class="n">caption</span> <span class="o">=</span> <span class="s2">&quot;Zigzi&quot;</span>
+    <span class="n">text</span> <span class="o">=</span> <span class="s2">&quot;Failed to Verifying Return Address.&quot;</span>
+
+    <span class="n">allocation_va</span> <span class="o">=</span> <span class="n">allocation</span><span class="o">.</span><span class="n">get_va</span><span class="p">()</span>
+    <span class="n">caption_start_pos</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="n">text_start_pos</span> <span class="o">=</span> <span class="mh">0x100</span>
+    <span class="n">allocation</span><span class="p">[</span><span class="n">caption_start_pos</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">caption</span><span class="p">)]</span> <span class="o">=</span> <span class="n">caption</span>
+    <span class="n">allocation</span><span class="p">[</span><span class="n">text_start_pos</span><span class="p">:</span><span class="nb">len</span><span class="p">(</span><span class="n">text</span><span class="p">)]</span> <span class="o">=</span> <span class="n">text</span>
+
+    <span class="n">code</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;push 0;&quot;</span>   <span class="c1"># UINT    uType</span>
+            <span class="s2">&quot;push {};&quot;</span>   <span class="c1"># LPCTSTR lpCaption,</span>
+            <span class="s2">&quot;push {};&quot;</span>   <span class="c1"># LPCTSTR lpText,</span>
+            <span class="s2">&quot;push 0;&quot;</span>   <span class="c1"># HWND    hWnd</span>
+            <span class="s2">&quot;call [{}];&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">allocation_va</span> <span class="o">+</span> <span class="n">caption_start_pos</span><span class="p">,</span>
+                                 <span class="n">allocation_va</span> <span class="o">+</span> <span class="n">text_start_pos</span><span class="p">,</span>
+                                 <span class="n">fn_va</span><span class="p">)</span>
+    <span class="n">code_rva</span> <span class="o">=</span> <span class="n">pe_instrument</span><span class="o">.</span><span class="n">append_code</span><span class="p">(</span><span class="n">code</span><span class="p">)</span>
+    <span class="n">pe_manager</span><span class="o">.</span><span class="n">register_rva_to_relocation</span><span class="p">(</span><span class="n">code_rva</span>
+                                          <span class="o">+</span> <span class="mi">3</span>   <span class="c1"># push 0; push</span>
+                                          <span class="p">)</span>
+    <span class="n">pe_manager</span><span class="o">.</span><span class="n">register_rva_to_relocation</span><span class="p">(</span><span class="n">code_rva</span>
+                                          <span class="o">+</span> <span class="mi">3</span>   <span class="c1"># push 0; push</span>
+                                          <span class="o">+</span> <span class="mi">5</span>   <span class="c1"># lpCaption;push</span>
+                                          <span class="p">)</span>
+    <span class="n">pe_manager</span><span class="o">.</span><span class="n">register_rva_to_relocation</span><span class="p">(</span><span class="n">code_rva</span>
+                                          <span class="o">+</span> <span class="mi">3</span>   <span class="c1"># push 0; push</span>
+                                          <span class="o">+</span> <span class="mi">5</span>   <span class="c1"># lpCaption;push</span>
+                                          <span class="o">+</span> <span class="mi">4</span>   <span class="c1"># lptext</span>
+                                          <span class="o">+</span> <span class="mi">2</span>   <span class="c1"># push 0;</span>
+                                          <span class="o">+</span> <span class="mi">2</span>   <span class="c1"># call</span>
+                                          <span class="p">)</span>
+</pre></div>
+</div>
+<p>첫 번째 과정은,
+1. MessageBox 에 인자로 사용할 Text <code class="docutils literal"><span class="pre">Zigzi</span></code> 와 <code class="docutils literal"><span class="pre">Failed</span> <span class="pre">to</span> <span class="pre">Verifying</span> <span class="pre">Return</span> <span class="pre">Address.</span></code>
+를 Binary에 삽입 합니다.
+2. 1에서 Text가 삽입된 주소와 MessageBox API의 RVA(Relative Virtual Address)를
+기반으로 MessageBox를 호출하는 로직을 어셈블리어로 코딩하여 추가합니다.
+3. Text들과 MessageBox의 RVA는 상대주소이므로 Relocation 목록에 추가합니다.
+로 이루어지게 됩니다.</p>
+<p>위의 과정을 통해서 MessageBox를 호출하는 함수를 Binary에 추가했고 해당 함수의
+RVA를 획득합니다.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">simple_instrument_return_address_at_after_branch</span><span class="p">(</span><span class="n">instruction</span><span class="p">):</span>
+    <span class="n">code</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;prefetch [{0}]&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">instruction</span><span class="o">.</span><span class="n">address</span>
+                                    <span class="o">+</span> <span class="n">instruction</span><span class="o">.</span><span class="n">size</span>
+                                    <span class="o">+</span> <span class="mh">0x1000</span><span class="p">))</span>
+    <span class="n">hex_code</span> <span class="o">=</span> <span class="n">binascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">code</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;hex&#39;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Initialize engine in X86-32bit mode</span>
+        <span class="n">ks</span> <span class="o">=</span> <span class="n">Ks</span><span class="p">(</span><span class="n">KS_ARCH_X86</span><span class="p">,</span> <span class="n">KS_MODE_32</span><span class="p">)</span>
+        <span class="n">encoding</span><span class="p">,</span> <span class="n">count</span> <span class="o">=</span> <span class="n">ks</span><span class="o">.</span><span class="n">asm</span><span class="p">(</span><span class="n">hex_code</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">encoding</span><span class="p">,</span> <span class="n">count</span>
+    <span class="k">except</span> <span class="n">KsError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="s2">&quot;ERROR: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ex</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">None</span><span class="p">,</span> <span class="mi">0</span>
+</pre></div>
+</div>
+<p>우리가 이미 알다시피 함수를 호출하는 경우에 복귀할 주소는 해당 함수를 호출한 지점의
+다음 명령어입니다. 때문에 분기 명령어 계통의 다음 주소는 항상 복귀할 주소입니다.</p>
+<p>이 원리에 따라 모든 분기 명령어의 다음에 해당 분기 명령어의 다음 주소(복귀주소)
+에 해당 주소의 값을 저장하는 공간을 만듭니다.</p>
+<p>실행 간에 영향을 미치지 않도록 이 주소의 값을 저장하기 위해서 우리는 <code class="docutils literal"><span class="pre">prefetch</span></code>
+명령어를 사용할 것 입니다.</p>
+<div class="highlight-python"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">simple_instrument_return_address_verifier_at_pre_return</span><span class="p">(</span><span class="n">instruction</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">code_rva</span>
+    <span class="n">code</span> <span class="o">=</span> <span class="p">(</span>
+        <span class="s2">&quot;push ecx;&quot;</span>             <span class="c1"># store value</span>
+        <span class="s2">&quot;mov ecx, [esp+4];&quot;</span>     <span class="c1"># load return address to ecx</span>
+        <span class="s2">&quot;cmp [ecx+3], ecx;&quot;</span>     <span class="c1"># compare return address with RAV</span>
+        <span class="s2">&quot;jne {};&quot;</span>       <span class="c1"># if not equal, jump to error handler</span>
+        <span class="s2">&quot;pop ecx;&quot;</span>              <span class="c1"># recover value</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">code_rva</span> <span class="o">-</span> <span class="n">instruction</span><span class="o">.</span><span class="n">address</span> <span class="o">-</span> <span class="mh">0x1000</span>
+             <span class="o">+</span> <span class="mh">0xF</span>  <span class="c1"># instruction size till end of instruction.</span>
+             <span class="p">)</span>
+    <span class="n">hex_code</span> <span class="o">=</span> <span class="n">binascii</span><span class="o">.</span><span class="n">hexlify</span><span class="p">(</span><span class="n">code</span><span class="p">)</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;hex&#39;</span><span class="p">)</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="c1"># Initialize engine in X86-32bit mode</span>
+        <span class="n">ks</span> <span class="o">=</span> <span class="n">Ks</span><span class="p">(</span><span class="n">KS_ARCH_X86</span><span class="p">,</span> <span class="n">KS_MODE_32</span><span class="p">)</span>
+        <span class="n">encoding</span><span class="p">,</span> <span class="n">count</span> <span class="o">=</span> <span class="n">ks</span><span class="o">.</span><span class="n">asm</span><span class="p">(</span><span class="n">hex_code</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">encoding</span><span class="p">,</span> <span class="n">count</span>
+    <span class="k">except</span> <span class="n">KsError</span> <span class="k">as</span> <span class="n">ex</span><span class="p">:</span>
+        <span class="k">print</span><span class="p">(</span><span class="s2">&quot;ERROR: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">ex</span><span class="p">)</span>
+    <span class="k">return</span> <span class="bp">None</span><span class="p">,</span> <span class="mi">0</span>
+</pre></div>
+</div>
+<p>이제 함수가 호출된 후에 복귀를 하는 시점에, 스택에 저장된 복귀할 주소와 해당 주소에
+우리가 instrumentation 한 명령어 <code class="docutils literal"><span class="pre">prefetch</span></code> 의 operand 주소를 비교하면 복귀주소의
+검증을 수행할 수 있습니다.</p>
+<p>결과는 다음과 같네요.</p>
+</div>
+<div class="section" id="id1">
+<h2>시연<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<div style="margin-top:10px;">
+  <iframe width="560" height="315" src="https://www.youtube.com/embed/PvMBNOIPZs8" frameborder="0" allowfullscreen></iframe>
+</div></div>
+</div>
+
+
+           </div>
+           <div class="articleComments">
+            
+           </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017, Author.
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    <script type="text/javascript">
+        var DOCUMENTATION_OPTIONS = {
+            URL_ROOT:'./',
+            VERSION:'',
+            COLLAPSE_INDEX:false,
+            FILE_SUFFIX:'.html',
+            HAS_SOURCE:  true,
+            SOURCELINK_SUFFIX: '.txt'
+        };
+    </script>
+      <script type="text/javascript" src="_static/jquery.js"></script>
+      <script type="text/javascript" src="_static/underscore.js"></script>
+      <script type="text/javascript" src="_static/doctools.js"></script>
+
+  
+
+  
+  
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+  
+
+  
+  
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.StickyNav.enable();
+      });
+  </script>
+   
+
+</body>
+</html>
