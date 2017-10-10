@@ -101,17 +101,22 @@ todo_include_todos = True
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'classic'
+html_theme = "sphinx_rtd_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
 html_theme_options = {
-    "relbarbgcolor" : "black",
-    "sidebarbgcolor" : "black",
-    "footerbgcolor" : "black"
+    'collapse_navigation': False,
+    'display_version': False,
+    'navigation_depth': 3,
 }
+
+
+# The name of an image file (relative to this directory) to place at the top
+# of the sidebar.
+html_logo = '_static/zigzi_icon_120x120.png'
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

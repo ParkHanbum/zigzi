@@ -3,3 +3,4 @@ keystone-engine
 distorm3
 pefile
 sphinx
+sphinx_rtd_theme
