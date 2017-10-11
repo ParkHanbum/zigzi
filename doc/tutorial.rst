@@ -183,3 +183,10 @@ RVA를 획득합니다.
     <div style="margin-top:10px;">
       <iframe width="560" height="315" src="https://www.youtube.com/embed/PvMBNOIPZs8" frameborder="0" allowfullscreen></iframe>
     </div>
+
+
+
+.. warning::
+
+    위의 동영상은 Visual Studio 2015에서 작성된 window32 console 프로그램이며
+    시연의 편의를 위해 일부 수정하였습니다.
