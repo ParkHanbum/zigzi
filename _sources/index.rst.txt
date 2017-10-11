@@ -14,6 +14,12 @@ Welcome to zigzi's documentation!
 
 .. toctree::
    :maxdepth: 4
+   :caption: Installation and Integration
+
+   install.rst
+
+.. toctree::
+   :maxdepth: 4
    :caption: TUTORIAL
 
    tutorial.rst
